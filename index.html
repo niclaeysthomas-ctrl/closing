@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#0b0d10">
+<meta name="theme-color" content="#070b13">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Le Closing">
@@ -11,35 +11,48 @@
 <title>LE CLOSING — deviens le directeur financier</title>
 <style>
   :root{
-    --bg:#0b0d10; --bg2:#13161b; --bg3:#1c2027; --line:#2a2f38;
-    --txt:#edeef0; --dim:#8d94a0;
-    --acc:#e8b84b; --accd:#c2933a;
-    --blue:#5b9cff; --ok:#3ecf7a; --bad:#ff5c6c; --purple:#a78bfa;
-    --r:14px;
+    --bg:#070b13; --bg2:#0d1320; --bg3:#151d30; --line:#212b41;
+    --txt:#e8ebf2; --dim:#8a94ab;
+    --acc:#d6b25e; --accd:#a98c3f;
+    --blue:#5b9cff; --ok:#1fc584; --bad:#f4506a; --purple:#a78bfa;
+    --r:12px;
+    --serif:Georgia,'Times New Roman',serif;
+    --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{height:100%}
-  body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;overscroll-behavior:none}
+  body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;overscroll-behavior:none;
+    background-image:linear-gradient(rgba(120,145,190,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(120,145,190,.035) 1px,transparent 1px);
+    background-size:26px 26px;background-attachment:fixed}
   #app{max-width:520px;margin:0 auto;min-height:100%;display:flex;flex-direction:column}
   main{flex:1;padding:16px 16px 92px}
   header{padding:14px 16px 0;display:flex;align-items:center;justify-content:space-between}
-  .logo{font-weight:900;font-size:17px;letter-spacing:1.5px}
+  .logo{font-family:var(--serif);font-weight:700;font-size:19px;letter-spacing:2.5px}
   .logo span{color:var(--acc)}
   .hbadges{display:flex;gap:7px}
-  .badge{font-weight:700;font-size:12px;background:var(--bg2);border:1px solid var(--line);padding:6px 10px;border-radius:20px}
-  .badge.gold{color:var(--acc);border-color:#4a3d1e}
+  .badge{font-family:var(--mono);font-weight:700;font-size:11.5px;background:var(--bg2);border:1px solid var(--line);padding:6px 10px;border-radius:8px;letter-spacing:.3px}
+  .badge.gold{color:var(--acc);border-color:#453a20}
 
-  h1.page{font-size:22px;font-weight:800;margin-bottom:4px}
-  h2.sec{font-size:13px;text-transform:uppercase;letter-spacing:1.2px;color:var(--dim);margin:18px 0 8px;padding-left:2px}
+  #ticker{overflow:hidden;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#050810;margin-top:12px}
+  .tkwrap{display:inline-flex;white-space:nowrap;animation:tk 50s linear infinite;will-change:transform}
+  .tkwrap span{padding:7px 20px 7px 0;font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.6px;color:var(--dim)}
+  .tkwrap b{color:var(--acc);font-weight:700}
+  .tkwrap .up{color:var(--ok)} .tkwrap .dn{color:var(--bad)}
+  @keyframes tk{to{transform:translateX(-50%)}}
+
+  h1.page{font-family:var(--serif);font-size:23px;font-weight:700;letter-spacing:.3px;margin-bottom:4px}
+  h2.sec{font-size:12px;text-transform:uppercase;letter-spacing:1.6px;color:var(--dim);margin:18px 0 8px;padding-left:2px;display:flex;align-items:center;gap:10px}
+  h2.sec::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
   .sub{color:var(--dim);font-size:13px;margin-bottom:14px}
   .card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
 
-  .hero{background:linear-gradient(135deg,#1a1710,#221a0e);border:1px solid #3a3420;border-radius:var(--r);padding:16px;margin-bottom:12px}
-  .hero .rank{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--acc);font-weight:800}
-  .hero .big{font-size:21px;font-weight:800;margin:3px 0 8px}
-  .xpbar{height:10px;border-radius:5px;background:#0009;overflow:hidden;margin:6px 0 4px}
-  .xpbar i{display:block;height:100%;background:linear-gradient(90deg,var(--accd),var(--acc));border-radius:5px;transition:width .4s}
-  .xptxt{font-size:12px;color:var(--dim)}
+  .hero{background:linear-gradient(135deg,#101528,#1b1710);border:1px solid #453a20;border-top:2px solid var(--acc);border-radius:var(--r);padding:16px;margin-bottom:12px;position:relative}
+  .hero::after{content:"POSITION";position:absolute;top:10px;right:14px;font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--dim);opacity:.7}
+  .hero .rank{font-family:var(--serif);font-size:13px;letter-spacing:3px;text-transform:uppercase;color:var(--acc);font-weight:700}
+  .hero .big{font-family:var(--mono);font-size:22px;font-weight:800;margin:3px 0 8px;font-variant-numeric:tabular-nums}
+  .xpbar{height:9px;border-radius:2px;background:#0009;overflow:hidden;margin:6px 0 4px}
+  .xpbar i{display:block;height:100%;background:linear-gradient(90deg,var(--accd),var(--acc));border-radius:2px;transition:width .4s}
+  .xptxt{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.2px}
 
   .coach{background:var(--bg2);border-left:3px solid var(--acc);border-radius:0 var(--r) var(--r) 0;padding:13px 14px;margin-bottom:12px;font-size:14px;line-height:1.5}
   .coach b{color:var(--acc)}
@@ -55,7 +68,7 @@
   .act.done .st{color:var(--ok)}
   .act.rev{border-color:#3a3420}
 
-  .tag{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;background:var(--bg3);color:var(--acc);border:1px solid #3a3420;padding:3px 8px;border-radius:8px;margin-right:6px}
+  .tag{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;background:var(--bg3);color:var(--acc);border:1px solid #3d3626;padding:3px 8px;border-radius:5px;margin-right:6px}
   .tag.b{color:var(--blue);border-color:#1e2c4a}
 
   .btn{display:block;border:none;border-radius:12px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:var(--acc);color:#1a1300;width:100%;text-align:center;margin-top:12px}
@@ -68,10 +81,10 @@
   #ov .inner{max-width:520px;margin:0 auto;padding:14px 16px 60px}
   #ov .top{display:flex;align-items:center;gap:10px;margin-bottom:14px;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:5}
   #ov .top .x{width:36px;height:36px;border-radius:11px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);font-size:16px;cursor:pointer;flex-shrink:0}
-  #ov .top b{font-size:16px;flex:1}
-  #ov .top .timer{font-size:15px;font-weight:800;color:var(--acc);background:var(--bg2);border:1px solid #4a3d1e;padding:6px 11px;border-radius:10px;font-variant-numeric:tabular-nums}
+  #ov .top b{font-family:var(--serif);font-size:17px;letter-spacing:.3px;flex:1}
+  #ov .top .timer{font-family:var(--mono);font-size:15px;font-weight:800;color:var(--acc);background:var(--bg2);border:1px solid #453a20;padding:6px 11px;border-radius:8px;font-variant-numeric:tabular-nums}
   #ov .top .timer.low{color:var(--bad);border-color:#55232c}
-  .story p{font-size:15px;line-height:1.66;color:#dcdee2;margin-bottom:14px}
+  .story p{font-family:var(--serif);font-size:15.5px;line-height:1.72;color:#dde1ea;margin-bottom:14px}
   .meta{color:var(--dim);font-size:12.5px;margin-bottom:12px}
 
   .qq{font-size:16px;font-weight:700;line-height:1.45;margin-bottom:14px}
@@ -80,7 +93,7 @@
   .opt.ko{border-color:var(--bad);background:#2a151a}
   .opt[disabled]{cursor:default}
   .exp{background:var(--bg3);border-radius:12px;padding:12px;font-size:13.5px;line-height:1.5;color:#cfd3d9;margin:4px 0 8px;border-left:3px solid var(--acc)}
-  .prog{font-size:12px;color:var(--dim);margin-bottom:10px}
+  .prog{font-family:var(--mono);font-size:11px;letter-spacing:.4px;color:var(--dim);margin-bottom:10px}
 
   textarea{width:100%;min-height:130px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;color:var(--txt);padding:12px;font-size:14px;font-family:inherit;line-height:1.5;resize:vertical}
   textarea:focus{outline:none;border-color:var(--acc)}
@@ -91,15 +104,15 @@
   .selfrow .r{background:#3a1a20;color:var(--bad)}
   .selfrow .m{background:var(--bg3);color:var(--txt);border:1px solid var(--line)}
   .selfrow .s{background:var(--ok);color:#02180b}
-  .coachnote{background:#221a0e;border:1px solid #3a3420;border-radius:12px;padding:12px 13px;font-size:13.5px;line-height:1.55;margin-top:10px}
+  .coachnote{background:#141625;border:1px solid #3d3626;border-radius:12px;padding:12px 13px;font-size:13.5px;line-height:1.55;margin-top:10px}
   .coachnote b{color:var(--acc)}
 
   .result{text-align:center;padding:26px 10px}
-  .result .big{font-size:42px;font-weight:900}
-  .result .xp{color:var(--acc);font-weight:800;font-size:16px;margin-top:6px}
+  .result .big{font-family:var(--mono);font-size:42px;font-weight:800;font-variant-numeric:tabular-nums}
+  .result .xp{font-family:var(--mono);color:var(--acc);font-weight:800;font-size:15px;margin-top:6px}
   .result p{color:var(--dim);font-size:14px;margin-top:8px;line-height:1.5}
 
-  nav{position:fixed;bottom:0;left:0;right:0;background:rgba(11,13,16,.95);backdrop-filter:blur(12px);border-top:1px solid var(--line);z-index:40}
+  nav{position:fixed;bottom:0;left:0;right:0;background:rgba(7,11,19,.95);backdrop-filter:blur(12px);border-top:1px solid var(--line);z-index:40}
   nav .in{max-width:520px;margin:0 auto;display:flex}
   nav button{flex:1;background:none;border:none;color:var(--dim);font-size:10.5px;font-weight:700;padding:9px 0 max(9px,env(safe-area-inset-bottom));cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
   nav button i{font-style:normal;font-size:19px}
@@ -110,8 +123,8 @@
   .mod .t{flex:1}
   .mod .t b{font-size:14.5px;display:block}
   .mod .t small{color:var(--dim);font-size:12px;line-height:1.35;display:block;margin-top:2px}
-  .mod .pc{font-size:12px;font-weight:800;color:var(--acc)}
-  .mod.gold{border-color:#3a3420;background:linear-gradient(135deg,#17130c,#1a160d)}
+  .mod .pc{font-family:var(--mono);font-size:12px;font-weight:800;color:var(--acc)}
+  .mod.gold{border-color:#3d3626;background:linear-gradient(135deg,#101526,#191712)}
 
   .ranks li{list-style:none;display:flex;justify-content:space-between;padding:9px 4px;border-bottom:1px solid var(--line);font-size:14px}
   .ranks li:last-child{border:none}
@@ -121,8 +134,8 @@
 
   .statgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
   .stat{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:13px;text-align:center}
-  .stat b{font-size:22px;display:block}
-  .stat small{color:var(--dim);font-size:11.5px}
+  .stat b{font-family:var(--mono);font-size:21px;display:block;font-variant-numeric:tabular-nums}
+  .stat small{font-family:var(--mono);color:var(--dim);font-size:10px;letter-spacing:.6px}
   .danger{color:var(--bad);background:none;border:1px solid #55232c;border-radius:12px;width:100%;padding:12px;font-size:13px;font-weight:700;cursor:pointer;margin-top:10px}
 
   .hm{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,12px);gap:3px;justify-content:start;margin-top:10px;overflow-x:auto;padding-bottom:4px}
@@ -139,14 +152,14 @@
   .lex .h .c{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--dim)}
   .lex p{font-size:13px;color:#c8ccd2;line-height:1.5;margin-top:4px}
 
-  #toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%) translateY(20px);background:#221a0e;border:1px solid #4a3d1e;color:var(--txt);padding:12px 18px;border-radius:14px;font-size:14px;font-weight:600;z-index:60;opacity:0;pointer-events:none;transition:all .25s;max-width:90%;text-align:center}
+  #toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%) translateY(20px);background:#141625;border:1px solid #453a20;color:var(--txt);padding:12px 18px;border-radius:12px;font-size:14px;font-weight:600;z-index:60;opacity:0;pointer-events:none;transition:all .25s;max-width:90%;text-align:center}
 
   .cardbox{background:var(--bg2);border:1px solid var(--line);border-radius:18px;padding:28px 20px;min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;margin-bottom:14px;animation:cardin .25s ease}
   @keyframes cardin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
   .cardbox .side{font-size:10.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--acc);margin-bottom:12px}
   .cardbox .cardq{color:var(--dim);font-size:13px;font-weight:700;line-height:1.45;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--line);width:100%}
-  .cardbox .txt{font-size:19px;font-weight:700;line-height:1.4}
-  .cardbox .txt.def{font-size:15px;font-weight:400;line-height:1.6;color:#dcdee2;text-align:left}
+  .cardbox .txt{font-family:var(--serif);font-size:20px;font-weight:700;line-height:1.4}
+  .cardbox .txt.def{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:15px;font-weight:400;line-height:1.6;color:#dde1ea;text-align:left}
   .cardbox .hint{color:var(--dim);font-size:12.5px;margin-top:14px}
   .raterow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
   .raterow button{border:none;border-radius:12px;padding:14px 8px;font-size:13.5px;font-weight:700;cursor:pointer;color:var(--txt)}
@@ -174,6 +187,7 @@
       <div class="badge gold" id="hrank">Stagiaire</div>
     </div>
   </header>
+  <div id="ticker"><div class="tkwrap" id="tkin"></div></div>
   <main id="main"></main>
 </div>
 
@@ -227,7 +241,29 @@ function addXP(n){
   const after=rank()[0];
   if(after!==before) setTimeout(()=>toast("👑 <b>PROMOTION</b> — tu passes <b>"+after+"</b>. Le titre se garde en le méritant chaque jour."),700);
 }
-function header(){ document.getElementById("hstreak").textContent=dispStreak(); document.getElementById("hrank").textContent=rank()[0]; }
+function header(){ document.getElementById("hstreak").textContent=dispStreak(); document.getElementById("hrank").textContent=rank()[0]; renderTicker(); }
+function renderTicker(){
+  const el=document.getElementById("tkin"); if(!el) return;
+  const due=cardsDue().length, revN=dueRevs().length, missN=S.miss.length;
+  const m=S.menu, dayOk=m&&m.date===today()&&m.validated;
+  const items=[
+    ["XP",S.xp,""],
+    ["GRADE",rank()[0].toUpperCase(),""],
+    ["STREAK",dispStreak()+(dispStreak()>0?" ▲":""),dispStreak()>0?"up":"dn"],
+    ["JOURNÉE",dayOk?"VALIDÉE ▲":"EN COURS",dayOk?"up":""],
+    ["DEALS",S.done.deals.length+"/"+DEALS.length,""],
+    ["LEÇONS",S.done.lessons.length+"/"+LESSONS.length,""],
+    ["CARTES DUES",due,due>0?"dn":"up"],
+    ["RÉVISIONS",revN,revN>0?"dn":"up"],
+    ["RATTRAPAGE",missN,missN>0?"dn":"up"],
+    ["ENTRETIEN FR",S.itv.best+"/12",""],
+    ["ENTRETIEN EN",S.itv.bestEN+"/12",""],
+    ["MISSION",S.missions[isoWeek()]?"FAITE ▲":"OUVERTE",S.missions[isoWeek()]?"up":""],
+    ["MÉMOS",S.memos,""]
+  ];
+  const html=items.map(x=>`<span>${x[0]} <b class="${x[2]}">${x[1]}</b></span>`).join("");
+  el.innerHTML=html+html; // dupliqué pour la boucle sans couture
+}
 let toastT=null;
 function toast(html){
   const t=document.getElementById("toast");
