@@ -144,6 +144,7 @@
   .cardbox{background:var(--bg2);border:1px solid var(--line);border-radius:18px;padding:28px 20px;min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;margin-bottom:14px;animation:cardin .25s ease}
   @keyframes cardin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
   .cardbox .side{font-size:10.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--acc);margin-bottom:12px}
+  .cardbox .cardq{color:var(--dim);font-size:13px;font-weight:700;line-height:1.45;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--line);width:100%}
   .cardbox .txt{font-size:19px;font-weight:700;line-height:1.4}
   .cardbox .txt.def{font-size:15px;font-weight:400;line-height:1.6;color:#dcdee2;text-align:left}
   .cardbox .hint{color:var(--dim);font-size:12.5px;margin-top:14px}
@@ -193,11 +194,12 @@
 <script src="data-lexique.js"></script>
 <script src="data-drills.js"></script>
 <script src="data-flashcards.js"></script>
+<script src="data-feynman.js"></script>
 <script>
 // ================= ÉTAT =================
 const RANKS=[["Stagiaire",0],["Analyst",150],["Associate",400],["VP",800],["Director",1400],["Managing Director",2200],["Rainmaker",3200]];
 const KEY="closing_v1";
-const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{}};
+const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{}};
 let S=load();
 function load(){
   let s={};
@@ -239,7 +241,8 @@ const SPAR={
   nego:{l:()=>NEGOS,d:()=>S.done.negos,ico:"🤺",lab:"Négociation"},
   teaser:{l:()=>TEASERS,d:()=>S.done.teasers,ico:"🧠",lab:"Brain teaser"},
   cascade:{l:()=>CASCADES,d:()=>S.done.cascades,ico:"📊",lab:"Cascade comptable"},
-  plbo:{l:()=>PLBO,d:()=>S.done.plbo,ico:"🧾",lab:"Paper LBO"}
+  plbo:{l:()=>PLBO,d:()=>S.done.plbo,ico:"🧾",lab:"Paper LBO"},
+  feyn:{l:()=>FEYNMAN,d:()=>S.done.feyn,ico:"🧒",lab:"Expliqué simplement"}
 };
 const SPARROT=["case","nego","cascade","teaser","plbo"];
 function isoWeek(){
@@ -291,12 +294,14 @@ function revLabel(e){
   if(e.t==="teaser"){const x=TEASERS.find(y=>y.id===e.id); return x?["🧠","Teaser — "+x.cat]:null;}
   if(e.t==="cascade"){const x=CASCADES.find(y=>y.id===e.id); return x?["📊","Cascade — "+x.title]:null;}
   if(e.t==="plbo"){const x=PLBO.find(y=>y.id===e.id); return x?["🧾","Paper LBO — "+x.title]:null;}
+  if(e.t==="feyn"){const x=FEYNMAN.find(y=>y.id===e.id); return x?["🧒","Feynman — "+x.title]:null;}
   return null;
 }
 function openRev(t,id){
   if(t==="deal") return dealQuiz(id);
   if(t==="lesson") return lessonQuiz(id);
   if(t==="teaser") return openTeaser(id);
+  if(t==="feyn") return openFeyn(id);
   return openSpar(t,id);
 }
 
@@ -316,19 +321,23 @@ function missItems(){
 function nextUndone(list,doneIds){ return list.find(x=>!doneIds.includes(x.id))||list[Math.floor(Math.random()*list.length)]; }
 function ensureMenu(){
   const t=today();
-  if(S.menu&&S.menu.date===t) return;
+  if(S.menu&&S.menu.date===t){
+    if(S.menu.dCards===undefined){ S.menu.dCards=false; save(); } // migration des menus d'avant l'ajout des flashcards
+    return;
+  }
   const doy=Math.floor((new Date()-new Date(new Date().getFullYear(),0,0))/864e5);
   const sparType=SPARROT[doy%SPARROT.length];
   S.menu={date:t,deal:nextUndone(DEALS,S.done.deals).id,lesson:nextUndone(LESSONS,S.done.lessons).id,
-    sparType,spar:nextUndone(SPAR[sparType].l(),SPAR[sparType].d()).id,dDeal:false,dLesson:false,dSpar:false,validated:false};
+    sparType,spar:nextUndone(SPAR[sparType].l(),SPAR[sparType].d()).id,dDeal:false,dLesson:false,dSpar:false,dCards:false,validated:false};
   save();
 }
 function checkMenu(kind,id){
   const m=S.menu; if(!m||m.date!==today()) return;
   if(kind==="deal"&&id===m.deal) m.dDeal=true;
   if(kind==="lesson"&&id===m.lesson) m.dLesson=true;
+  if(kind==="cards") m.dCards=true;
   if(SPAR[kind]&&kind===m.sparType&&id===m.spar) m.dSpar=true;
-  if(m.dDeal&&m.dLesson&&m.dSpar&&!m.validated){
+  if(m.dDeal&&m.dLesson&&m.dSpar&&m.dCards&&!m.validated){
     m.validated=true;
     S.streak=(S.lastVal===yesterday())?S.streak+1:1;
     S.lastVal=today();
@@ -351,8 +360,8 @@ function coachLine(){
     return "Journée validée, révisions à jour. C'est le niveau attendu, pas un exploit. <b>Reviens demain.</b>";
   }
   if(dispStreak()===0) return "Streak à <b>zéro</b>. En M&A, la régularité n'est pas une qualité, c'est le ticket d'entrée. Trente minutes. Maintenant.";
-  const left=[!m.dDeal&&"le deal",!m.dLesson&&"la leçon",!m.dSpar&&"le sparring"].filter(Boolean);
-  if(left.length===3) return "Rien de fait aujourd'hui. Le deal du jour t'attend — <b>on lit d'abord, on brille ensuite</b>.";
+  const left=[!m.dDeal&&"le deal",!m.dLesson&&"la leçon",!m.dSpar&&"le sparring",!m.dCards&&"les flashcards"].filter(Boolean);
+  if(left.length===4) return "Rien de fait aujourd'hui. Le deal du jour t'attend — <b>on lit d'abord, on brille ensuite</b>.";
   return "Il te reste <b>"+left.join(" et ")+"</b>. On ne laisse pas un menu à moitié terminé — c'est exactement le flou qu'on chasse.";
 }
 
@@ -382,7 +391,7 @@ function vJour(){
     <div class="st">›</div></div>`:"";
   return `
   <h1 class="page">Le menu du jour</h1>
-  <div class="sub">${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})} — 30 minutes, trois exercices, zéro excuse.</div>
+  <div class="sub">${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})} — 30 minutes, quatre exercices, zéro excuse.</div>
   <div class="hero">
     <div class="rank">${r[0]}</div>
     <div class="big">${S.xp} XP</div>
@@ -402,9 +411,9 @@ function vJour(){
     <div class="ico">${sparIco}</div><div class="t"><b>${sparLabel} — ${spar.title||spar.cat}</b><small>tu réponds par écrit AVANT de voir la grille (~10 min)</small></div>
     <div class="st">${m.dSpar?"✓":"›"}</div>
   </div>
-  <div class="act rev" onclick="openCardIntro()">
-    <div class="ico">🃏</div><div class="t"><b>Flashcards${cardsDue().length?" — "+cardsDue().length+" due"+(cardsDue().length>1?"s":""):""}</b><small>${cardsDue().length?"la mémoire se paie chaque jour, pas en dernière minute":cardsNew().length<FLASHCARDS.length?cardsMastered()+" cartes maîtrisées sur "+FLASHCARDS.length:"178 cartes de vocabulaire, à découvrir"}</small></div>
-    <div class="st">↻</div>
+  <div class="act ${m.dCards?"done":""}" onclick="openCardIntro()">
+    <div class="ico">🃏</div><div class="t"><b>Flashcards${cardsDue().length?" — "+cardsDue().length+" due"+(cardsDue().length>1?"s":""):""}</b><small>${m.dCards?"session du jour faite — les intervalles font le reste":cardsDue().length?"une session pour valider la journée (~5 min)":"une session (jusqu'à 15 nouvelles cartes) pour valider la journée (~5 min)"}</small></div>
+    <div class="st">${m.dCards?"✓":"›"}</div>
   </div>
   <h2 class="sec">Le réel de la semaine — l'app ne suffit pas</h2>
   <div class="act ${missionDone?"done":""} rev" onclick="openMission()">
@@ -437,6 +446,10 @@ function vAcad(){
   <div class="mod gold" onclick="openLexique()">
     <div class="ico">📕</div><div class="t"><b>Lexique du deal-maker</b><small>${LEXIQUE.length} termes FR/EN avec définitions. Le vocabulaire EST la légitimité.</small></div>
     <div class="pc">›</div>
+  </div>
+  <div class="mod gold" onclick="openFeynList()">
+    <div class="ico">🧒</div><div class="t"><b>Expliqué simplement — méthode Feynman</b><small>Les concepts clés sans jargon, puis À TOI de les expliquer. Si tu ne peux pas l'expliquer, tu ne l'as pas compris.</small></div>
+    <div class="pc">${S.done.feyn.length}/${FEYNMAN.length}</div>
   </div>`+
   MODULES.map(m=>{
     const ls=LESSONS.filter(l=>l.module===m.id);
@@ -481,7 +494,7 @@ function heatmap(){
 }
 function vProfil(){
   const r=rank();
-  const total=S.done.deals.length+S.done.lessons.length+S.done.cases.length+S.done.negos.length+S.done.teasers.length;
+  const total=S.done.deals.length+S.done.lessons.length+S.done.cases.length+S.done.negos.length+S.done.teasers.length+S.done.cascades.length+S.done.plbo.length+S.done.feyn.length;
   return `<h1 class="page">Profil</h1><div class="sub">Les chiffres ne mentent pas — c'est même leur seul défaut.</div>
   <div class="statgrid">
     <div class="stat"><b>${S.xp}</b><small>XP TOTAL</small></div>
@@ -659,6 +672,7 @@ function startCardSession(catFilter){
   const shuffled=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
   const queue=[...shuffled(dueFiltered),...shuffled(newIds).slice(0,15)];
   if(!queue.length){
+    if(!catFilter) checkMenu("cards"); // rien de dû ni de nouveau : l'exercice du jour est réputé fait
     openOv(ovTop("Flashcards")+`
       <div class="result"><div class="big">✓</div><p>Rien à réviser pour l'instant${catFilter?" dans « "+catFilter+" »":""}. ${cardsNew().length?"":"Tu as vu les "+FLASHCARDS.length+" cartes au moins une fois — la répétition espacée fait le reste, reviens quand une carte sera due."}</p></div>
       <button class="btn ghost" onclick="closeOv()">Fermer</button>`);
@@ -692,11 +706,12 @@ function flipCard(){
   if(CS.revealed) return;
   CS.revealed=true;
   const c=FLASHCARDS.find(x=>x.id===CS.queue[CS.i]);
+  const front=CS.reversed?c.verso:c.recto;
   const back=CS.reversed?c.recto:c.verso;
   const backIsLong=!CS.reversed;
   document.querySelector(".cardbox").outerHTML=`
     <div class="cardbox">
-      <div class="side">Réponse</div>
+      <div class="cardq">${front}</div>
       <div class="txt ${backIsLong?"def":""}">${back}</div>
     </div>`;
   const div=document.createElement("div");
@@ -717,6 +732,7 @@ function rateCard(q){
   cardStep();
 }
 function cardSessionEnd(){
+  checkMenu("cards");
   const pct=CS.startCount?Math.round(CS.good/CS.startCount*100):0;
   const msg=pct>=80?"Mémoire solide sur cette session. C'est exactement l'effet recherché : la répétition espacée qui tient.":
     pct>=50?"Correct. Les cartes ratées reviendront vite — c'est voulu, pas punitif.":
@@ -826,6 +842,27 @@ function revealTeaser(id){
       <button class="btn m" onclick="selfScore('teaser','${id}',1)">Presque</button>
       <button class="btn s" onclick="selfScore('teaser','${id}',2)">Oui, structuré</button>
     </div>`);
+}
+
+// ---------- EXPLIQUÉ SIMPLEMENT (FEYNMAN) ----------
+function openFeynList(){
+  openOv(ovTop("Expliqué simplement")+`
+    <div class="coach">La méthode Feynman en deux temps : tu lis l'explication <b>sans jargon</b>, puis tu la réexpliques toi-même, par écrit, comme à quelqu'un qui n'y connaît rien. C'est l'exercice le plus exposant de l'app — et donc celui qui te fera le plus progresser.</div>`+
+    FEYNMAN.map(f=>`
+    <div class="act ${S.done.feyn.includes(f.id)?"done":""}" onclick="openFeyn('${f.id}')">
+      <div class="ico">🧒</div><div class="t"><b>${f.title}</b><small>${f.tag}</small></div>
+      <div class="st">${S.done.feyn.includes(f.id)?"✓":"›"}</div>
+    </div>`).join(""));
+}
+function openFeyn(id){
+  const f=FEYNMAN.find(x=>x.id===id);
+  openOv(ovTop(f.title)+`
+    <div class="meta"><span class="tag">${f.tag}</span>Version sans jargon — lis d'abord, explique ensuite.</div>
+    <div class="story">${f.simple.map(p=>`<p>${p}</p>`).join("")}</div>
+    <div class="coach"><b>À toi :</b> ${f.mission}</div>
+    <p class="sub" style="margin:12px 0 6px">Ton explication écrite — avec TES mots et TES images. <b>Minimum 200 caractères. Chaque mot de jargon non traduit compte contre toi.</b></p>
+    <textarea id="sparTxt" placeholder="Explique comme si la personne était en face de toi…" oninput="document.getElementById('revealBtn').disabled=this.value.trim().length<200"></textarea>
+    <button class="btn" id="revealBtn" disabled onclick="revealGrid('feyn','${id}')">Vérifier mon explication</button>`);
 }
 
 // ---------- RATTRAPAGE ----------
