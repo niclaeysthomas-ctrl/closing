@@ -594,7 +594,9 @@ function lessonQuiz(id){
 // ---------- LEXIQUE ----------
 function openLexique(){
   openOv(ovTop("Lexique du deal-maker")+`
-    <input class="search" id="lexq" placeholder="Cherche un terme… (français ou anglais)" oninput="renderLex(this.value)">
+    <a class="btn" href="anki-closing.txt" download="anki-closing.txt" style="display:block;text-decoration:none;text-align:center">📥 Télécharger le deck Anki (178 cartes)</a>
+    <div class="coach" style="margin-top:10px">Dans Anki : Fichier → Importer → sélectionne ce fichier. Tout se configure tout seul (séparateur, colonnes, type de note). Le lexique ci-dessous est pour chercher un terme à la volée ; Anki est pour le faire rentrer dans ta mémoire pour de bon.</div>
+    <input class="search" id="lexq" placeholder="Cherche un terme… (français ou anglais)" oninput="renderLex(this.value)" style="margin-top:12px">
     <div id="lexlist"></div>`);
   renderLex("");
 }
