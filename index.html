@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0b0d10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Le Closing">
+<link rel="manifest" href="manifest.webmanifest">
+<title>LE CLOSING — deviens le directeur financier</title>
+<style>
+  :root{
+    --bg:#0b0d10; --bg2:#13161b; --bg3:#1c2027; --line:#2a2f38;
+    --txt:#edeef0; --dim:#8d94a0;
+    --acc:#e8b84b; --accd:#c2933a;
+    --blue:#5b9cff; --ok:#3ecf7a; --bad:#ff5c6c; --purple:#a78bfa;
+    --r:14px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;overscroll-behavior:none}
+  #app{max-width:520px;margin:0 auto;min-height:100%;display:flex;flex-direction:column}
+  main{flex:1;padding:16px 16px 92px}
+  header{padding:14px 16px 0;display:flex;align-items:center;justify-content:space-between}
+  .logo{font-weight:900;font-size:17px;letter-spacing:1.5px}
+  .logo span{color:var(--acc)}
+  .hbadges{display:flex;gap:7px}
+  .badge{font-weight:700;font-size:12px;background:var(--bg2);border:1px solid var(--line);padding:6px 10px;border-radius:20px}
+  .badge.gold{color:var(--acc);border-color:#4a3d1e}
+
+  h1.page{font-size:22px;font-weight:800;margin-bottom:4px}
+  h2.sec{font-size:13px;text-transform:uppercase;letter-spacing:1.2px;color:var(--dim);margin:18px 0 8px;padding-left:2px}
+  .sub{color:var(--dim);font-size:13px;margin-bottom:14px}
+  .card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
+
+  .hero{background:linear-gradient(135deg,#1a1710,#221a0e);border:1px solid #3a3420;border-radius:var(--r);padding:16px;margin-bottom:12px}
+  .hero .rank{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--acc);font-weight:800}
+  .hero .big{font-size:21px;font-weight:800;margin:3px 0 8px}
+  .xpbar{height:10px;border-radius:5px;background:#0009;overflow:hidden;margin:6px 0 4px}
+  .xpbar i{display:block;height:100%;background:linear-gradient(90deg,var(--accd),var(--acc));border-radius:5px;transition:width .4s}
+  .xptxt{font-size:12px;color:var(--dim)}
+
+  .coach{background:var(--bg2);border-left:3px solid var(--acc);border-radius:0 var(--r) var(--r) 0;padding:13px 14px;margin-bottom:12px;font-size:14px;line-height:1.5}
+  .coach b{color:var(--acc)}
+
+  .act{display:flex;align-items:center;gap:11px;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:13px;margin-bottom:8px;cursor:pointer}
+  .act:active{background:var(--bg3)}
+  .act .ico{width:38px;height:38px;border-radius:11px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+  .act .t{flex:1;min-width:0}
+  .act .t b{display:block;font-size:14px}
+  .act .t small{color:var(--dim);font-size:12px;line-height:1.35;display:block;margin-top:1px}
+  .act .st{font-size:18px;flex-shrink:0;color:var(--dim)}
+  .act.done{opacity:.55}
+  .act.done .st{color:var(--ok)}
+  .act.rev{border-color:#3a3420}
+
+  .tag{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;background:var(--bg3);color:var(--acc);border:1px solid #3a3420;padding:3px 8px;border-radius:8px;margin-right:6px}
+  .tag.b{color:var(--blue);border-color:#1e2c4a}
+
+  .btn{display:block;border:none;border-radius:12px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:var(--acc);color:#1a1300;width:100%;text-align:center;margin-top:12px}
+  .btn:active{transform:scale(.97)}
+  .btn.ghost{background:var(--bg3);color:var(--txt);border:1px solid var(--line)}
+  .btn[disabled]{opacity:.4;pointer-events:none}
+
+  #ov{position:fixed;inset:0;background:var(--bg);z-index:50;display:none;overflow-y:auto}
+  #ov.on{display:block}
+  #ov .inner{max-width:520px;margin:0 auto;padding:14px 16px 60px}
+  #ov .top{display:flex;align-items:center;gap:10px;margin-bottom:14px;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:5}
+  #ov .top .x{width:36px;height:36px;border-radius:11px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);font-size:16px;cursor:pointer;flex-shrink:0}
+  #ov .top b{font-size:16px;flex:1}
+  #ov .top .timer{font-size:15px;font-weight:800;color:var(--acc);background:var(--bg2);border:1px solid #4a3d1e;padding:6px 11px;border-radius:10px;font-variant-numeric:tabular-nums}
+  #ov .top .timer.low{color:var(--bad);border-color:#55232c}
+  .story p{font-size:15px;line-height:1.66;color:#dcdee2;margin-bottom:14px}
+  .meta{color:var(--dim);font-size:12.5px;margin-bottom:12px}
+
+  .qq{font-size:16px;font-weight:700;line-height:1.45;margin-bottom:14px}
+  .opt{display:block;width:100%;text-align:left;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:13px;font-size:14px;line-height:1.4;color:var(--txt);margin-bottom:8px;cursor:pointer}
+  .opt.ok{border-color:var(--ok);background:#10231a}
+  .opt.ko{border-color:var(--bad);background:#2a151a}
+  .opt[disabled]{cursor:default}
+  .exp{background:var(--bg3);border-radius:12px;padding:12px;font-size:13.5px;line-height:1.5;color:#cfd3d9;margin:4px 0 8px;border-left:3px solid var(--acc)}
+  .prog{font-size:12px;color:var(--dim);margin-bottom:10px}
+
+  textarea{width:100%;min-height:130px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;color:var(--txt);padding:12px;font-size:14px;font-family:inherit;line-height:1.5;resize:vertical}
+  textarea:focus{outline:none;border-color:var(--acc)}
+  .gridpt{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 13px;font-size:13.5px;line-height:1.55;color:#d5d8dd;margin-bottom:8px}
+  .gridpt b{color:var(--acc)}
+  .selfrow{display:flex;gap:8px;margin-top:12px}
+  .selfrow .btn{margin-top:0;font-size:13px;padding:12px 6px}
+  .selfrow .r{background:#3a1a20;color:var(--bad)}
+  .selfrow .m{background:var(--bg3);color:var(--txt);border:1px solid var(--line)}
+  .selfrow .s{background:var(--ok);color:#02180b}
+  .coachnote{background:#221a0e;border:1px solid #3a3420;border-radius:12px;padding:12px 13px;font-size:13.5px;line-height:1.55;margin-top:10px}
+  .coachnote b{color:var(--acc)}
+
+  .result{text-align:center;padding:26px 10px}
+  .result .big{font-size:42px;font-weight:900}
+  .result .xp{color:var(--acc);font-weight:800;font-size:16px;margin-top:6px}
+  .result p{color:var(--dim);font-size:14px;margin-top:8px;line-height:1.5}
+
+  nav{position:fixed;bottom:0;left:0;right:0;background:rgba(11,13,16,.95);backdrop-filter:blur(12px);border-top:1px solid var(--line);z-index:40}
+  nav .in{max-width:520px;margin:0 auto;display:flex}
+  nav button{flex:1;background:none;border:none;color:var(--dim);font-size:10.5px;font-weight:700;padding:9px 0 max(9px,env(safe-area-inset-bottom));cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
+  nav button i{font-style:normal;font-size:19px}
+  nav button.on{color:var(--acc)}
+
+  .mod{display:flex;align-items:center;gap:11px;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:13px;margin-bottom:8px;cursor:pointer}
+  .mod .ico{font-size:22px}
+  .mod .t{flex:1}
+  .mod .t b{font-size:14.5px;display:block}
+  .mod .t small{color:var(--dim);font-size:12px;line-height:1.35;display:block;margin-top:2px}
+  .mod .pc{font-size:12px;font-weight:800;color:var(--acc)}
+  .mod.gold{border-color:#3a3420;background:linear-gradient(135deg,#17130c,#1a160d)}
+
+  .ranks li{list-style:none;display:flex;justify-content:space-between;padding:9px 4px;border-bottom:1px solid var(--line);font-size:14px}
+  .ranks li:last-child{border:none}
+  .ranks li.cur{color:var(--acc);font-weight:800}
+  .ranks li.past{color:var(--dim)}
+  .ranks li small{color:var(--dim)}
+
+  .statgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+  .stat{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:13px;text-align:center}
+  .stat b{font-size:22px;display:block}
+  .stat small{color:var(--dim);font-size:11.5px}
+  .danger{color:var(--bad);background:none;border:1px solid #55232c;border-radius:12px;width:100%;padding:12px;font-size:13px;font-weight:700;cursor:pointer;margin-top:10px}
+
+  .hm{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,12px);gap:3px;justify-content:start;margin-top:10px;overflow-x:auto;padding-bottom:4px}
+  .hm i{width:12px;height:12px;border-radius:3px;background:var(--bg3)}
+  .hm i.on{background:var(--acc)}
+  .hm i.today{outline:1px solid var(--dim)}
+
+  .search{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:12px;color:var(--txt);padding:11px 13px;font-size:14px;margin-bottom:12px}
+  .search:focus{outline:none;border-color:var(--acc)}
+  .lex{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:7px}
+  .lex .h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .lex .h b{font-size:14px}
+  .lex .h .en{color:var(--blue);font-size:12px;font-style:italic}
+  .lex .h .c{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--dim)}
+  .lex p{font-size:13px;color:#c8ccd2;line-height:1.5;margin-top:4px}
+
+  #toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%) translateY(20px);background:#221a0e;border:1px solid #4a3d1e;color:var(--txt);padding:12px 18px;border-radius:14px;font-size:14px;font-weight:600;z-index:60;opacity:0;pointer-events:none;transition:all .25s;max-width:90%;text-align:center}
+  #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  #toast b{color:var(--acc)}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">LE <span>CLOSING</span></div>
+    <div class="hbadges">
+      <div class="badge">🔥 <span id="hstreak">0</span></div>
+      <div class="badge gold" id="hrank">Stagiaire</div>
+    </div>
+  </header>
+  <main id="main"></main>
+</div>
+
+<div id="ov"><div class="inner" id="ovin"></div></div>
+<div id="toast"></div>
+
+<nav><div class="in">
+  <button data-v="jour"><i>🎯</i>Jour</button>
+  <button data-v="deals"><i>📖</i>Deals</button>
+  <button data-v="acad"><i>🎓</i>Académie</button>
+  <button data-v="spar"><i>🥊</i>Sparring</button>
+  <button data-v="profil"><i>👑</i>Profil</button>
+</div></nav>
+
+<script src="data-deals.js"></script>
+<script src="data-academy.js"></script>
+<script src="data-sparring.js"></script>
+<script src="data-lexique.js"></script>
+<script src="data-drills.js"></script>
+<script>
+// ================= ÉTAT =================
+const RANKS=[["Stagiaire",0],["Analyst",150],["Associate",400],["VP",800],["Director",1400],["Managing Director",2200],["Rainmaker",3200]];
+const KEY="closing_v1";
+const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{}};
+let S=load();
+function load(){
+  let s={};
+  try{ s=JSON.parse(localStorage.getItem(KEY))||{}; }catch(e){}
+  const o=Object.assign({},DEF,s);
+  o.done=Object.assign({},DEF.done,s.done||{});
+  o.itv=Object.assign({},DEF.itv,s.itv||{});
+  o.rev=s.rev||[]; o.miss=s.miss||[]; o.days=s.days||[];
+  o.missions=s.missions||{}; o.memos=s.memos||0; o.memoDraft=s.memoDraft||{};
+  return o;
+}
+function save(){ localStorage.setItem(KEY,JSON.stringify(S)); }
+function today(){ return new Date().toISOString().slice(0,10); }
+function addDays(n){ const d=new Date(Date.now()+n*864e5); return d.toISOString().slice(0,10); }
+function yesterday(){ return addDays(-1); }
+function esc(x){ return String(x).replace(/</g,"&lt;"); }
+
+function rank(){ let r=RANKS[0]; for(const x of RANKS){ if(S.xp>=x[1]) r=x; } return r; }
+function nextRank(){ for(const x of RANKS){ if(S.xp<x[1]) return x; } return null; }
+function dispStreak(){ return (S.lastVal===today()||S.lastVal===yesterday()) ? S.streak : 0; }
+function addXP(n){
+  if(n<=0){save();header();return;}
+  const before=rank()[0]; S.xp+=n; save(); header();
+  const after=rank()[0];
+  if(after!==before) setTimeout(()=>toast("👑 <b>PROMOTION</b> — tu passes <b>"+after+"</b>. Le titre se garde en le méritant chaque jour."),700);
+}
+function header(){ document.getElementById("hstreak").textContent=dispStreak(); document.getElementById("hrank").textContent=rank()[0]; }
+let toastT=null;
+function toast(html){
+  const t=document.getElementById("toast");
+  t.innerHTML=html; t.classList.add("on");
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("on"),3200);
+}
+
+// ================= SPARRING : registre des types =================
+const SPAR={
+  case:{l:()=>CASES,d:()=>S.done.cases,ico:"🪑",lab:"Sur la sellette"},
+  nego:{l:()=>NEGOS,d:()=>S.done.negos,ico:"🤺",lab:"Négociation"},
+  teaser:{l:()=>TEASERS,d:()=>S.done.teasers,ico:"🧠",lab:"Brain teaser"},
+  cascade:{l:()=>CASCADES,d:()=>S.done.cascades,ico:"📊",lab:"Cascade comptable"},
+  plbo:{l:()=>PLBO,d:()=>S.done.plbo,ico:"🧾",lab:"Paper LBO"}
+};
+const SPARROT=["case","nego","cascade","teaser","plbo"];
+function isoWeek(){
+  const d=new Date(); d.setHours(0,0,0,0);
+  d.setDate(d.getDate()+3-((d.getDay()+6)%7));
+  const w1=new Date(d.getFullYear(),0,4);
+  return d.getFullYear()+"-W"+String(1+Math.round(((d-w1)/864e5-3+((w1.getDay()+6)%7))/7)).padStart(2,"0");
+}
+function weekMission(){
+  const wk=isoWeek();
+  const n=parseInt(wk.slice(0,4))*53+parseInt(wk.slice(6));
+  return {wk, m:MISSIONS[n%MISSIONS.length]};
+}
+
+// ================= RÉVISION ESPACÉE (J+3 / J+7 / J+21) =================
+const STEPS=[3,7,21];
+function scheduleRev(t,id){
+  if(!S.rev.find(e=>e.t===t&&e.id===id)) S.rev.push({t,id,step:0,due:addDays(STEPS[0])});
+}
+function bumpRev(t,id){
+  const e=S.rev.find(x=>x.t===t&&x.id===id);
+  if(!e||e.due>today()) return;
+  e.step++;
+  if(e.step>=STEPS.length){ S.rev=S.rev.filter(x=>x!==e); toast("🧠 <b>Acquis.</b> Trois révisions tenues — ce sujet est à toi."); }
+  else e.due=addDays(STEPS[e.step]);
+}
+function dueRevs(){ const t=today(); return S.rev.filter(e=>e.due<=t); }
+function revLabel(e){
+  if(e.t==="deal"){const d=DEALS.find(x=>x.id===e.id); return d?["📖","Deal — "+d.title]:null;}
+  if(e.t==="lesson"){const l=LESSONS.find(x=>x.id===e.id); return l?["🎓","Leçon — "+l.title]:null;}
+  if(e.t==="case"){const c=CASES.find(x=>x.id===e.id); return c?["🪑","Cas DAF — "+c.title]:null;}
+  if(e.t==="nego"){const n=NEGOS.find(x=>x.id===e.id); return n?["🤺","Négo — "+n.title]:null;}
+  if(e.t==="teaser"){const x=TEASERS.find(y=>y.id===e.id); return x?["🧠","Teaser — "+x.cat]:null;}
+  if(e.t==="cascade"){const x=CASCADES.find(y=>y.id===e.id); return x?["📊","Cascade — "+x.title]:null;}
+  if(e.t==="plbo"){const x=PLBO.find(y=>y.id===e.id); return x?["🧾","Paper LBO — "+x.title]:null;}
+  return null;
+}
+function openRev(t,id){
+  if(t==="deal") return dealQuiz(id);
+  if(t==="lesson") return lessonQuiz(id);
+  if(t==="teaser") return openTeaser(id);
+  return openSpar(t,id);
+}
+
+// ================= ERREURS / RATTRAPAGE =================
+function recMiss(base){ if(!S.miss.includes(base)) S.miss.push(base); }
+function missItems(){
+  const out=[];
+  for(const m of S.miss){
+    const [k,id,qi]=m.split("|");
+    const src=k==="D"?DEALS.find(d=>d.id===id):LESSONS.find(l=>l.id===id);
+    if(src&&src.questions[qi]) out.push({ref:m,q:src.questions[qi],from:(k==="D"?"Deal — ":"Leçon — ")+src.title});
+  }
+  return out;
+}
+
+// ================= MENU DU JOUR =================
+function nextUndone(list,doneIds){ return list.find(x=>!doneIds.includes(x.id))||list[Math.floor(Math.random()*list.length)]; }
+function ensureMenu(){
+  const t=today();
+  if(S.menu&&S.menu.date===t) return;
+  const doy=Math.floor((new Date()-new Date(new Date().getFullYear(),0,0))/864e5);
+  const sparType=SPARROT[doy%SPARROT.length];
+  S.menu={date:t,deal:nextUndone(DEALS,S.done.deals).id,lesson:nextUndone(LESSONS,S.done.lessons).id,
+    sparType,spar:nextUndone(SPAR[sparType].l(),SPAR[sparType].d()).id,dDeal:false,dLesson:false,dSpar:false,validated:false};
+  save();
+}
+function checkMenu(kind,id){
+  const m=S.menu; if(!m||m.date!==today()) return;
+  if(kind==="deal"&&id===m.deal) m.dDeal=true;
+  if(kind==="lesson"&&id===m.lesson) m.dLesson=true;
+  if(SPAR[kind]&&kind===m.sparType&&id===m.spar) m.dSpar=true;
+  if(m.dDeal&&m.dLesson&&m.dSpar&&!m.validated){
+    m.validated=true;
+    S.streak=(S.lastVal===yesterday())?S.streak+1:1;
+    S.lastVal=today();
+    if(!S.days.includes(today())) S.days.push(today());
+    addXP(20);
+    setTimeout(()=>toast("🔥 <b>Journée validée.</b> Streak : "+S.streak+" (+20 XP)"),400);
+  }
+  save(); header();
+}
+
+// ================= VUES =================
+let view="jour";
+function nav(v){ view=v; document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v)); render(); window.scrollTo(0,0); }
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>nav(b.dataset.v));
+
+function coachLine(){
+  const m=S.menu, nRev=dueRevs().length;
+  if(m.validated){
+    if(nRev>0) return "Journée validée — mais il te reste <b>"+nRev+" révision"+(nRev>1?"s":"")+"</b> en retard ci-dessous. Ce qu'on ne révise pas, on l'a juste loué.";
+    return "Journée validée, révisions à jour. C'est le niveau attendu, pas un exploit. <b>Reviens demain.</b>";
+  }
+  if(dispStreak()===0) return "Streak à <b>zéro</b>. En M&A, la régularité n'est pas une qualité, c'est le ticket d'entrée. Trente minutes. Maintenant.";
+  const left=[!m.dDeal&&"le deal",!m.dLesson&&"la leçon",!m.dSpar&&"le sparring"].filter(Boolean);
+  if(left.length===3) return "Rien de fait aujourd'hui. Le deal du jour t'attend — <b>on lit d'abord, on brille ensuite</b>.";
+  return "Il te reste <b>"+left.join(" et ")+"</b>. On ne laisse pas un menu à moitié terminé — c'est exactement le flou qu'on chasse.";
+}
+
+function vJour(){
+  ensureMenu();
+  const m=S.menu,r=rank(),nr=nextRank();
+  const deal=DEALS.find(d=>d.id===m.deal),les=LESSONS.find(l=>l.id===m.lesson);
+  const sp=SPAR[m.sparType];
+  const spar=sp.l().find(s=>s.id===m.spar);
+  const sparLabel=sp.lab, sparIco=sp.ico;
+  const pct=nr?Math.min(100,Math.round((S.xp-r[1])/(nr[1]-r[1])*100)):100;
+  const wm=weekMission(), missionDone=!!S.missions[wm.wk];
+  const isSunday=new Date().getDay()===0;
+  const revs=dueRevs();
+  let revHtml="";
+  if(revs.length){
+    revHtml=`<h2 class="sec">Révisions dues — la mémoire se paie</h2>`+revs.slice(0,5).map(e=>{
+      const lab=revLabel(e); if(!lab) return "";
+      return `<div class="act rev" onclick="openRev('${e.t}','${e.id}')">
+        <div class="ico">${lab[0]}</div><div class="t"><b>${lab[1]}</b><small>révision ${e.step+1}/3 · due depuis le ${e.due.split("-").reverse().slice(0,2).join("/")}</small></div>
+        <div class="st">↻</div></div>`;
+    }).join("");
+  }
+  const nMiss=S.miss.length;
+  const missHtml=nMiss?`<div class="act rev" onclick="startRattrapage()">
+    <div class="ico">🩹</div><div class="t"><b>Rattrapage — ${nMiss} question${nMiss>1?"s":""} ratée${nMiss>1?"s":""}</b><small>tes erreurs t'attendent. Elles ne partiront pas seules.</small></div>
+    <div class="st">›</div></div>`:"";
+  return `
+  <h1 class="page">Le menu du jour</h1>
+  <div class="sub">${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})} — 30 minutes, trois exercices, zéro excuse.</div>
+  <div class="hero">
+    <div class="rank">${r[0]}</div>
+    <div class="big">${S.xp} XP</div>
+    <div class="xpbar"><i style="width:${pct}%"></i></div>
+    <div class="xptxt">${nr?`${nr[1]-S.xp} XP avant le grade ${nr[0]}`:"Grade maximal. Reste au sommet."}</div>
+  </div>
+  <div class="coach">${coachLine()}</div>
+  <div class="act ${m.dDeal?"done":""}" onclick="openDeal('${deal.id}')">
+    <div class="ico">📖</div><div class="t"><b>Le deal du jour — ${deal.title}</b><small>${deal.tag} · ${deal.year} · histoire + quiz (~10 min)</small></div>
+    <div class="st">${m.dDeal?"✓":"›"}</div>
+  </div>
+  <div class="act ${m.dLesson?"done":""}" onclick="openLesson('${les.id}')">
+    <div class="ico">🎓</div><div class="t"><b>Leçon — ${les.title}</b><small>${MODULES.find(x=>x.id===les.module).name} · cours + quiz (~10 min)</small></div>
+    <div class="st">${m.dLesson?"✓":"›"}</div>
+  </div>
+  <div class="act ${m.dSpar?"done":""}" onclick="openSpar('${m.sparType}','${spar.id}')">
+    <div class="ico">${sparIco}</div><div class="t"><b>${sparLabel} — ${spar.title||spar.cat}</b><small>tu réponds par écrit AVANT de voir la grille (~10 min)</small></div>
+    <div class="st">${m.dSpar?"✓":"›"}</div>
+  </div>
+  <h2 class="sec">Le réel de la semaine — l'app ne suffit pas</h2>
+  <div class="act ${missionDone?"done":""} rev" onclick="openMission()">
+    <div class="ico">🌍</div><div class="t"><b>Mission terrain — ${wm.m.title}</b><small>${missionDone?"validée cette semaine (+30 XP)":"une par semaine, preuve écrite exigée (+30 XP)"}</small></div>
+    <div class="st">${missionDone?"✓":"›"}</div>
+  </div>
+  <div class="act rev" onclick="openMemo()">
+    <div class="ico">📝</div><div class="t"><b>Le mémo du dimanche${isSunday?" — c'est aujourd'hui":""}</b><small>${S.memos?S.memos+" mémo"+(S.memos>1?"s":"")+" rédigé"+(S.memos>1?"s":"")+" · ":""}1 page d'analyse d'une vraie société, à soumettre à ton coach (+40 XP)</small></div>
+    <div class="st">›</div>
+  </div>
+  ${revHtml}${missHtml}`;
+}
+
+function vDeals(){
+  return `<h1 class="page">Deals réels</h1><div class="sub">${S.done.deals.length}/${DEALS.length} lus. Chaque histoire est un cas d'école payé des milliards par d'autres.</div>`+
+  DEALS.map(d=>`
+  <div class="act ${S.done.deals.includes(d.id)?"done":""}" onclick="openDeal('${d.id}')">
+    <div class="ico">📖</div><div class="t"><b>${d.title}</b><small><span class="tag">${d.tag}</span>${d.year} · ${d.place}</small></div>
+    <div class="st">${S.done.deals.includes(d.id)?"✓":"›"}</div>
+  </div>`).join("");
+}
+
+function vAcad(){
+  return `<h1 class="page">Académie</h1><div class="sub">${S.done.lessons.length}/${LESSONS.length} leçons. Du bilan au SPA — le juridique n'est pas en option.</div>
+  <div class="mod gold" onclick="openLexique()">
+    <div class="ico">📕</div><div class="t"><b>Lexique du deal-maker</b><small>${LEXIQUE.length} termes FR/EN avec définitions. Le vocabulaire EST la légitimité.</small></div>
+    <div class="pc">›</div>
+  </div>`+
+  MODULES.map(m=>{
+    const ls=LESSONS.filter(l=>l.module===m.id);
+    const done=ls.filter(l=>S.done.lessons.includes(l.id)).length;
+    return `<div class="mod" onclick="openModule('${m.id}')">
+      <div class="ico">${m.icon}</div>
+      <div class="t"><b>${m.name}</b><small>${m.desc}</small></div>
+      <div class="pc">${done}/${ls.length}</div>
+    </div>`;
+  }).join("");
+}
+
+function vSpar(){
+  const dc=S.done.cases.length,dn=S.done.negos.length,dt=S.done.teasers.length,dk=S.done.cascades.length,dp=S.done.plbo.length,nMiss=S.miss.length;
+  return `<h1 class="page">Sparring</h1><div class="sub">Ici tu réponds par écrit avant de voir la grille. Le flou ne passe pas.</div>
+  <div class="mod gold" onclick="startInterview()">
+    <div class="ico">🎙️</div><div class="t"><b>Mode entretien — 12 questions, 8 minutes</b><small>${S.itv.runs?`Meilleur score : ${S.itv.best}/12 sur ${S.itv.runs} passage${S.itv.runs>1?"s":""}.`:"Jamais tenté. Un vrai entretien ne prévient pas non plus."}</small></div>
+    <div class="pc">›</div>
+  </div>
+  <div class="mod gold" onclick="startInterviewEN()">
+    <div class="ico">🇬🇧</div><div class="t"><b>Interview in English — 12 questions, 8 minutes</b><small>${S.itv.runsEN?`Best score: ${S.itv.bestEN}/12 over ${S.itv.runsEN} run${S.itv.runsEN>1?"s":""}.`:"Never attempted. Half your real interviews will be in English."}</small></div>
+    <div class="pc">›</div>
+  </div>
+  ${nMiss?`<div class="mod gold" onclick="startRattrapage()">
+    <div class="ico">🩹</div><div class="t"><b>Rattrapage</b><small>${nMiss} question${nMiss>1?"s":""} ratée${nMiss>1?"s":""} à retravailler — jusqu'à en venir à bout.</small></div>
+    <div class="pc">${nMiss}</div>
+  </div>`:""}
+  <div class="mod" onclick="openSparList('cascade')"><div class="ico">📊</div><div class="t"><b>Cascades comptables</b><small>« Un amortissement de 10… » : déroule P&L → flux → bilan. LA question d'entretien.</small></div><div class="pc">${dk}/${CASCADES.length}</div></div>
+  <div class="mod" onclick="openSparList('plbo')"><div class="ico">🧾</div><div class="t"><b>Paper LBO</b><small>Dérouler un LBO de tête en 5 minutes. Le rite de passage du private equity.</small></div><div class="pc">${dp}/${PLBO.length}</div></div>
+  <div class="mod" onclick="openSparList('case')"><div class="ico">🪑</div><div class="t"><b>Sur la sellette — cas de DAF</b><small>Le board te cuisine. Trésorerie, éthique, M&A, cyber, activistes.</small></div><div class="pc">${dc}/${CASES.length}</div></div>
+  <div class="mod" onclick="openSparList('nego')"><div class="ico">🤺</div><div class="t"><b>Négociation</b><small>Scénarios réels : SPA, covenants, banquiers, ton propre package.</small></div><div class="pc">${dn}/${NEGOS.length}</div></div>
+  <div class="mod" onclick="openSparList('teaser')"><div class="ico">🧠</div><div class="t"><b>Brain teasers d'entretien</b><small>Market sizing, calcul mental, logique. Chrono dans la tête.</small></div><div class="pc">${dt}/${TEASERS.length}</div></div>`;
+}
+
+function heatmap(){
+  const cells=[];const t=new Date();
+  for(let i=69;i>=0;i--){
+    const d=new Date(t-i*864e5).toISOString().slice(0,10);
+    cells.push(`<i class="${S.days.includes(d)?"on":""}${d===today()?" today":""}" title="${d}"></i>`);
+  }
+  return `<div class="hm">${cells.join("")}</div>`;
+}
+function vProfil(){
+  const r=rank();
+  const total=S.done.deals.length+S.done.lessons.length+S.done.cases.length+S.done.negos.length+S.done.teasers.length;
+  return `<h1 class="page">Profil</h1><div class="sub">Les chiffres ne mentent pas — c'est même leur seul défaut.</div>
+  <div class="statgrid">
+    <div class="stat"><b>${S.xp}</b><small>XP TOTAL</small></div>
+    <div class="stat"><b>${dispStreak()} 🔥</b><small>STREAK</small></div>
+    <div class="stat"><b>${total}</b><small>EXERCICES FAITS</small></div>
+    <div class="stat"><b>${S.rev.length}</b><small>EN RÉVISION</small></div>
+    <div class="stat"><b>${S.done.deals.length}/${DEALS.length}</b><small>DEALS</small></div>
+    <div class="stat"><b>${S.itv.best}/12</b><small>ENTRETIEN FR</small></div>
+    <div class="stat"><b>${S.itv.bestEN}/12</b><small>ENTRETIEN EN</small></div>
+    <div class="stat"><b>${Object.keys(S.missions).length}</b><small>MISSIONS TERRAIN</small></div>
+    <div class="stat"><b>${S.memos}</b><small>MÉMOS RÉDIGÉS</small></div>
+  </div>
+  <div class="card"><b style="font-size:14px">Tes 10 dernières semaines</b>${heatmap()}
+    <div class="xptxt" style="margin-top:6px">Un carré doré = une journée validée. Les trous se voient — c'est le but.</div>
+  </div>
+  <div class="card"><b style="font-size:14px">La hiérarchie</b>
+    <ul class="ranks" style="margin-top:8px">
+      ${RANKS.map(x=>`<li class="${x[0]===r[0]?"cur":(S.xp>=x[1]?"past":"")}"><span>${x[0]}</span><small>${x[1]} XP</small></li>`).join("")}
+    </ul>
+  </div>
+  <div class="coach">Le grade ne compte pas. Ce qui compte : est-ce que tu répondrais mieux qu'hier si un associé te cuisinait <b>maintenant</b> ?</div>
+  <button class="btn ghost" onclick="exportSave()">Exporter ma progression (copie JSON)</button>
+  <button class="btn ghost" onclick="importSave()">Importer une progression</button>
+  <button class="danger" onclick="if(confirm('Tout effacer ? XP, streak, révisions, progression. Irréversible.')){localStorage.removeItem(KEY);location.reload()}">Réinitialiser toute la progression</button>`;
+}
+
+function exportSave(){
+  const data=JSON.stringify(S);
+  const done=()=>toast("📋 <b>Progression copiée.</b> Colle-la dans une note, un mail, où tu veux — c'est ta sauvegarde.");
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(data).then(done,()=>prompt("Copie ce JSON :",data));
+  else prompt("Copie ce JSON :",data);
+}
+function importSave(){
+  const raw=prompt("Colle ici le JSON exporté :");
+  if(!raw) return;
+  try{ const s=JSON.parse(raw); if(typeof s.xp!=="number"||!s.done) throw 0;
+    localStorage.setItem(KEY,raw); location.reload();
+  }catch(e){ toast("❌ JSON invalide. Rien n'a été modifié."); }
+}
+
+function render(){
+  ensureMenu();
+  document.getElementById("main").innerHTML=({jour:vJour,deals:vDeals,acad:vAcad,spar:vSpar,profil:vProfil})[view]();
+  header();
+}
+
+// ================= OVERLAY =================
+const ov=document.getElementById("ov"),ovin=document.getElementById("ovin");
+function openOv(html){ ovin.innerHTML=html; ov.classList.add("on"); ov.scrollTop=0; }
+function closeOv(){ stopTimer(); ov.classList.remove("on"); render(); }
+function ovTop(title,timer){ return `<div class="top"><button class="x" onclick="closeOv()">✕</button><b>${title}</b>${timer?'<span class="timer" id="qtimer">8:00</span>':""}</div>`; }
+
+// ---------- QUIZ ENGINE ----------
+let Q=null,TMR=null;
+function shuffle(n){ const a=[...Array(n).keys()]; for(let i=n-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function startQuiz(items,title,onDone,opts){
+  Q={items,i:0,good:0,onDone,title,missBase:(opts&&opts.missBase)||null,timed:!!(opts&&opts.timed)};
+  if(Q.timed) startTimer(480);
+  quizStep();
+}
+function startTimer(sec){
+  stopTimer(); Q.left=sec;
+  TMR=setInterval(()=>{
+    Q.left--;
+    const el=document.getElementById("qtimer");
+    if(el){ el.textContent=Math.floor(Q.left/60)+":"+String(Q.left%60).padStart(2,"0"); if(Q.left<=60) el.classList.add("low"); }
+    if(Q.left<=0){ stopTimer(); if(Q&&Q.onDone){ const cb=Q.onDone; const g=Q.good,t=Q.items.length; Q=null; cb(g,t,true); } }
+  },1000);
+}
+function stopTimer(){ if(TMR){clearInterval(TMR);TMR=null;} }
+function quizStep(){
+  const q=Q.items[Q.i];
+  Q.map=shuffle(q.opts.length);
+  openOv(ovTop(Q.title,Q.timed)+`
+    <div class="prog">Question ${Q.i+1}/${Q.items.length}${Q.from?` — <span style="color:var(--acc)">${Q.from}</span>`:""}</div>
+    ${q.from?`<div class="prog" style="margin-top:-6px">${q.from}</div>`:""}
+    <div class="qq">${q.q}</div>
+    ${Q.map.map((oi,pos)=>`<button class="opt" onclick="answer(${pos})">${q.opts[oi]}</button>`).join("")}
+    <div id="qexp"></div>`);
+  if(Q.timed&&Q.left!=null){const el=document.getElementById("qtimer");if(el){el.textContent=Math.floor(Q.left/60)+":"+String(Q.left%60).padStart(2,"0");if(Q.left<=60)el.classList.add("low");}}
+}
+function answer(pos){
+  const q=Q.items[Q.i],orig=Q.map[pos],ok=orig===q.a;
+  if(ok){ Q.good++; if(q.ref){ S.miss=S.miss.filter(m=>m!==q.ref); save(); } }
+  else if(Q.missBase){ recMiss(Q.missBase(Q.i)); save(); }
+  else if(q.ref){ /* rattrapage raté : la question reste */ }
+  document.querySelectorAll(".opt").forEach((b,k)=>{
+    b.disabled=true;
+    if(Q.map[k]===q.a) b.classList.add("ok");
+    else if(k===pos) b.classList.add("ko");
+  });
+  document.getElementById("qexp").innerHTML=`<div class="exp"><b style="color:${ok?"var(--ok)":"var(--bad)"}">${ok?"Exact.":"Non."}</b> ${q.exp}</div>
+    <button class="btn" onclick="quizNext()">${Q.i+1<Q.items.length?"Question suivante":"Voir le verdict"}</button>`;
+}
+function quizNext(){ Q.i++; if(Q.i<Q.items.length) quizStep(); else { stopTimer(); const cb=Q.onDone,g=Q.good,t=Q.items.length; Q=null; cb(g,t,false); } }
+
+function quizVerdict(good,total,xp,extra){
+  const pct=good/total;
+  const verdict=pct===1?"Sans faute.":pct>=0.75?"Solide.":pct>=0.5?"Moyen. En entretien, « moyen » élimine.":"Insuffisant. Tes erreurs sont dans le Rattrapage — elles t'attendent.";
+  openOv(ovTop("Verdict")+`
+    <div class="result">
+      <div class="big">${good}/${total}</div>
+      <div class="xp">+${xp} XP</div>
+      <p>${verdict}${extra||""}</p>
+    </div>
+    <button class="btn" onclick="closeOv()">Continuer</button>`);
+}
+
+// ---------- DEALS ----------
+function openDeal(id){
+  const d=DEALS.find(x=>x.id===id);
+  openOv(ovTop(d.title)+`
+    <div class="meta"><span class="tag">${d.tag}</span>${d.year} · ${d.place}</div>
+    <div class="story">${d.story.map(p=>`<p>${p}</p>`).join("")}</div>
+    <div class="coach"><b>À retenir :</b> ${d.lesson}</div>
+    <button class="btn" onclick="dealQuiz('${d.id}')">Passer au quiz — prouve que tu as lu</button>`);
+}
+function dealQuiz(id){
+  const d=DEALS.find(x=>x.id===id);
+  startQuiz(d.questions,d.title,(good,total)=>{
+    const first=!S.done.deals.includes(id);
+    const xp=first?good*5+10:good*2;
+    if(first){ S.done.deals.push(id); scheduleRev("deal",id); } else bumpRev("deal",id);
+    addXP(xp); checkMenu("deal",id); save();
+    quizVerdict(good,total,xp,first?"":" (révision)");
+  },{missBase:i=>"D|"+id+"|"+i});
+}
+
+// ---------- ACADÉMIE ----------
+function openModule(mid){
+  const m=MODULES.find(x=>x.id===mid);
+  openOv(ovTop(m.name)+`<div class="sub" style="margin-bottom:14px">${m.desc}</div>`+
+    LESSONS.filter(l=>l.module===mid).map(l=>`
+    <div class="act ${S.done.lessons.includes(l.id)?"done":""}" onclick="openLesson('${l.id}')">
+      <div class="ico">${m.icon}</div><div class="t"><b>${l.title}</b><small>cours + ${l.questions.length} questions</small></div>
+      <div class="st">${S.done.lessons.includes(l.id)?"✓":"›"}</div>
+    </div>`).join(""));
+}
+function openLesson(id){
+  const l=LESSONS.find(x=>x.id===id);
+  openOv(ovTop(l.title)+`
+    <div class="meta">${MODULES.find(x=>x.id===l.module).icon} ${MODULES.find(x=>x.id===l.module).name}</div>
+    <div class="story">${l.content.map(p=>`<p>${p}</p>`).join("")}</div>
+    <button class="btn" onclick="lessonQuiz('${l.id}')">Quiz — on vérifie</button>`);
+}
+function lessonQuiz(id){
+  const l=LESSONS.find(x=>x.id===id);
+  startQuiz(l.questions,l.title,(good,total)=>{
+    const first=!S.done.lessons.includes(id);
+    const xp=first?good*4+8:good*2;
+    if(first){ S.done.lessons.push(id); scheduleRev("lesson",id); } else bumpRev("lesson",id);
+    addXP(xp); checkMenu("lesson",id); save();
+    quizVerdict(good,total,xp,first?"":" (révision)");
+  },{missBase:i=>"L|"+id+"|"+i});
+}
+
+// ---------- LEXIQUE ----------
+function openLexique(){
+  openOv(ovTop("Lexique du deal-maker")+`
+    <input class="search" id="lexq" placeholder="Cherche un terme… (français ou anglais)" oninput="renderLex(this.value)">
+    <div id="lexlist"></div>`);
+  renderLex("");
+}
+function renderLex(q){
+  q=q.trim().toLowerCase();
+  const hits=LEXIQUE.filter(x=>!q||x.t.toLowerCase().includes(q)||x.en.toLowerCase().includes(q)||x.d.toLowerCase().includes(q));
+  document.getElementById("lexlist").innerHTML=hits.length?hits.map(x=>`
+    <div class="lex"><div class="h"><b>${x.t}</b><span class="en">${x.en}</span><span class="c">${x.cat}</span></div><p>${x.d}</p></div>`).join("")
+    :`<div class="sub" style="text-align:center;padding:20px">Aucun terme. Si tu penses qu'il manque, c'est peut-être qu'il faut l'apprendre ailleurs — ou me le demander.</div>`;
+}
+
+// ---------- SPARRING ----------
+function openSparList(type){
+  const sp=SPAR[type];
+  const list=sp.l(), done=sp.d(), title=sp.lab, ico=sp.ico;
+  openOv(ovTop(title)+list.map(s=>`
+    <div class="act ${done.includes(s.id)?"done":""}" onclick="openSpar('${type}','${s.id}')">
+      <div class="ico">${ico}</div><div class="t"><b>${s.title||s.q.slice(0,60)+"…"}</b><small>${s.tag||s.cat}</small></div>
+      <div class="st">${done.includes(s.id)?"✓":"›"}</div>
+    </div>`).join(""));
+}
+function openSpar(type,id){
+  if(type==="teaser") return openTeaser(id);
+  const s=SPAR[type].l().find(x=>x.id===id);
+  const qs=s.questions?s.questions.map((q,i)=>`<div class="gridpt"><b>Q${i+1}.</b> ${q}</div>`).join(""):`<div class="gridpt"><b>Mission :</b> ${s.task}</div>`;
+  const ctx={case:"Tu es le DAF. Le board attend.",nego:"Négociation en conditions réelles.",cascade:"Déroule les trois états, dans l'ordre, en chiffrant tout.",plbo:"Chrono mental : 5 minutes en entretien réel."}[type];
+  openOv(ovTop(s.title)+`
+    <div class="meta"><span class="tag ${type==="case"?"":"b"}">${s.tag}</span>${ctx}</div>
+    <div class="story"><p>${s.setup}</p></div>
+    ${qs}
+    <p class="sub" style="margin:12px 0 6px">Ta réponse écrite — complète, structurée, chiffrée quand c'est possible. <b>Minimum 200 caractères, le flou ne passe pas.</b></p>
+    <textarea id="sparTxt" placeholder="Écris comme si l'associé lisait par-dessus ton épaule…" oninput="document.getElementById('revealBtn').disabled=this.value.trim().length<200"></textarea>
+    <button class="btn" id="revealBtn" disabled onclick="revealGrid('${type}','${id}')">Révéler la grille de correction</button>`);
+}
+function revealGrid(type,id){
+  const s=SPAR[type].l().find(x=>x.id===id);
+  const mine=document.getElementById("sparTxt").value;
+  openOv(ovTop(s.title+" — correction")+`
+    <p class="sub" style="margin-bottom:10px">Point par point : coche UNIQUEMENT ce que ta réponse écrite contenait vraiment. Le score se calcule tout seul.</p>
+    ${s.grid.map((g,i)=>`<label class="gridpt" style="display:flex;gap:10px;cursor:pointer"><input type="checkbox" class="gchk" style="margin-top:3px;flex-shrink:0;accent-color:var(--acc);width:17px;height:17px"><span><b>${i+1}.</b> ${g}</span></label>`).join("")}
+    <div class="coachnote"><b>Le coach :</b> ${s.coach}</div>
+    <details style="margin-top:12px;color:var(--dim);font-size:13px"><summary>Relire ma réponse</summary><p style="white-space:pre-wrap;margin-top:8px;color:var(--txt)">${esc(mine)}</p></details>
+    <button class="btn" onclick="gridScore('${type}','${id}',${s.grid.length})">Calculer mon score</button>`);
+}
+function gridScore(type,id,total){
+  const got=document.querySelectorAll(".gchk:checked").length;
+  const ratio=got/total;
+  const lvl=ratio>=0.75?2:ratio>=0.4?1:0;
+  selfScore(type,id,lvl,got+"/"+total+" points de la grille");
+}
+function selfScore(type,id,lvl,detail){
+  const arr=SPAR[type].d();
+  const first=!arr.includes(id);
+  if(first){ arr.push(id); scheduleRev(type,id); } else bumpRev(type,id);
+  const xp=Math.round([4,12,25][lvl]*(first?1:0.5));
+  addXP(xp); checkMenu(type,id); save();
+  const msg=[
+    "Raté assumé — c'est déjà mieux que raté maquillé. Ce cas reviendra en révision : la prochaine fois, tu le plies.",
+    "Partiel. Tu as vu une partie du terrain. Relis les points manqués À VOIX HAUTE — c'est comme ça qu'on les garde.",
+    "Solide. C'est le niveau. La révision espacée vérifiera si c'est encore vrai dans trois jours."
+  ][lvl];
+  openOv(ovTop("Verdict")+`
+    <div class="result">
+      <div class="big">${["😤","📈","🏆"][lvl]}</div>
+      ${detail?`<div style="font-weight:800;font-size:18px;margin-top:4px">${detail}</div>`:""}
+      <div class="xp">+${xp} XP</div>
+      <p>${msg}</p>
+    </div>
+    <button class="btn" onclick="closeOv()">Continuer</button>`);
+}
+function openTeaser(id){
+  const t=TEASERS.find(x=>x.id===id);
+  openOv(ovTop("Brain teaser — "+t.cat)+`
+    <div class="qq" style="margin-top:6px">${t.q}</div>
+    <div class="coach">Réponds à voix haute ou sur papier, <b>comme en entretien</b>. Structure d'abord, chiffre ensuite. Puis seulement, révèle.</div>
+    <button class="btn" onclick="revealTeaser('${t.id}')">Révéler la solution</button>`);
+}
+function revealTeaser(id){
+  const t=TEASERS.find(x=>x.id===id);
+  openOv(ovTop("Solution")+`
+    <div class="qq" style="font-size:14px;color:var(--dim)">${t.q}</div>
+    <div class="gridpt" style="margin-top:10px">${t.sol}</div>
+    <p class="sub" style="margin:16px 0 4px">Tu l'avais ?</p>
+    <div class="selfrow">
+      <button class="btn r" onclick="selfScore('teaser','${id}',0)">Non</button>
+      <button class="btn m" onclick="selfScore('teaser','${id}',1)">Presque</button>
+      <button class="btn s" onclick="selfScore('teaser','${id}',2)">Oui, structuré</button>
+    </div>`);
+}
+
+// ---------- RATTRAPAGE ----------
+function startRattrapage(){
+  const items=missItems();
+  if(!items.length) return toast("Rien à rattraper. Pour l'instant.");
+  const picked=items.sort(()=>Math.random()-.5).slice(0,10)
+    .map(x=>Object.assign({},x.q,{ref:x.ref,from:x.from}));
+  startQuiz(picked,"Rattrapage",(good,total)=>{
+    const xp=good*2;
+    addXP(xp); save();
+    quizVerdict(good,total,xp,` Il reste ${S.miss.length} question${S.miss.length>1?"s":""} au tableau des erreurs.`);
+  });
+}
+
+// ---------- MODE ENTRETIEN ----------
+function startInterview(){
+  const pool=[];
+  DEALS.forEach(d=>d.questions.forEach((q,i)=>pool.push(Object.assign({},q,{from:"Deal — "+d.title,base:"D|"+d.id+"|"+i}))));
+  LESSONS.forEach(l=>l.questions.forEach((q,i)=>pool.push(Object.assign({},q,{from:"Leçon — "+l.title,base:"L|"+l.id+"|"+i}))));
+  const picked=pool.sort(()=>Math.random()-.5).slice(0,12);
+  openOv(ovTop("Mode entretien")+`
+    <div class="qq" style="margin-top:6px">12 questions. 8 minutes. Tous les sujets.</div>
+    <div class="coach">Un associé ne te laisse pas réfléchir dix minutes par question, et il mélange DCF, SPA et culture des deals dans la même conversation. <b>Le chrono démarre quand tu cliques.</b> Les questions ratées iront au Rattrapage.</div>
+    <button class="btn" onclick='launchInterview(${JSON.stringify(picked.map(p=>p.base))})'>Je suis prêt</button>`);
+}
+function launchInterview(bases){
+  const items=bases.map(b=>{
+    const [k,id,qi]=b.split("|");
+    const src=k==="D"?DEALS.find(d=>d.id===id):LESSONS.find(l=>l.id===id);
+    return Object.assign({},src.questions[qi],{from:(k==="D"?"Deal — ":"Leçon — ")+src.title});
+  });
+  let idx=0;
+  startQuiz(items,"Entretien",(good,total,timedOut)=>{
+    S.itv.runs++; if(good>S.itv.best) S.itv.best=good;
+    const xp=good*3; addXP(xp); save();
+    const v=timedOut?"Temps écoulé — en entretien aussi, le silence compte comme une mauvaise réponse.":
+      good>=11?"Offre. On te rappelle avant les autres.":
+      good>=9?"Tour suivant. Solide, pas parfait — un associé t'aurait poussé sur les ratées.":
+      good>=6?"Repêchage incertain. La moitié du métier te résiste encore.":
+      "Recalé. En vrai entretien, on t'aurait arrêté à la question 6. Retour à l'Académie, puis reviens.";
+    openOv(ovTop("Verdict du recruteur")+`
+      <div class="result">
+        <div class="big">${good}/${total}</div>
+        <div class="xp">+${xp} XP${good===S.itv.best&&good>0?" · record":""}</div>
+        <p>${v}</p>
+      </div>
+      <button class="btn" onclick="startInterview()">Nouvel entretien</button>
+      <button class="btn ghost" onclick="closeOv()">Sortir</button>`);
+  },{timed:true,missBase:i=>{
+    const [k,id,qi]=bases[i].split("|"); return k+"|"+id+"|"+qi;
+  }});
+}
+
+// ---------- MISSIONS TERRAIN ----------
+function openMission(){
+  const wm=weekMission(), done=S.missions[wm.wk];
+  if(done){
+    openOv(ovTop("Mission validée — "+wm.wk)+`
+      <div class="qq" style="margin-top:6px">${wm.m.title}</div>
+      <div class="gridpt">${wm.m.desc}</div>
+      <p class="sub" style="margin:14px 0 6px">Ta preuve, déposée cette semaine :</p>
+      <div class="gridpt" style="white-space:pre-wrap">${esc(done.note)}</div>
+      <div class="coach">Validée. La prochaine mission tombe lundi. D'ici là, le réel continue sans rendez-vous : la presse, chaque matin.</div>
+      <button class="btn ghost" onclick="closeOv()">Fermer</button>`);
+    return;
+  }
+  openOv(ovTop("Mission terrain — semaine "+wm.wk.slice(6))+`
+    <div class="qq" style="margin-top:6px">${wm.m.title}</div>
+    <div class="gridpt">${wm.m.desc}</div>
+    <div class="coach"><b>Preuve exigée :</b> ${wm.m.proof}</div>
+    <p class="sub" style="margin:12px 0 6px">Dépose ta preuve écrite — minimum 200 caractères. Pas de preuve, pas de validation, pas d'exception.</p>
+    <textarea id="misTxt" placeholder="Ce que tu as fait, trouvé, compris…" oninput="document.getElementById('misBtn').disabled=this.value.trim().length<200"></textarea>
+    <button class="btn" id="misBtn" disabled onclick="validateMission()">Valider la mission (+30 XP)</button>`);
+}
+function validateMission(){
+  const wm=weekMission();
+  S.missions[wm.wk]={id:wm.m.id,note:document.getElementById("misTxt").value.trim(),date:today()};
+  addXP(30); save();
+  toast("🌍 <b>Mission validée.</b> Le réel compte double : c'est lui qu'on te paiera.");
+  closeOv();
+}
+
+// ---------- LE MÉMO DU DIMANCHE ----------
+const MEMO_SECTIONS=[
+  ["Société & thèse","La société analysée, et ta thèse en 2 phrases : pourquoi elle mérite (ou non) qu'on y mette de l'argent."],
+  ["Le business","Ce qu'elle vend, à qui, avec quel avantage compétitif. Le pricing power en une phrase."],
+  ["Les chiffres","CA, croissance, marge d'EBITDA, dette nette/EBITDA, conversion en cash. Les 5 chiffres qui comptent, sourcés."],
+  ["Valorisation","Multiple actuel vs comparables, et ton estimation : chère, correcte, décotée ? Justifie."],
+  ["Risques","Les 3 risques majeurs — les vrais, pas ceux de la plaquette."],
+  ["Verdict","Achat, vente, ou passe. Une position ferme et son niveau de conviction. Le flou est interdit ici plus qu'ailleurs."]
+];
+function openMemo(){
+  openOv(ovTop("Le mémo du dimanche")+`
+    <div class="coach">Une page, une vraie société, une position ferme. Rédige chaque section, puis exporte : tu le colles à ton coach (Claude) pour une correction d'associé — c'est la partie qui te fait progresser. Brouillon sauvegardé automatiquement.</div>
+    ${MEMO_SECTIONS.map((s,i)=>`
+      <p class="sub" style="margin:12px 0 4px"><b style="color:var(--acc)">${i+1}. ${s[0]}</b> — ${s[1]}</p>
+      <textarea style="min-height:70px" oninput="saveMemoField(${i},this.value)" id="memo${i}">${esc(S.memoDraft[i]||"")}</textarea>`).join("")}
+    <button class="btn" onclick="finishMemo()">Assembler & copier le mémo (+40 XP)</button>
+    <button class="btn ghost" onclick="closeOv()">Fermer (brouillon conservé)</button>`);
+}
+function saveMemoField(i,v){ S.memoDraft[i]=v; save(); }
+function finishMemo(){
+  const parts=MEMO_SECTIONS.map((s,i)=>(S.memoDraft[i]||"").trim());
+  const totalLen=parts.join("").length;
+  const empty=parts.filter(p=>p.length<40).length;
+  if(empty>0||totalLen<600){ toast("❌ <b>Mémo incomplet.</b> Chaque section ≥ 40 caractères, 600 au total. Un mémo à moitié écrit est un mémo qu'on ne lit pas."); return; }
+  const txt="MÉMO D'INVESTISSEMENT — "+new Date().toLocaleDateString("fr-FR")+"\n\n"+MEMO_SECTIONS.map((s,i)=>s[0].toUpperCase()+"\n"+parts[i]).join("\n\n")+"\n\n— Rédigé dans LE CLOSING. Coach : corrige-moi ce mémo comme un associé le ferait.";
+  const doneMsg=()=>{ S.memos++; S.memoDraft={}; addXP(40); save();
+    openOv(ovTop("Mémo n°"+S.memos+" assemblé")+`
+      <div class="result"><div class="big">📝</div><div class="xp">+40 XP</div>
+      <p>Copié dans le presse-papiers. Maintenant la vraie étape : <b>colle-le à ton coach</b> et encaisse la correction. Un mémo non soumis est un monologue.</p></div>
+      <button class="btn" onclick="closeOv()">Continuer</button>`); };
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(doneMsg,()=>{prompt("Copie ton mémo :",txt);doneMsg();});
+  else { prompt("Copie ton mémo :",txt); doneMsg(); }
+}
+
+// ---------- INTERVIEW IN ENGLISH ----------
+function startInterviewEN(){
+  openOv(ovTop("Interview in English")+`
+    <div class="qq" style="margin-top:6px">12 questions. 8 minutes. In English — like half your real interviews.</div>
+    <div class="coach">Classic investment banking interview questions, in the original language. Read fast, think faster. <b>The clock starts when you click.</b></div>
+    <button class="btn" onclick="launchInterviewEN()">I'm ready</button>`);
+}
+function launchInterviewEN(){
+  const items=[...ENGQ].sort(()=>Math.random()-.5).slice(0,12);
+  startQuiz(items,"English interview",(good,total,timedOut)=>{
+    S.itv.runsEN++; if(good>S.itv.bestEN) S.itv.bestEN=good;
+    const xp=good*3; addXP(xp); save();
+    const v=timedOut?"Time's up — in a real interview, silence counts as a wrong answer.":
+      good>=11?"Offer. They'll call you before the others.":
+      good>=9?"Next round. Solid, not flawless — a VP would have pushed on the misses.":
+      good>=6?"Borderline. Half the technicals still resist you.":
+      "Rejected. They stopped listening at question six. Back to the Academy — in both languages.";
+    openOv(ovTop("Recruiter's verdict")+`
+      <div class="result">
+        <div class="big">${good}/${total}</div>
+        <div class="xp">+${xp} XP${good===S.itv.bestEN&&good>0?" · best":""}</div>
+        <p>${v}</p>
+      </div>
+      <button class="btn" onclick="startInterviewEN()">Run it again</button>
+      <button class="btn ghost" onclick="closeOv()">Exit</button>`);
+  },{timed:true});
+}
+
+// ================= INIT =================
+if(location.protocol.startsWith("http")&&"serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+nav("jour");
+</script>
+</body>
+</html>
