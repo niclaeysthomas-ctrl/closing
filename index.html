@@ -199,6 +199,7 @@
   <button data-v="deals"><i>📖</i>Deals</button>
   <button data-v="acad"><i>🎓</i>Académie</button>
   <button data-v="spar"><i>🥊</i>Sparring</button>
+  <button data-v="journal"><i>📓</i>Journal</button>
   <button data-v="profil"><i>👑</i>Profil</button>
 </div></nav>
 
@@ -213,7 +214,7 @@
 // ================= ÉTAT =================
 const RANKS=[["Stagiaire",0],["Analyst",150],["Associate",400],["VP",800],["Director",1400],["Managing Director",2200],["Rainmaker",3200]];
 const KEY="closing_v1";
-const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{}};
+const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{},journal:[]};
 let S=load();
 function load(){
   let s={};
@@ -224,6 +225,7 @@ function load(){
   o.rev=s.rev||[]; o.miss=s.miss||[]; o.days=s.days||[];
   o.missions=s.missions||{}; o.memos=s.memos||0; o.memoDraft=s.memoDraft||{};
   o.cards=s.cards||{};
+  o.journal=s.journal||[];
   return o;
 }
 function save(){ localStorage.setItem(KEY,JSON.stringify(S)); }
@@ -575,8 +577,63 @@ function importSave(){
 
 function render(){
   ensureMenu();
-  document.getElementById("main").innerHTML=({jour:vJour,deals:vDeals,acad:vAcad,spar:vSpar,profil:vProfil})[view]();
+  document.getElementById("main").innerHTML=({jour:vJour,deals:vDeals,acad:vAcad,spar:vSpar,journal:vJournal,profil:vProfil})[view]();
   header();
+}
+
+// ================= JOURNAL =================
+const JTAGS=["Deal","Concept","Marché","Idée","Question","Perso"];
+let jFilter="";
+function vJournal(){
+  const q=jFilter.trim().toLowerCase();
+  const list=S.journal.filter(e=>!q||e.txt.toLowerCase().includes(q)||(e.tag||"").toLowerCase().includes(q));
+  // regroupe par jour
+  const byDay={};
+  list.forEach((e,i)=>{ (byDay[e.d]=byDay[e.d]||[]).push({e,i:S.journal.indexOf(e)}); });
+  const days=Object.keys(byDay).sort().reverse();
+  return `<h1 class="page">Journal</h1>
+  <div class="sub">Ce que tu apprends, tu le notes ici — un deal marquant, un concept enfin compris, une question à creuser. Ce qui n'est pas écrit s'oublie.</div>
+  <button class="btn" onclick="openJEntry()">✎ Nouvelle note</button>
+  ${S.journal.length?`<input class="search" style="margin-top:12px" placeholder="Rechercher (texte ou tag)…" value="${esc(jFilter)}" oninput="jFilter=this.value;rerenderJournal()">`:""}
+  <div id="jlist">${days.length?days.map(d=>`
+    <h2 class="sec">${fmtJDay(d)}</h2>
+    ${byDay[d].map(({e,i})=>`
+      <div class="act" onclick="openJEntry(${i})">
+        <div class="ico">${jTagIco(e.tag)}</div>
+        <div class="t"><b>${e.tag?`<span class="tag">${esc(e.tag)}</span>`:""}${esc(e.txt).slice(0,70)}${e.txt.length>70?"…":""}</b><small>${esc(e.txt).length>70?"note complète →":"touche pour éditer"}</small></div>
+        <div class="st">›</div>
+      </div>`).join("")}`).join("")
+    :`<div class="coach" style="margin-top:12px">${S.journal.length?"Aucune note ne correspond à ta recherche.":"Journal vide. Ta première note, ce soir : le concept le plus surprenant de ta séance du jour."}</div>`}</div>`;
+}
+function rerenderJournal(){ document.getElementById("jlist").outerHTML=`<div id="jlist"></div>`; const cur=jFilter; render(); const inp=document.querySelector(".search"); if(inp){ inp.focus(); inp.value=cur; inp.setSelectionRange(cur.length,cur.length); } }
+function fmtJDay(d){
+  if(d===today()) return "Aujourd'hui";
+  if(d===yesterday()) return "Hier";
+  return new Date(d).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
+}
+function jTagIco(t){ return {Deal:"📊",Concept:"💡",Marché:"📈",Idée:"✨",Question:"❓",Perso:"🎯"}[t]||"📝"; }
+function openJEntry(i){
+  const e=(i!=null)?S.journal[i]:null;
+  openOv(ovTop(e?"Note du "+fmtJDay(e.d):"Nouvelle note")+`
+    <p class="sub" style="margin-bottom:6px">Tag (optionnel) :</p>
+    <div class="catpick" id="jtags">${JTAGS.map(t=>`<button class="${e&&e.tag===t?"on":""}" onclick="pickJTag('${t}')">${jTagIco(t)} ${t}</button>`).join("")}</div>
+    <textarea id="jTxt" style="min-height:160px;margin-top:6px" placeholder="Ce que tu retiens, un chiffre, une intuition, une question à creuser…">${e?esc(e.txt):""}</textarea>
+    <button class="btn" onclick="saveJEntry(${i!=null?i:-1})">${e?"Enregistrer":"Ajouter au journal"}</button>
+    ${e?`<button class="danger" onclick="delJEntry(${i})">Supprimer cette note</button>`:""}`);
+  jTagSel=e?e.tag||"":"";
+}
+let jTagSel="";
+function pickJTag(t){ jTagSel=(jTagSel===t)?"":t; document.querySelectorAll("#jtags button").forEach(b=>b.classList.toggle("on",b.textContent.trim().endsWith(t)&&jTagSel===t)); }
+function saveJEntry(i){
+  const txt=document.getElementById("jTxt").value.trim();
+  if(txt.length<2) return toast("Note trop courte.");
+  if(i>=0){ S.journal[i].txt=txt; S.journal[i].tag=jTagSel; }
+  else{ S.journal.unshift({d:today(),tag:jTagSel,txt,t:Date.now()}); addXP(2); }
+  save(); toast("📓 <b>Noté.</b>"); closeOv(); nav("journal");
+}
+function delJEntry(i){
+  if(!confirm("Supprimer cette note ?")) return;
+  S.journal.splice(i,1); save(); closeOv(); nav("journal");
 }
 
 // ================= OVERLAY =================
