@@ -210,11 +210,12 @@
 <script src="data-drills.js"></script>
 <script src="data-flashcards.js"></script>
 <script src="data-feynman.js"></script>
+<script src="data-masterclass.js"></script>
 <script>
 // ================= ÉTAT =================
 const RANKS=[["Stagiaire",0],["Analyst",150],["Associate",400],["VP",800],["Director",1400],["Managing Director",2200],["Rainmaker",3200]];
 const KEY="closing_v1";
-const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{},journal:[]};
+const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[],mclass:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{},journal:[]};
 let S=load();
 function load(){
   let s={};
@@ -333,10 +334,12 @@ function revLabel(e){
   if(e.t==="cascade"){const x=CASCADES.find(y=>y.id===e.id); return x?["📊","Cascade — "+x.title]:null;}
   if(e.t==="plbo"){const x=PLBO.find(y=>y.id===e.id); return x?["🧾","Paper LBO — "+x.title]:null;}
   if(e.t==="feyn"){const x=FEYNMAN.find(y=>y.id===e.id); return x?["🧒","Feynman — "+x.title]:null;}
+  if(e.t==="mclass"){const x=MASTERCLASS.find(y=>y.id===e.id); return x?[x.icon,"Masterclass — "+x.domain]:null;}
   return null;
 }
 function openRev(t,id){
   if(t==="deal") return dealQuiz(id);
+  if(t==="mclass") return mcQuiz(id);
   if(t==="lesson") return lessonQuiz(id);
   if(t==="teaser") return openTeaser(id);
   if(t==="feyn") return openFeyn(id);
@@ -349,8 +352,9 @@ function missItems(){
   const out=[];
   for(const m of S.miss){
     const [k,id,qi]=m.split("|");
-    const src=k==="D"?DEALS.find(d=>d.id===id):LESSONS.find(l=>l.id===id);
-    if(src&&src.questions[qi]) out.push({ref:m,q:src.questions[qi],from:(k==="D"?"Deal — ":"Leçon — ")+src.title});
+    const src=k==="D"?DEALS.find(d=>d.id===id):k==="M"?MASTERCLASS.find(x=>x.id===id):LESSONS.find(l=>l.id===id);
+    const label=k==="D"?"Deal — "+(src?src.title:""):k==="M"?"Masterclass — "+(src?src.domain:""):"Leçon — "+(src?src.title:"");
+    if(src&&src.questions[qi]) out.push({ref:m,q:src.questions[qi],from:label});
   }
   return out;
 }
@@ -361,17 +365,22 @@ function ensureMenu(){
   const t=today();
   if(S.menu&&S.menu.date===t){
     if(S.menu.dCards===undefined){ S.menu.dCards=false; save(); } // migration des menus d'avant l'ajout des flashcards
+    if(S.menu.readMode===undefined){ S.menu.readMode="deal"; if(!S.menu.mclass) S.menu.mclass=nextUndone(MASTERCLASS,S.done.mclass).id; save(); } // migration masterclass
     return;
   }
   const doy=Math.floor((new Date()-new Date(new Date().getFullYear(),0,0))/864e5);
   const sparType=SPARROT[doy%SPARROT.length];
-  S.menu={date:t,deal:nextUndone(DEALS,S.done.deals).id,lesson:nextUndone(LESSONS,S.done.lessons).id,
+  // La "lecture du jour" alterne : 2 jours sur 3 un deal, 1 jour sur 3 une masterclass sectorielle
+  const readMode=(doy%3===2)?"mclass":"deal";
+  S.menu={date:t,readMode,deal:nextUndone(DEALS,S.done.deals).id,mclass:nextUndone(MASTERCLASS,S.done.mclass).id,
+    lesson:nextUndone(LESSONS,S.done.lessons).id,
     sparType,spar:nextUndone(SPAR[sparType].l(),SPAR[sparType].d()).id,dDeal:false,dLesson:false,dSpar:false,dCards:false,validated:false};
   save();
 }
 function checkMenu(kind,id){
   const m=S.menu; if(!m||m.date!==today()) return;
   if(kind==="deal"&&id===m.deal) m.dDeal=true;
+  if(kind==="mclass"&&id===m.mclass) m.dDeal=true; // la masterclass valide le slot "lecture du jour"
   if(kind==="lesson"&&id===m.lesson) m.dLesson=true;
   if(kind==="cards") m.dCards=true;
   if(SPAR[kind]&&kind===m.sparType&&id===m.spar) m.dSpar=true;
@@ -407,6 +416,15 @@ function vJour(){
   ensureMenu();
   const m=S.menu,r=rank(),nr=nextRank();
   const deal=DEALS.find(d=>d.id===m.deal),les=LESSONS.find(l=>l.id===m.lesson);
+  const mc=MASTERCLASS.find(x=>x.id===m.mclass);
+  const isMC=m.readMode==="mclass"&&mc;
+  const readHtml=isMC
+    ? `<div class="act ${m.dDeal?"done":""}" onclick="openMC('${mc.id}')">
+        <div class="ico">${mc.icon}</div><div class="t"><b>Masterclass du jour — ${mc.domain}</b><small>${mc.tag} · l'expertise condensée d'un secteur + quiz (~10 min)</small></div>
+        <div class="st">${m.dDeal?"✓":"›"}</div></div>`
+    : `<div class="act ${m.dDeal?"done":""}" onclick="openDeal('${deal.id}')">
+        <div class="ico">📖</div><div class="t"><b>Le deal du jour — ${deal.title}</b><small>${deal.tag} · ${deal.year} · histoire + quiz (~10 min)</small></div>
+        <div class="st">${m.dDeal?"✓":"›"}</div></div>`;
   const sp=SPAR[m.sparType];
   const spar=sp.l().find(s=>s.id===m.spar);
   const sparLabel=sp.lab, sparIco=sp.ico;
@@ -437,10 +455,7 @@ function vJour(){
     <div class="xptxt">${nr?`${nr[1]-S.xp} XP avant le grade ${nr[0]}`:"Grade maximal. Reste au sommet."}</div>
   </div>
   <div class="coach">${coachLine()}</div>
-  <div class="act ${m.dDeal?"done":""}" onclick="openDeal('${deal.id}')">
-    <div class="ico">📖</div><div class="t"><b>Le deal du jour — ${deal.title}</b><small>${deal.tag} · ${deal.year} · histoire + quiz (~10 min)</small></div>
-    <div class="st">${m.dDeal?"✓":"›"}</div>
-  </div>
+  ${readHtml}
   <div class="act ${m.dLesson?"done":""}" onclick="openLesson('${les.id}')">
     <div class="ico">🎓</div><div class="t"><b>Leçon — ${les.title}</b><small>${MODULES.find(x=>x.id===les.module).name} · cours + quiz (~10 min)</small></div>
     <div class="st">${m.dLesson?"✓":"›"}</div>
@@ -466,11 +481,19 @@ function vJour(){
 }
 
 function vDeals(){
-  return `<h1 class="page">Deals réels</h1><div class="sub">${S.done.deals.length}/${DEALS.length} lus. Chaque histoire est un cas d'école payé des milliards par d'autres.</div>`+
+  return `<h1 class="page">Lectures</h1><div class="sub">Deals réels et masterclass sectorielles — la culture qui fait la différence en entretien comme en salle de marché.</div>
+  <h2 class="sec">Deals réels — ${S.done.deals.length}/${DEALS.length}</h2>`+
   DEALS.map(d=>`
   <div class="act ${S.done.deals.includes(d.id)?"done":""}" onclick="openDeal('${d.id}')">
     <div class="ico">📖</div><div class="t"><b>${d.title}</b><small><span class="tag">${d.tag}</span>${d.year} · ${d.place}</small></div>
     <div class="st">${S.done.deals.includes(d.id)?"✓":"›"}</div>
+  </div>`).join("")+
+  `<h2 class="sec">Masterclass sectorielles — ${S.done.mclass.length}/${MASTERCLASS.length}</h2>
+  <div class="sub" style="margin-top:-2px">L'équivalent condensé de plusieurs heures d'audition d'un grand opérateur : comment chaque secteur gagne (ou perd) vraiment de l'argent.</div>`+
+  MASTERCLASS.map(c=>`
+  <div class="act ${S.done.mclass.includes(c.id)?"done":""}" onclick="openMC('${c.id}')">
+    <div class="ico">${c.icon}</div><div class="t"><b>${c.domain}</b><small><span class="tag">${c.tag}</span>vu par « ${c.title} »</small></div>
+    <div class="st">${S.done.mclass.includes(c.id)?"✓":"›"}</div>
   </div>`).join("");
 }
 
@@ -716,6 +739,28 @@ function dealQuiz(id){
     addXP(xp); checkMenu("deal",id); save();
     quizVerdict(good,total,xp,first?"":" (révision)");
   },{missBase:i=>"D|"+id+"|"+i});
+}
+
+// ---------- MASTERCLASS SECTORIELLES ----------
+function openMC(id){
+  const c=MASTERCLASS.find(x=>x.id===id);
+  openOv(ovTop(c.domain)+`
+    <div class="meta"><span class="tag">${c.icon} ${c.tag}</span> vu par « ${c.title} »</div>
+    <div class="story">${c.read.map(p=>`<p>${p}</p>`).join("")}</div>
+    <div class="coach"><b>Les modèles mentaux :</b><br>${c.insights.map(x=>"• "+x).join("<br>")}</div>
+    <div class="pt"><b>Ordres de grandeur :</b><br>${c.numbers.map(x=>"— "+x).join("<br>")}</div>
+    <div class="pt"><b>L'œil de l'investisseur :</b> ${c.invest}</div>
+    <button class="btn" onclick="mcQuiz('${c.id}')">Passer au quiz — ancre l'insight</button>`);
+}
+function mcQuiz(id){
+  const c=MASTERCLASS.find(x=>x.id===id);
+  startQuiz(c.questions,c.domain,(good,total)=>{
+    const first=!S.done.mclass.includes(id);
+    const xp=first?good*5+10:good*2;
+    if(first){ S.done.mclass.push(id); scheduleRev("mclass",id); } else bumpRev("mclass",id);
+    addXP(xp); checkMenu("mclass",id); save();
+    quizVerdict(good,total,xp,first?"":" (révision)");
+  },{missBase:i=>"M|"+id+"|"+i});
 }
 
 // ---------- ACADÉMIE ----------
@@ -976,6 +1021,7 @@ function startInterview(){
   const pool=[];
   DEALS.forEach(d=>d.questions.forEach((q,i)=>pool.push(Object.assign({},q,{from:"Deal — "+d.title,base:"D|"+d.id+"|"+i}))));
   LESSONS.forEach(l=>l.questions.forEach((q,i)=>pool.push(Object.assign({},q,{from:"Leçon — "+l.title,base:"L|"+l.id+"|"+i}))));
+  MASTERCLASS.forEach(c=>c.questions.forEach((q,i)=>pool.push(Object.assign({},q,{from:"Masterclass — "+c.domain,base:"M|"+c.id+"|"+i}))));
   const picked=pool.sort(()=>Math.random()-.5).slice(0,12);
   openOv(ovTop("Mode entretien")+`
     <div class="qq" style="margin-top:6px">12 questions. 8 minutes. Tous les sujets.</div>
@@ -985,8 +1031,9 @@ function startInterview(){
 function launchInterview(bases){
   const items=bases.map(b=>{
     const [k,id,qi]=b.split("|");
-    const src=k==="D"?DEALS.find(d=>d.id===id):LESSONS.find(l=>l.id===id);
-    return Object.assign({},src.questions[qi],{from:(k==="D"?"Deal — ":"Leçon — ")+src.title});
+    const src=k==="D"?DEALS.find(d=>d.id===id):k==="M"?MASTERCLASS.find(x=>x.id===id):LESSONS.find(l=>l.id===id);
+    const label=k==="D"?"Deal — "+src.title:k==="M"?"Masterclass — "+src.domain:"Leçon — "+src.title;
+    return Object.assign({},src.questions[qi],{from:label});
   });
   let idx=0;
   startQuiz(items,"Entretien",(good,total,timedOut)=>{

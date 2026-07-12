@@ -1,5 +1,5 @@
 // LE CLOSING — service worker : cache-first, app 100 % hors-ligne
-const CACHE = "closing-v7";
+const CACHE = "closing-v8";
 const ASSETS = [
   "./",
   "./index.html",
@@ -10,6 +10,7 @@ const ASSETS = [
   "./data-drills.js",
   "./data-flashcards.js",
   "./data-feynman.js",
+  "./data-masterclass.js",
   "./manifest.webmanifest"
 ];
 
