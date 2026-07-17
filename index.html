@@ -99,6 +99,19 @@
   textarea:focus{outline:none;border-color:var(--acc)}
   .gridpt{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 13px;font-size:13.5px;line-height:1.55;color:#d5d8dd;margin-bottom:8px}
   .gridpt b{color:var(--acc)}
+  /* LA BOÎTE */
+  .bridge{display:flex;align-items:center;gap:6px;text-align:center}
+  .bridge>div:not(.op){flex:1;background:#080604;border:1px solid var(--line);border-radius:10px;padding:9px 4px}
+  .bridge small{display:block;font-size:9.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--dim);font-weight:800;margin-bottom:3px}
+  .bridge b{font-family:var(--mono);font-size:13.5px}
+  .bridge .op{flex:0 0 auto;color:var(--dim);font-weight:800;font-size:15px}
+  .bil{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .bil .side{background:#080604;border:1px solid var(--line);border-radius:10px;padding:10px}
+  .bil .sh{font-size:9.5px;letter-spacing:1.4px;color:var(--acc);font-weight:800;margin-bottom:7px}
+  .bil .l{display:flex;justify-content:space-between;gap:6px;font-size:11.5px;padding:3px 0;color:var(--dim)}
+  .bil .l b{font-family:var(--mono);color:var(--txt);font-size:11.5px}
+  .bil .l.tot{border-top:1px solid var(--line);margin-top:5px;padding-top:5px;font-weight:800}
+  nav button{font-size:9.5px}
   .selfrow{display:flex;gap:8px;margin-top:12px}
   .selfrow .btn{margin-top:0;font-size:13px;padding:12px 6px}
   .selfrow .r{background:#3a1a20;color:var(--bad)}
@@ -196,6 +209,7 @@
 
 <nav><div class="in">
   <button data-v="jour"><i>🎯</i>Jour</button>
+  <button data-v="boite"><i>🏭</i>Ma boîte</button>
   <button data-v="deals"><i>📖</i>Deals</button>
   <button data-v="acad"><i>🎓</i>Académie</button>
   <button data-v="spar"><i>🥊</i>Sparring</button>
@@ -211,11 +225,12 @@
 <script src="data-flashcards.js"></script>
 <script src="data-feynman.js"></script>
 <script src="data-masterclass.js"></script>
+<script src="data-boite.js"></script>
 <script>
 // ================= ÉTAT =================
 const RANKS=[["Stagiaire",0],["Analyst",150],["Associate",400],["VP",800],["Director",1400],["Managing Director",2200],["Rainmaker",3200]];
 const KEY="closing_v1";
-const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[],mclass:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{},journal:[]};
+const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[],mclass:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{},journal:[],biz:null,cimetiere:[]};
 let S=load();
 function load(){
   let s={};
@@ -227,6 +242,8 @@ function load(){
   o.missions=s.missions||{}; o.memos=s.memos||0; o.memoDraft=s.memoDraft||{};
   o.cards=s.cards||{};
   o.journal=s.journal||[];
+  o.biz=s.biz||null;
+  o.cimetiere=s.cimetiere||[];
   return o;
 }
 function save(){ localStorage.setItem(KEY,JSON.stringify(S)); }
@@ -393,6 +410,392 @@ function checkMenu(kind,id){
     setTimeout(()=>toast("🔥 <b>Journée validée.</b> Streak : "+S.streak+" (+20 XP)"),400);
   }
   save(); header();
+}
+
+// ================= LA BOÎTE — MOTEUR =================
+const IS_RATE=.25, OD_RATE=.12, FACTOR_FEE=.025;
+
+function eur(n){
+  n=Math.round(n);
+  const s=Math.abs(n)>=10000 ? (n/1000).toFixed(1).replace(".",",")+" k€" : n.toLocaleString("fr-FR")+" €";
+  return s;
+}
+function bizSector(){ return SECTORS.find(s=>s.id===S.biz.sector); }
+
+function bizNew(sectorId,name){
+  const sec=SECTORS.find(s=>s.id===sectorId);
+  // Démarrage en régime établi : stock déjà constitué et crédit fournisseur déjà en place.
+  // Sinon le mois 1 fabrique un faux afflux de cash (dettes fournisseurs surgies de rien).
+  const q0=sec.a-sec.b*sec.p0;
+  const stock0=q0*1*sec.mc;          // 1 mois de stock
+  const ap0=q0*sec.mc*(45/30);       // crédit fournisseur en régime
+  const cash0=12000;
+  S.biz={
+    name, sector:sectorId, emoji:sec.emoji, unitLabel:sec.unit,
+    month:0, alive:true, over:null,
+    price:sec.p0, mc:sec.mc, fc:sec.fc,
+    stockTarget:1, dso:0, dpo:45, b2bShare:0, b2b:false,
+    demandMult:1, growth:1, compFactor:1, rep:1,
+    cash:cash0, startCash:cash0,
+    stockU:q0, qPrev:q0, ar:0, ap:ap0, debt:0,
+    capital:cash0+stock0-ap0, reserves:0,   // le bilan équilibre : actif = passif
+    hist:[], seen:[], pending:null, answers:[],
+    rupturesTot:0, lastRupture:0, lastSold:0, lastPurch:0,
+    elast:0, est60:0, bfr:stock0-ap0
+  };
+  save();
+}
+
+// Élasticité au point de prix : e = -b·P / (a - b·P). Elle bouge quand le prix bouge.
+function bizElast(price){
+  const sec=bizSector(), q=sec.a-sec.b*price;
+  return q>0 ? -(sec.b*price)/q : -99;
+}
+// Demande de base sur la courbe, avant les multiplicateurs (qui ne changent pas l'élasticité).
+function bizDemand(price,noise){
+  const B=S.biz, sec=bizSector();
+  const season=sec.season[B.month%12];
+  // Bruit ±12 % : une demande réelle n'est jamais lisse. C'est CONTRE ce bruit qu'un
+  // stock de sécurité existe — sans lui, le stock ne serait que du cash gaspillé.
+  // Aucune injustice : le bruit ne tue pas, il fait payer l'imprudence.
+  const n=noise===undefined?1:noise;
+  return Math.max(0, Math.round((sec.a-sec.b*price)*B.rep*season*B.demandMult*B.compFactor*n));
+}
+
+function bizTurn(){
+  const B=S.biz, sec=bizSector();
+  if(!B.alive||B.pending) return;
+  const bfrPrev=B.stockU*B.mc + B.ar - B.ap;
+  B.month++;
+
+  // La chaîne étend son référencement : la croissance est CONTINUE, donc le ΔBFR l'est aussi.
+  // C'est la croissance soutenue qui tue, pas un palier unique — qui, lui, se digère.
+  if(B.growth>1) B.demandMult=Math.min(3.5,B.demandMult*B.growth);
+
+  const q=bizDemand(B.price, .88+Math.random()*.24);
+  B.elast=bizElast(B.price);
+
+  // Production sur PRÉVISION (le mois dernier), pas sur la demande réelle du mois :
+  // une entreprise ne connaît pas sa demande à l'avance. C'est ce qui rend les ruptures
+  // possibles — et donc le stock de sécurité réellement utile.
+  const prod=Math.max(0, Math.round(B.qPrev*(1+B.stockTarget) - B.stockU));
+  const avail=B.stockU+prod;
+  const sold=Math.min(q,avail);
+  const rupture=q-sold;
+  B.stockU=avail-sold;
+  B.lastSold=sold; B.lastRupture=rupture; B.qPrev=q;
+  if(rupture>0){ B.rupturesTot++; B.rep=Math.max(.6,B.rep-.04); }
+  else B.rep=Math.min(1.25,B.rep+.01);
+
+  // CA (l'escompte accordé au client ampute le CA sur la part B2B)
+  const ca=sold*B.price*(1-(B.escompteClient||0)*B.b2bShare);
+  const cogs=sold*B.mc;
+  const purch=prod*B.mc;
+  B.lastPurch=purch;
+
+  // Créances et dettes ne SAUTENT pas à leur cible : elles s'y relâchent.
+  // Un poste client à 60 j met deux mois à se constituer ; un passage au comptant ne
+  // fait pas s'évaporer les factures déjà émises — elles s'éteignent à leur terme.
+  const creditCA=ca*B.b2bShare*(1-(B.acompte||0));
+  const arTarget=creditCA*(B.dso/30);
+  const apTarget=purch*(B.dpo/30);
+  B.ar += (arTarget-B.ar)*.5;
+  B.ap += (apTarget-B.ap)*.5;
+
+  // compte de résultat
+  const mb=ca-cogs;
+  const ebitda=mb-B.fc;
+  const interest=(B.cash<0 ? -B.cash*OD_RATE/12 : 0);
+  const factorFee=B.factor ? creditCA*FACTOR_FEE : 0;
+  const rcai=ebitda-interest-factorFee;
+  const is=Math.max(0,rcai*IS_RATE);
+  const rn=rcai-is;
+
+  // trésorerie — identité comptable démontrée : ΔCash = RN − ΔBFR
+  // (car ΔCash = CA − ΔBFR − COGS − FC − intérêts − IS, et RN = CA − COGS − FC − intérêts − IS)
+  const bfr=B.stockU*B.mc + B.ar - B.ap;
+  const dbfr=bfr-bfrPrev;
+  const dcash=rn-dbfr;
+  B.cash+=dcash;
+  B.bfr=bfr;
+  B.reserves+=rn;
+
+  B.hist.push({m:B.month,ca:Math.round(ca),ebitda:Math.round(ebitda),rn:Math.round(rn),
+    cash:Math.round(B.cash),bfr:Math.round(bfr),dbfr:Math.round(dbfr),dcash:Math.round(dcash),
+    sold,rupture,price:B.price,elast:B.elast});
+
+  // cessation de paiements
+  // facilité de caisse minimale d'office ; le découvert négocié (cas bc2) la quadruple
+  const odLimit=B.overdraftOk ? B.fc*2 : B.fc*.5;
+  if(B.cash < -odLimit){ B.alive=false; B.over="cessation"; save(); return; }
+
+  bizFireCase();
+  save();
+}
+
+function bizFireCase(){
+  const B=S.biz;
+  const c=BIZCASES.find(x=>!B.seen.includes(x.id) && x.when(B));
+  if(!c) return;
+  B.pending=c.id;
+  const lastCA=B.hist.length?B.hist[B.hist.length-1].ca:0;
+  B.est60=lastCA*1.5*.45*2; // BFR estimé du contrat 60 j après croissance
+}
+
+function bizBankrupt(){
+  const B=S.biz;
+  S.cimetiere.push({name:B.name,emoji:B.emoji,months:B.month,
+    peakCA:Math.max(0,...B.hist.map(h=>h.ca)),cause:B.over});
+  S.biz=null; save();
+}
+
+// ================= LA BOÎTE — VUES =================
+function vBoite(){
+  if(!S.biz) return vBoiteNew();
+  const B=S.biz;
+  if(!B.alive) return vBoiteDead();
+  const h=B.hist[B.hist.length-1];
+  const sec=bizSector();
+  const el=bizElast(B.price);
+  const q=bizDemand(B.price);
+  const mUnit=B.price-B.mc;
+  const pmort=mUnit>0 ? Math.ceil(B.fc/mUnit) : Infinity;
+
+  return `<h1 class="page">${B.emoji} ${esc(B.name)}</h1>
+  <div class="sub">${sec.name} · mois ${B.month} · ${B.b2b?"B2C + B2B":"vente directe"}</div>
+
+  ${B.pending?`<div class="act hot" onclick="bizOpenCase()">
+    <div class="ico">${BIZCASES.find(c=>c.id===B.pending).icon}</div>
+    <div class="t"><b>${BIZCASES.find(c=>c.id===B.pending).title}</b><small>Une décision t'attend. Le mois ne passe pas sans elle.</small></div>
+    <div class="st">›</div></div>`:""}
+
+  <div class="hero">
+    <div class="lab">Trésorerie</div>
+    <div class="big" style="color:${B.cash<0?"var(--bad)":B.cash<B.fc?"var(--acc)":"var(--txt)"}">${eur(B.cash)}</div>
+    <div class="xptxt">${B.cash<0?"⚠️ Tu es en découvert — agios à 12 %/an.":"Charges fixes du mois prochain : "+eur(B.fc)+(B.lastPurch?" + "+eur(B.lastPurch)+" d'achats":"")}</div>
+  </div>
+
+  ${h?`<div class="card" style="border-color:#4a3823">
+    <div class="lab" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--acc);font-weight:800;margin-bottom:8px">Le pont résultat → cash · mois ${h.m}</div>
+    <div class="bridge">
+      <div><small>Résultat net</small><b style="color:${h.rn>=0?"var(--ok)":"var(--bad)"}">${h.rn>=0?"+":""}${eur(h.rn)}</b></div>
+      <div class="op">−</div>
+      <div><small>ΔBFR</small><b style="color:${h.dbfr>0?"var(--bad)":"var(--ok)"}">${h.dbfr>=0?"+":""}${eur(h.dbfr)}</b></div>
+      <div class="op">=</div>
+      <div><small>Δ Trésorerie</small><b style="color:${h.dcash>=0?"var(--ok)":"var(--bad)"}">${h.dcash>=0?"+":""}${eur(h.dcash)}</b></div>
+    </div>
+    <div class="xptxt" style="margin-top:10px;line-height:1.5">${
+      h.rn>0&&h.dcash<0 ? "<b style='color:var(--bad)'>Tu es rentable et tu perds du cash.</b> Ton BFR mange ton résultat. C'est ça, la croissance mortelle — regarde-la se produire."
+      : h.dbfr>0 ? "Ton BFR grossit : chaque euro de croissance immobilise du cash au passage."
+      : "Ton BFR se dégonfle : il te rend du cash."}</div>
+  </div>`:`<div class="coach">Tu n'as pas encore passé un seul mois. Fixe ton prix, puis lance le mois 1.</div>`}
+
+  <h2 class="sec">Tes leviers</h2>
+  <div class="card">
+    <div class="lab" style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--dim);font-weight:800">Prix de vente · ${sec.unit}</div>
+    <div class="bpmlog" style="margin-top:8px">
+      <input id="bzPrice" type="number" step="0.5" value="${B.price}" oninput="bizPreview()">
+      <button class="btn" onclick="bizSetPrice()">Fixer</button>
+    </div>
+    <div id="bzPrev">${bizPreviewHtml(B.price)}</div>
+  </div>
+
+  <div class="card">
+    <div class="lab" style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--dim);font-weight:800">Stock cible</div>
+    <div class="selfrow" style="margin-top:10px">
+      ${[[0,"flux tendu"],[.25,"1 sem."],[.5,"2 sem."],[1,"1 mois"]].map(t=>`<button class="btn ${B.stockTarget===t[0]?"s":"m"}" onclick="bizSetStock(${t[0]})" style="font-size:11.5px">${t[1]}</button>`).join("")}
+    </div>
+    <div class="xptxt" style="margin-top:10px">Stock actuel : <b>${Math.round(B.stockU)} ${B.unitLabel}s</b> = <b>${eur(B.stockU*B.mc)}</b> de cash immobilisé à l'actif.</div>
+  </div>
+
+  <button class="btn" onclick="bizTurn();render()" ${B.pending?"disabled":""} style="font-size:16px">
+    ${B.pending?"Traite la décision d'abord":"▶︎ Passer au mois "+(B.month+1)}</button>
+
+  <h2 class="sec">Bilan · fin de mois ${B.month}</h2>
+  <div class="card">
+    <div class="bil">
+      <div class="side">
+        <div class="sh">ACTIF</div>
+        <div class="l"><span>Trésorerie</span><b>${eur(Math.max(0,B.cash))}</b></div>
+        <div class="l"><span>Stock</span><b>${eur(B.stockU*B.mc)}</b></div>
+        <div class="l"><span>Créances clients</span><b>${eur(B.ar)}</b></div>
+        <div class="l tot"><span>Total</span><b>${eur(Math.max(0,B.cash)+B.stockU*B.mc+B.ar)}</b></div>
+      </div>
+      <div class="side">
+        <div class="sh">PASSIF</div>
+        <div class="l"><span>Capital</span><b>${eur(B.capital)}</b></div>
+        <div class="l"><span>Réserves</span><b style="color:${B.reserves<0?"var(--bad)":"inherit"}">${eur(B.reserves)}</b></div>
+        <div class="l"><span>Dettes fournisseurs</span><b>${eur(B.ap)}</b></div>
+        <div class="l"><span>Découvert</span><b style="color:${B.cash<0?"var(--bad)":"inherit"}">${eur(Math.max(0,-B.cash))}</b></div>
+        <div class="l tot"><span>Total</span><b>${eur(B.capital+B.reserves+B.ap+Math.max(0,-B.cash))}</b></div>
+      </div>
+    </div>
+    <div class="xptxt" style="margin-top:12px;line-height:1.5">
+      <b>BFR = stock + créances − dettes fournisseurs = ${eur(B.bfr)}</b>${h&&h.ca>0?` · soit <b>${Math.round(B.bfr/h.ca*30)} jours de CA</b> immobilisés en permanence.`:""}
+    </div>
+  </div>
+
+  ${B.hist.length>1?`<h2 class="sec">Résultat vs trésorerie</h2>${bizChart()}`:""}
+
+  ${B.hist.length?`<button class="btn ghost" onclick="bizExport()">📋 Débriefer avec Claude</button>`:""}
+  <button class="danger" onclick="if(confirm('Liquider ${esc(B.name)} et repartir de zéro ?')){S.biz=null;save();render()}">Liquider et recommencer</button>`;
+}
+
+function bizPreviewHtml(p){
+  const B=S.biz, sec=bizSector();
+  const el=bizElast(p), q=bizDemand(p), mUnit=p-B.mc;
+  const mb=q*mUnit, ebitda=mb-B.fc;
+  const pmort=mUnit>0?Math.ceil(B.fc/mUnit):Infinity;
+  const pstar=(sec.choke+B.mc)/2;
+  return `<div class="prow" style="grid-template-columns:repeat(3,1fr)">
+    <div class="p"><small>Élasticité ici</small><b style="color:${Math.abs(el)<1?"var(--ok)":"var(--acc)"}">${el.toFixed(2)}</b></div>
+    <div class="p"><small>Demande</small><b>${q}</b></div>
+    <div class="p ${ebitda>0?"hit":""}"><small>EBITDA/mois</small><b>${eur(ebitda)}</b></div>
+  </div>
+  <div class="xptxt" style="margin-top:8px;line-height:1.5">
+    ${Math.abs(el)<1
+      ? `<b style="color:var(--ok)">Zone inélastique</b> — +10 % de prix ne te coûte que ${(Math.abs(el)*10).toFixed(1)} % de volume : ton CA monte si tu augmentes.`
+      : `<b style="color:var(--acc)">Zone élastique</b> — +10 % de prix te coûte ${(Math.abs(el)*10).toFixed(1)} % de volume : ton CA baisse si tu augmentes.`}
+    <br>Point mort : <b>${pmort===Infinity?"jamais (tu vends à perte)":pmort+" "+B.unitLabel+"s/mois"}</b> · marge unitaire ${eur(mUnit)}.
+    <br><b style="color:var(--acc)">Le piège :</b> maximiser le CA et maximiser le profit ne sont <b>pas</b> le même prix. Suis l'EBITDA, jamais le chiffre d'affaires — le prix optimal est toujours en zone élastique.
+  </div>`;
+}
+function bizPreview(){
+  const v=parseFloat(document.getElementById("bzPrice").value);
+  if(!v||v<=0) return;
+  document.getElementById("bzPrev").innerHTML=bizPreviewHtml(v);
+}
+function bizSetPrice(){
+  const v=parseFloat(document.getElementById("bzPrice").value);
+  if(!v||v<=0) return toast("Un prix, un vrai.");
+  S.biz.price=v; save(); render(); toast("Prix fixé à "+eur(v)+".");
+}
+function bizSetStock(t){ S.biz.stockTarget=t; save(); render(); }
+
+function bizChart(){
+  const H=S.biz.hist.slice(-18);
+  const vals=H.flatMap(h=>[h.rn,h.cash]);
+  const mn=Math.min(0,...vals), mx=Math.max(...vals,1);
+  const W=300,Hh=90,pad=4;
+  const x=i=>pad+i*(W-2*pad)/Math.max(1,H.length-1);
+  const y=v=>Hh-pad-((v-mn)/(mx-mn))*(Hh-2*pad);
+  const line=(k,c)=>`<polyline fill="none" stroke="${c}" stroke-width="2" points="${H.map((h,i)=>x(i)+","+y(h[k])).join(" ")}"/>`;
+  return `<div class="card">
+    <svg viewBox="0 0 ${W} ${Hh}" style="width:100%;height:auto;display:block">
+      ${mn<0?`<line x1="0" y1="${y(0)}" x2="${W}" y2="${y(0)}" stroke="#e0563f55" stroke-dasharray="3 3"/>`:""}
+      ${line("rn","#35c77f")}${line("cash","#5b9cff")}
+    </svg>
+    <div class="xptxt" style="margin-top:6px"><span style="color:#35c77f">━ résultat net</span> · <span style="color:#5b9cff">━ trésorerie</span> — le jour où elles divergent, tu sais pourquoi.</div>
+  </div>`;
+}
+
+function vBoiteNew(){
+  return `<h1 class="page">Monte ta boîte</h1>
+  <div class="sub">Tu pars de 12 000 € et de zéro client. Tu tiendras ou tu ne tiendras pas.</div>
+  <div class="coach">Tout ce que l'Académie t'a appris en théorie va te tomber dessus en factures. Ici le résultat ne te sauve pas : <b>seul le cash te garde en vie</b>. Une seule boîte à la fois, aucune sauvegarde, aucun retour en arrière.</div>
+  ${S.cimetiere.length?`<div class="card" style="border-color:#55232c"><div class="xptxt">⚰️ <b>Cimetière :</b> ${S.cimetiere.map(c=>esc(c.emoji+" "+c.name+" — "+c.months+" mois")).join(" · ")}</div></div>`:""}
+  <h2 class="sec">Choisis ton métier</h2>
+  ${SECTORS.map(s=>`<div class="act" onclick="bizPick('${s.id}')">
+    <div class="ico">${s.emoji}</div>
+    <div class="t"><b>${s.name}</b><small>${s.blurb}</small></div>
+    <div class="st">›</div></div>`).join("")}
+  <div class="crit" style="margin-top:14px"><b>Les trois ne s'équilibrent pas pareil.</b> Chacun t'enseignera une leçon de prix différente — et tu ne sauras laquelle qu'en la vivant.</div>`;
+}
+function bizPick(id){
+  const s=SECTORS.find(x=>x.id===id);
+  openOv(ovTop("Ta boîte")+`
+    <div class="meta"><span class="tag">${s.emoji} ${s.name}</span></div>
+    <div class="story"><p>${s.blurb}</p>
+    <p>Prix de départ conseillé par ton comptable : <b>${eur(s.p0)}</b> le ${s.unit}. Coût de revient : <b>${eur(s.mc)}</b>. Charges fixes : <b>${eur(s.fc)}</b>/mois.</p>
+    <p><b>Ce prix de départ est une convention, pas une vérité.</b> La première chose que tu feras, c'est de décider s'il est juste.</p></div>
+    <p class="sub" style="margin:14px 0 4px">Le nom de ta boîte :</p>
+    <div class="bpmlog"><input id="bzName" type="text" placeholder="Maison Niclaeys…" style="text-align:left;font-family:inherit"></div>
+    <button class="btn" onclick="bizCreate('${id}')">Immatriculer</button>`);
+}
+function bizCreate(id){
+  const n=(document.getElementById("bzName").value||"").trim();
+  if(n.length<2) return toast("Donne-lui un nom. C'est la tienne.");
+  bizNew(id,n); closeOv();
+  toast("🏭 <b>"+esc(n)+"</b> est immatriculée. 12 000 € en banque, zéro client.");
+}
+
+function vBoiteDead(){
+  const B=S.biz, peak=Math.max(0,...B.hist.map(h=>h.ca));
+  const last=B.hist[B.hist.length-1]||{};
+  const profitable=B.hist.filter(h=>h.rn>0).length;
+  return `<h1 class="page">☠️ Cessation de paiements</h1>
+  <div class="sub">${esc(B.name)} — ${B.month} mois d'existence.</div>
+  <div class="card" style="border-color:#55232c">
+    <div class="story">
+      <p><b>Tu n'as pas fait faillite parce que tu perdais de l'argent.</b> Tu as été rentable <b>${profitable} mois sur ${B.month}</b>. Ton CA a culminé à <b>${eur(peak)}</b>.</p>
+      <p>Tu as fait faillite parce que <b>tu n'avais plus de cash pour payer ce mois-ci</b>. C'est la seule cause de mort d'une entreprise. Pas la perte : l'illiquidité.</p>
+      <p>Ton BFR à la fin : <b>${eur(B.bfr)}</b>. C'est là qu'était ton argent — dans du stock et dans des créances. Il existait. Il n'était simplement pas disponible.</p>
+    </div>
+  </div>
+  <div class="crit"><b>La leçon que tu ne peux plus oublier :</b> le compte de résultat dit si ton métier est bon. Le tableau de flux dit si tu es vivant. Tu viens de découvrir lequel des deux commande.</div>
+  <button class="btn ghost" onclick="bizExport()">📋 Débriefer ta faillite avec Claude</button>
+  <button class="btn" onclick="bizBankrupt();render()">Enterrer et repartir de zéro</button>`;
+}
+
+// ---------- LES CAS ----------
+function bizOpenCase(){
+  const B=S.biz, c=BIZCASES.find(x=>x.id===B.pending);
+  openOv(ovTop(c.title)+`
+    <div class="meta"><span class="tag">${c.icon} ${c.concept}</span>mois ${B.month}</div>
+    <div class="crit" style="margin-bottom:12px"><b>Le signal était là :</b> ${c.signal}</div>
+    <div class="story"><p>${c.setup(B)}</p></div>
+    <h2 class="sec">Tes options</h2>
+    ${c.options.map(o=>`<div class="pt"><b>${o.k}. ${o.label}</b><br>${o.term}</div>`).join("")}
+    <div class="coach">Aucune conséquence chiffrée ne t'est donnée. <b>C'est à toi de les estimer</b> — c'est exactement le travail. Écris ton argumentaire : quel choix, pourquoi, et ce que tu penses que ça va coûter.</div>
+    <textarea id="bzArg" placeholder="Mon choix est… parce que… J'estime que ça va me coûter environ… Ce que je vérifie avant de trancher, c'est…" oninput="document.querySelectorAll('.bzOpt').forEach(b=>b.disabled=this.value.trim().length<200)"></textarea>
+    <p class="sub" style="margin:14px 0 4px">Puis tranche — c'est définitif :</p>
+    <div class="selfrow">
+      ${c.options.map(o=>`<button class="btn m bzOpt" disabled onclick="bizDecide('${c.id}','${o.k}')">${o.k}</button>`).join("")}
+    </div>
+    <div class="xptxt" style="margin-top:8px">Les boutons s'activent à 200 caractères. Pas de raccourci.</div>`);
+}
+function bizDecide(cid,k){
+  const B=S.biz, c=BIZCASES.find(x=>x.id===cid);
+  const arg=(document.getElementById("bzArg").value||"").trim();
+  B.answers.push({id:cid,k,arg,month:B.month});
+  c.apply(B,k);
+  B.seen.push(cid); B.pending=null;
+  addXP(12); save();
+  const opt=c.options.find(o=>o.k===k);
+  openOv(ovTop("Débriefing")+`
+    <div class="meta"><span class="tag">${c.concept}</span>Ton choix : <b>${k}. ${opt.label}</b></div>
+    <div class="story">${c.debrief(B,k)}</div>
+    <h2 class="sec">Ce qu'il fallait avoir regardé</h2>
+    ${c.grid.map(g=>`<div class="gridpt">${g}</div>`).join("")}
+    <div class="coach">Relis ton argumentaire. Combien de ces quatre points y étaient <b>vraiment</b>, chiffrés ? C'est ta note — personne d'autre ne peut te la donner.</div>
+    <div class="pt" style="white-space:pre-wrap;font-size:13px;color:var(--dim)">${esc(arg)}</div>
+    <button class="btn ghost" onclick="bizExport()">📋 Envoyer ce cas à Claude pour le sparring</button>
+    <button class="btn" onclick="closeOv()">Encaisser la facture</button>
+    ${c.lesson?`<div class="xptxt" style="margin-top:10px;text-align:center">Concept : <b>${c.concept}</b> — la leçon correspondante est dans l'Académie.</div>`:""}`);
+}
+
+function bizExport(){
+  const B=S.biz, h=B.hist[B.hist.length-1]||{};
+  const sec=bizSector();
+  let t=`Débriefing LA BOÎTE (CLOSING) — coache-moi sur mes décisions.\n\n`;
+  t+=`MA BOÎTE : ${B.name} — ${sec.name}\n`;
+  t+=`Mois ${B.month}${B.alive?"":" — CESSATION DE PAIEMENTS"}\n`;
+  t+=`Prix : ${B.price} € / ${sec.unit} (coût de revient ${B.mc.toFixed(2)} €, charges fixes ${B.fc} €/mois)\n`;
+  t+=`Élasticité à mon point de prix : ${bizElast(B.price).toFixed(2)}\n\n`;
+  t+=`DERNIER MOIS : CA ${h.ca} € · EBITDA ${h.ebitda} € · résultat net ${h.rn} €\n`;
+  t+=`Trésorerie ${Math.round(B.cash)} € · BFR ${Math.round(B.bfr)} € (stock ${Math.round(B.stockU*B.mc)} + créances ${Math.round(B.ar)} − dettes fourn. ${Math.round(B.ap)})\n`;
+  t+=`ΔBFR ${h.dbfr} € · Δtrésorerie ${h.dcash} € · DSO ${B.dso} j · DPO ${B.dpo} j · stock cible ${B.stockTarget} mois\n\n`;
+  t+=`MES DÉCISIONS ET MES ARGUMENTAIRES :\n`;
+  B.answers.forEach(a=>{
+    const c=BIZCASES.find(x=>x.id===a.id);
+    const o=c.options.find(x=>x.k===a.k);
+    t+=`\n— Mois ${a.month} · ${c.title} (${c.concept})\n  Choix : ${a.k}. ${o.label}\n  Mon argumentaire : "${a.arg}"\n`;
+  });
+  t+=`\nDémonte mon raisonnement. Dis-moi ce que je n'ai pas regardé, ce que j'ai cru sans le chiffrer, et ce qu'un DAF m'aurait répondu. Ne me ménage pas.`;
+  navigator.clipboard.writeText(t).then(
+    ()=>toast("📋 <b>Copié.</b> Colle-le dans Claude — j'ai tout ce qu'il me faut pour te démonter."),
+    ()=>toast("Copie impossible sur ce navigateur.")
+  );
 }
 
 // ================= VUES =================
@@ -600,7 +1003,7 @@ function importSave(){
 
 function render(){
   ensureMenu();
-  document.getElementById("main").innerHTML=({jour:vJour,deals:vDeals,acad:vAcad,spar:vSpar,journal:vJournal,profil:vProfil})[view]();
+  document.getElementById("main").innerHTML=({jour:vJour,boite:vBoite,deals:vDeals,acad:vAcad,spar:vSpar,journal:vJournal,profil:vProfil})[view]();
   header();
 }
 
