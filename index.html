@@ -327,20 +327,64 @@ function bumpRev(t,id){
 }
 function dueRevs(){ const t=today(); return S.rev.filter(e=>e.due<=t); }
 
-// ---- Flashcards : échelle SM-2 allégée, indépendante du reste (volume trop grand pour la liste de révisions) ----
-const CSTEPS=[1,3,7,16,35,90,180];
-function cardsDue(){ const t=today(); return FLASHCARDS.filter(c=>S.cards[c.id]&&S.cards[c.id].due<=t); }
-function cardsNew(){ return FLASHCARDS.filter(c=>!S.cards[c.id]); }
-function cardsMastered(){ return Object.values(S.cards).filter(c=>c.step>=4).length; }
-function rateCardEntry(id,q){
-  let c=S.cards[id];
-  if(!c){ c=S.cards[id]={step:0,due:today(),seen:0}; }
-  c.seen=(c.seen||0)+1;
-  if(q===0){ c.step=0; c.due=addDays(1); }
-  else if(q===1){ c.due=addDays(Math.max(1,Math.round(CSTEPS[Math.min(c.step,CSTEPS.length-1)]*0.5))); }
-  else if(q===2){ c.due=addDays(CSTEPS[Math.min(c.step,CSTEPS.length-1)]); c.step=Math.min(c.step+1,CSTEPS.length-1); }
-  else { c.due=addDays(Math.round(CSTEPS[Math.min(c.step+1,CSTEPS.length-1)]*1.3)); c.step=Math.min(c.step+2,CSTEPS.length-1); }
-  return [1,2,3,4][q];
+// ---- Flashcards : vrai SM-2 (facteur de facilité par carte, réapprentissage en session,
+// une entrée de planning PAR SENS terme→déf et déf→terme — ce sont deux mémoires différentes) ----
+// Clés : "fc12" (endroit) et "fc12:r" (envers). L'envers n'entre en jeu
+// qu'une fois l'endroit appris (reps>=1) : le vocabulaire d'abord, la production ensuite.
+function cardEntry(key){ return S.cards[key]; }
+function migrateCards(){
+  // ancien format {step,due,seen} → SM-2 {ef,ivl,reps,due,lapses,seen}
+  const CSTEPS=[1,3,7,16,35,90,180];
+  let n=0;
+  for(const k in S.cards){ const c=S.cards[k];
+    if(c && c.step!==undefined && c.ef===undefined){
+      S.cards[k]={ef:2.5, ivl:c.step>0?CSTEPS[Math.min(c.step,6)]:0, reps:Math.max(c.step,c.seen?1:0),
+                  due:c.due, lapses:0, seen:c.seen||0}; n++;
+    }
+  }
+  if(n) save();
+}
+migrateCards();
+function fuzz(d){ return d>=3 ? Math.max(1,Math.round(d*(0.93+Math.random()*0.14))) : d; }
+/* intervalle candidat sans engager la carte — pour l'afficher sur les boutons */
+function nextIvl(key,q){
+  const c=cardEntry(key)||{ef:2.5,ivl:0,reps:0};
+  if(q===0) return 0; // revient dans la session
+  if(q===1) return Math.max(1,Math.round((c.ivl||1)*0.6));
+  if(q===2) return c.reps===0?1 : c.reps===1?4 : Math.round(c.ivl*c.ef);
+  return c.reps===0?3 : Math.round(Math.max(4,c.ivl)*c.ef*1.3);
+}
+function ivlLabel(d){ return d===0?"dans 3 cartes" : d===1?"demain" : d<30?d+" j" : Math.round(d/30*10)/10+" mois"; }
+function rateCardEntry(key,q){
+  let c=S.cards[key];
+  if(!c) c=S.cards[key]={ef:2.5,ivl:0,reps:0,due:today(),lapses:0,seen:0};
+  c.seen++;
+  const ivl=nextIvl(key,q);
+  if(q===0){ c.lapses++; c.reps=0; c.ivl=0; c.ef=Math.max(1.3,c.ef-0.2); c.due=addDays(1); }
+  else if(q===1){ c.ef=Math.max(1.3,c.ef-0.15); c.ivl=ivl; c.due=addDays(fuzz(ivl)); }
+  else if(q===2){ c.reps++; c.ivl=ivl; c.due=addDays(fuzz(ivl)); }
+  else { c.reps++; c.ef=Math.min(2.8,c.ef+0.15); c.ivl=ivl; c.due=addDays(fuzz(ivl)); }
+}
+function isLeech(key){ const c=cardEntry(key); return c&&c.lapses>=4; }
+function cardsDue(){
+  const t=today(), out=[];
+  FLASHCARDS.forEach(c=>{
+    if(S.cards[c.id]&&S.cards[c.id].due<=t) out.push({id:c.id,rev:false});
+    if(S.cards[c.id+":r"]&&S.cards[c.id+":r"].due<=t) out.push({id:c.id,rev:true});
+  });
+  return out;
+}
+function cardsNewPool(pool){
+  // endroits jamais vus, puis envers dont l'endroit est appris
+  const fresh=pool.filter(c=>!S.cards[c.id]).map(c=>({id:c.id,rev:false}));
+  const revs=pool.filter(c=>{const f=S.cards[c.id]; return f&&f.reps>=1&&!S.cards[c.id+":r"];}).map(c=>({id:c.id,rev:true}));
+  return [...fresh,...revs];
+}
+function cardsMastered(){ return Object.values(S.cards).filter(c=>(c.ivl||0)>=21).length; }
+function cardsForecast(days){
+  // nb de cartes qui tomberont dues d'ici N jours (au-delà d'aujourd'hui)
+  const lim=addDays(days), t=today();
+  return Object.values(S.cards).filter(c=>c.due>t&&c.due<=lim).length;
 }
 function revLabel(e){
   if(e.t==="deal"){const d=DEALS.find(x=>x.id===e.id); return d?["📖","Deal — "+d.title]:null;}
@@ -1197,29 +1241,30 @@ function lessonQuiz(id){
 // ---------- FLASHCARDS ----------
 let CS=null; // {queue, i, revealed, catFilter, startCount}
 function openCardIntro(){
-  const cd=cardsDue().length, cn=cardsNew().length, cm=cardsMastered();
+  const cd=cardsDue().length, cn=cardsNewPool(FLASHCARDS).length, cm=cardsMastered(), fc=cardsForecast(7);
+  const leeches=FLASHCARDS.filter(c=>isLeech(c.id)||isLeech(c.id+":r"));
   openOv(ovTop("Flashcards")+`
-    <div class="qq" style="margin-top:6px">${FLASHCARDS.length} cartes — vocabulaire, multiples sectoriels, réalité du métier.</div>
-    <div class="coach">${cd?`<b>${cd} carte${cd>1?"s":""} due${cd>1?"s":""}</b> aujourd'hui — la répétition espacée a fait son calcul, c'est le moment de les revoir.`:cn?`Aucune carte due. ${cn} carte${cn>1?"s":""} jamais vue${cn>1?"s":""} — découvre-en jusqu'à 15 par session.`:"Tout est à jour. Reviens quand une carte sera due."} ${cm?` ${cm} déjà maîtrisée${cm>1?"s":""}.`:""}</div>
+    <div class="qq" style="margin-top:6px">${FLASHCARDS.length} cartes, deux sens chacune — vocabulaire, multiples sectoriels, réalité du métier.</div>
+    <div class="coach">${cd?`<b>${cd} carte${cd>1?"s":""} due${cd>1?"s":""}</b> aujourd'hui — la répétition espacée a fait son calcul, c'est le moment de les revoir.`:cn?`Aucune carte due. ${cn} carte${cn>1?"s":""} à découvrir — jusqu'à 15 par session.`:"Tout est à jour. Reviens quand une carte sera due."} ${cm?` ${cm} maîtrisée${cm>1?"s":""} (intervalle ≥ 3 semaines).`:""}${fc?` · ${fc} tomberont dues dans les 7 jours.`:""}</div>
+    ${leeches.length?`<div class="pt" style="border-color:#55232c"><b>🩸 ${leeches.length} carte${leeches.length>1?"s":""} sangsue${leeches.length>1?"s":""}</b> (4 oublis ou plus) : ${leeches.slice(0,4).map(c=>c.recto).join(" · ")}${leeches.length>4?"…":""}. Ces cartes-là ne rentreront pas par la répétition seule — va relire la leçon qui les porte, puis reviens.</div>`:""}
     <p class="sub" style="margin:14px 0 6px">Choisis un thème, ou mélange tout :</p>
     ${cardPickerHtml()}`);
 }
 function startCardSession(catFilter){
-  const due=cardsDue().map(c=>c.id);
-  const seen=new Set(due);
-  let pool=catFilter?FLASHCARDS.filter(c=>c.cat===catFilter):FLASHCARDS;
-  const newIds=pool.filter(c=>!S.cards[c.id]&&!seen.has(c.id)).map(c=>c.id);
-  const dueFiltered=catFilter?due.filter(id=>pool.find(c=>c.id===id)):due;
+  const pool=catFilter?FLASHCARDS.filter(c=>c.cat===catFilter):FLASHCARDS;
+  const inPool=it=>pool.some(c=>c.id===it.id);
   const shuffled=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
-  const queue=[...shuffled(dueFiltered),...shuffled(newIds).slice(0,15)];
+  const due=shuffled(cardsDue().filter(inPool));
+  const news=shuffled(cardsNewPool(pool)).slice(0,15);
+  const queue=[...due,...news];
   if(!queue.length){
     if(!catFilter) checkMenu("cards"); // rien de dû ni de nouveau : l'exercice du jour est réputé fait
     openOv(ovTop("Flashcards")+`
-      <div class="result"><div class="big">✓</div><p>Rien à réviser pour l'instant${catFilter?" dans « "+catFilter+" »":""}. ${cardsNew().length?"":"Tu as vu les "+FLASHCARDS.length+" cartes au moins une fois — la répétition espacée fait le reste, reviens quand une carte sera due."}</p></div>
+      <div class="result"><div class="big">✓</div><p>Rien à réviser pour l'instant${catFilter?" dans « "+catFilter+" »":""}. La répétition espacée fait le reste — reviens quand une carte sera due.</p></div>
       <button class="btn ghost" onclick="closeOv()">Fermer</button>`);
     return;
   }
-  CS={queue,i:0,revealed:false,catFilter,startCount:queue.length,good:0};
+  CS={queue,i:0,revealed:false,catFilter,startCount:queue.length,good:0,attempted:new Set(),relearned:0};
   cardStep();
 }
 function cardPickerHtml(){
@@ -1229,61 +1274,70 @@ function cardPickerHtml(){
 }
 function cardStep(){
   if(CS.i>=CS.queue.length) return cardSessionEnd();
-  const c=FLASHCARDS.find(x=>x.id===CS.queue[CS.i]);
+  const it=CS.queue[CS.i], c=FLASHCARDS.find(x=>x.id===it.id);
   CS.revealed=false;
-  CS.reversed=Math.random()<0.5 && !!S.cards[c.id]; // cartes déjà vues : parfois on inverse le sens, comme les cartes "reversed" d'Anki
-  const front=CS.reversed?c.verso:c.recto;
-  const frontIsLong=CS.reversed;
+  const key=it.id+(it.rev?":r":"");
+  const front=it.rev?c.verso:c.recto;
+  const relearn=CS.attempted.has(key);
   openOv(ovTop("Flashcards")+`
-    <div class="prog">Carte ${CS.i+1}/${CS.queue.length}${c.sub?` — ${c.sub}`:""}</div>
+    <div class="prog">Carte ${CS.i+1}/${CS.queue.length}${c.sub?` — ${c.sub}`:""}${relearn?' · <b style="color:var(--acc)">réapprentissage</b>':''}${isLeech(key)?' · 🩸':''}</div>
     <div class="cardprog"><i style="width:${Math.round(CS.i/CS.queue.length*100)}%"></i></div>
     <div class="cardbox" onclick="flipCard()">
-      <div class="side">${CS.reversed?"Définition → trouve le terme":"Terme → définition"}</div>
-      <div class="txt ${frontIsLong?"def":""}">${front}</div>
+      <div class="side">${it.rev?"Définition → trouve le terme":"Terme → définition"}</div>
+      <div class="txt ${it.rev?"def":""}">${front}</div>
       <div class="hint">Touche la carte pour retourner</div>
     </div>`);
 }
 function flipCard(){
   if(CS.revealed) return;
   CS.revealed=true;
-  const c=FLASHCARDS.find(x=>x.id===CS.queue[CS.i]);
-  const front=CS.reversed?c.verso:c.recto;
-  const back=CS.reversed?c.recto:c.verso;
-  const backIsLong=!CS.reversed;
+  const it=CS.queue[CS.i], c=FLASHCARDS.find(x=>x.id===it.id);
+  const key=it.id+(it.rev?":r":"");
+  const front=it.rev?c.verso:c.recto;
+  const back=it.rev?c.recto:c.verso;
   document.querySelector(".cardbox").outerHTML=`
     <div class="cardbox">
       <div class="cardq">${front}</div>
-      <div class="txt ${backIsLong?"def":""}">${back}</div>
+      <div class="txt ${!it.rev?"def":""}">${back}</div>
     </div>`;
   const div=document.createElement("div");
   div.className="raterow";
   div.innerHTML=`
-    <button class="rag" onclick="rateCard(0)">Oublié<small>revoir demain</small></button>
-    <button class="rha" onclick="rateCard(1)">Difficile<small>bientôt</small></button>
-    <button class="rgo" onclick="rateCard(2)">Bien<small>intervalle normal</small></button>
-    <button class="rea" onclick="rateCard(3)">Facile<small>on saute plus loin</small></button>`;
+    <button class="rag" onclick="rateCard(0)">Oublié<small>${ivlLabel(0)}</small></button>
+    <button class="rha" onclick="rateCard(1)">Difficile<small>${ivlLabel(nextIvl(key,1))}</small></button>
+    <button class="rgo" onclick="rateCard(2)">Bien<small>${ivlLabel(nextIvl(key,2))}</small></button>
+    <button class="rea" onclick="rateCard(3)">Facile<small>${ivlLabel(nextIvl(key,3))}</small></button>`;
   document.getElementById("ovin").appendChild(div);
 }
 function rateCard(q){
-  const c=FLASHCARDS.find(x=>x.id===CS.queue[CS.i]);
-  rateCardEntry(c.id,q); save();
-  if(q>=2) CS.good++;
-  addXP(q+1);
+  const it=CS.queue[CS.i], key=it.id+(it.rev?":r":"");
+  const firstTry=!CS.attempted.has(key);
+  CS.attempted.add(key);
+  rateCardEntry(key,q); save();
+  if(q>=2 && firstTry) CS.good++;
+  addXP(firstTry?q+1:1);
+  if(q===0){
+    /* réapprentissage : la carte revient 3 positions plus loin, dans la même session */
+    CS.relearned++;
+    CS.queue.splice(Math.min(CS.i+4,CS.queue.length),0,it);
+  }
   CS.i++;
   cardStep();
 }
 function cardSessionEnd(){
   checkMenu("cards");
   const pct=CS.startCount?Math.round(CS.good/CS.startCount*100):0;
-  const msg=pct>=80?"Mémoire solide sur cette session. C'est exactement l'effet recherché : la répétition espacée qui tient.":
-    pct>=50?"Correct. Les cartes ratées reviendront vite — c'est voulu, pas punitif.":
-    "Beaucoup d'oublis, et c'est normal en phase de découverte. Elles reviendront demain ; à ce rythme, elles finiront par tenir.";
+  const fc1=cardsForecast(1), fc7=cardsForecast(7);
+  const msg=pct>=80?"Mémoire solide sur cette session — la répétition espacée qui tient.":
+    pct>=50?"Correct. Les cartes ratées sont repassées dans la session : c'est comme ça qu'elles rentrent.":
+    "Beaucoup d'oublis, et c'est normal en phase de découverte. Tu les as rejouées jusqu'à les tenir — elles reviendront demain pour confirmer.";
   openOv(ovTop("Session terminée")+`
     <div class="result">
       <div class="big">${CS.startCount}</div>
-      <div class="xp">cartes travaillées</div>
+      <div class="xp">cartes travaillées · ${pct} % du premier coup${CS.relearned?` · ${CS.relearned} réapprise${CS.relearned>1?"s":""} en session`:""}</div>
       <p>${msg}</p>
     </div>
+    <div class="pt">📅 <b>Demain : ${fc1} carte${fc1>1?"s":""}</b> · dans les 7 jours : ${fc7}. C'est le planificateur qui décide, pas ton envie — c'est pour ça que ça marche.</div>
     ${cardPickerHtml()}
     <button class="btn ghost" onclick="closeOv()">Fermer</button>`);
   CS=null;
