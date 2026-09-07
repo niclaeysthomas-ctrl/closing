@@ -39,7 +39,7 @@ const SECTORS = [
 
 const BIZCASES = [
 
-{id:"bc1", ch:2, icon:"🤝", title:"Le premier gros client",
+{lvl:1, type:"choice", id:"bc1", ch:2, icon:"🤝", title:"Le premier gros client",
  concept:"BFR · escompte de règlement", lesson:"b4",
  when:B=>B.month>=5 && !B.b2b,
  signal:"Un acheteur d'une chaîne régionale est passé deux fois sur ton stand ce mois-ci.",
@@ -47,10 +47,10 @@ const BIZCASES = [
    <br><br>Une seule condition, non négociée pour l'instant : <b>paiement à 60 jours</b>, comme tous leurs fournisseurs.
    <br><br>Tu as <b>${eur(B.cash)}</b> en banque et tu tournes à <b>${eur(B.hist.length?B.hist[B.hist.length-1].ca:0)}</b> de CA mensuel.`,
  options:[
-  {k:"A", label:"Tu signes tel quel", term:"60 jours de délai. Tu prends le volume et tu verras bien."},
-  {k:"B", label:"Tu refuses", term:"Tu restes en direct, tu gardes ton cash et tes marges."},
-  {k:"C", label:"Tu contres : 30 jours contre 2 % d'escompte", term:"Tu leur offres 2 % de remise s'ils paient à 30 jours au lieu de 60."},
-  {k:"D", label:"Tu signes, mais 30 % d'acompte à la commande", term:"Ils paient 30 % tout de suite, le solde à 60 jours."}
+  {k:"A", label:"Tu signes tel quel", term:"60 jours de délai. Tu prends le volume et tu verras bien.", q:-1},
+  {k:"B", label:"Tu refuses", term:"Tu restes en direct, tu gardes ton cash et tes marges.", q:0},
+  {k:"C", label:"Tu contres : 30 jours contre 2 % d'escompte", term:"Tu leur offres 2 % de remise s'ils paient à 30 jours au lieu de 60.", q:2},
+  {k:"D", label:"Tu signes, mais 30 % d'acompte à la commande", term:"Ils paient 30 % tout de suite, le solde à 60 jours.", q:1}
  ],
  apply:(B,k)=>{
    if(k==="A"){ B.b2b=true; B.b2bShare=.45; B.dso=60; B.demandMult=1.5; B.growth=1.08; }
@@ -71,7 +71,7 @@ const BIZCASES = [
   "Avoir posé la question du risque de concentration : ce client va peser 45 % de ton CA."
  ]},
 
-{id:"bc2", ch:2, icon:"💀", title:"Le mois record",
+{lvl:1, type:"choice", id:"bc2", ch:2, icon:"💀", title:"Le mois record",
  concept:"Croissance mortelle · coût annualisé du financement", lesson:"b3",
  // Se déclenche sur le phénomène lui-même, pas sur un seuil arbitraire :
  // rentable ET trésorerie qui baisse. C'est la définition de la croissance mortelle.
@@ -81,10 +81,10 @@ const BIZCASES = [
    <br><br>Tu as <b>${eur(B.cash)}</b> en banque. Les salaires et le café vert du mois prochain, c'est <b>${eur(B.fc + B.lastPurch)}</b>.
    <br><br>Tu es rentable. Et dans cinq semaines, tu ne peux plus payer.`,
  options:[
-  {k:"A", label:"Découvert autorisé", term:"Ta banque t'ouvre un découvert à 12 % annuels."},
-  {k:"B", label:"Affacturage", term:"Un factor t'avance tes créances immédiatement contre 2,5 % du montant cédé (délai moyen 45 jours)."},
-  {k:"C", label:"Tu divises ton stock par deux", term:"Tu libères du cash tout de suite. Tu acceptes le risque de rupture."},
-  {k:"D", label:"Tu refuses des commandes", term:"Tu freines volontairement la croissance pour que le BFR arrête de gonfler."}
+  {k:"A", label:"Découvert autorisé", term:"Ta banque t'ouvre un découvert à 12 % annuels.", q:-2},
+  {k:"B", label:"Affacturage", term:"Un factor t'avance tes créances immédiatement contre 2,5 % du montant cédé (délai moyen 45 jours).", q:2},
+  {k:"C", label:"Tu divises ton stock par deux", term:"Tu libères du cash tout de suite. Tu acceptes le risque de rupture.", q:1},
+  {k:"D", label:"Tu refuses des commandes", term:"Tu freines volontairement la croissance pour que le BFR arrête de gonfler.", q:0}
  ],
  apply:(B,k)=>{
    if(k==="A"){ B.overdraftOk=true; }
@@ -110,7 +110,7 @@ const BIZCASES = [
   "Avoir vu que la vraie décision était en amont, au moment de signer le contrat à 60 jours."
  ]},
 
-{id:"bc3", ch:3, icon:"📦", title:"La rupture",
+{lvl:1, type:"choice", id:"bc3", ch:3, icon:"📦", title:"La rupture",
  concept:"Le stock est du cash immobilisé", lesson:"b4",
  when:B=>B.rupturesTot>0 && B.month>=4,
  signal:"Ton stock de fin de mois baissait depuis trois tours. C'était écrit dans ton bilan.",
@@ -118,10 +118,10 @@ const BIZCASES = [
    <br><br>Deux d'entre eux ne reviendront pas.
    <br><br>Ton stock actuel couvre <b>${B.stockTarget.toFixed(1)} mois</b> de ventes.`,
  options:[
-  {k:"A", label:"Flux tendu — aucun stock de sécurité", term:"Tu ne produis que ta prévision. Zéro cash immobilisé, zéro filet."},
-  {k:"B", label:"Une semaine de sécurité", term:"Un filet mince."},
-  {k:"C", label:"Deux semaines de sécurité", term:"L'équilibre classique."},
-  {k:"D", label:"Un mois de sécurité", term:"Tu ne rates plus une vente. Tu immobilises un mois de ventes en cash."}
+  {k:"A", label:"Flux tendu — aucun stock de sécurité", term:"Tu ne produis que ta prévision. Zéro cash immobilisé, zéro filet.", q:-1},
+  {k:"B", label:"Une semaine de sécurité", term:"Un filet mince.", q:2},
+  {k:"C", label:"Deux semaines de sécurité", term:"L'équilibre classique.", q:1},
+  {k:"D", label:"Un mois de sécurité", term:"Tu ne rates plus une vente. Tu immobilises un mois de ventes en cash.", q:0}
  ],
  apply:(B,k)=>{ B.stockTarget={A:0,B:.25,C:.5,D:1}[k]; },
  debrief:(B,k)=>`
@@ -136,17 +136,17 @@ const BIZCASES = [
   "Avoir compris que « flux tendu » est un pari sur la prévisibilité, pas une bonne pratique universelle."
  ]},
 
-{id:"bc4", ch:3, icon:"🎁", title:"L'escompte du fournisseur",
+{lvl:1, type:"choice", id:"bc4", ch:3, icon:"🎁", title:"L'escompte du fournisseur",
  concept:"Taux implicite d'un escompte", lesson:"b4",
  when:B=>B.month>=8,
  signal:"Ton fournisseur de matière a relancé deux fois ce trimestre : lui aussi a un problème de trésorerie.",
  setup:B=>`Ton fournisseur t'appelle. Il te propose <b>8 % de remise</b> sur toutes tes commandes si tu passes au <b>paiement comptant</b> au lieu de tes <b>45 jours</b> habituels.
    <br><br>Tu achètes pour environ <b>${eur(B.lastPurch)}</b> par mois. Tu as <b>${eur(B.cash)}</b> en banque.`,
  options:[
-  {k:"A", label:"Tu acceptes", term:"−8 % sur tes achats, mais tu paies tout de suite."},
-  {k:"B", label:"Tu refuses", term:"Tu gardes tes 45 jours de crédit fournisseur gratuit."},
-  {k:"C", label:"Tu acceptes et tu finances avec ton découvert", term:"Tu prends la remise même si tu dois tirer sur ton découvert à 12 %."},
-  {k:"D", label:"Tu contres : 4 % à 15 jours", term:"Un compromis : tu gardes un peu de délai, tu prends la moitié de la remise."}
+  {k:"A", label:"Tu acceptes", term:"−8 % sur tes achats, mais tu paies tout de suite.", q:2},
+  {k:"B", label:"Tu refuses", term:"Tu gardes tes 45 jours de crédit fournisseur gratuit.", q:-1},
+  {k:"C", label:"Tu acceptes et tu finances avec ton découvert", term:"Tu prends la remise même si tu dois tirer sur ton découvert à 12 %.", q:1},
+  {k:"D", label:"Tu contres : 4 % à 15 jours", term:"Un compromis : tu gardes un peu de délai, tu prends la moitié de la remise.", q:0}
  ],
  apply:(B,k)=>{
    if(k==="A"||k==="C"){ B.mc*=.92; B.dpo=0; if(k==="C") B.overdraftOk=true; }
@@ -171,7 +171,7 @@ const BIZCASES = [
   "Avoir fait le lien avec l'escompte que TU accordais à ton client B2B : même formule, sens inverse."
  ]},
 
-{id:"bc5", ch:3, icon:"📉", title:"Le concurrent casse les prix",
+{lvl:1, type:"choice", id:"bc5", ch:3, icon:"📉", title:"Le concurrent casse les prix",
  concept:"Élasticité-prix · comparaison de runways", lesson:"a1",
  when:B=>B.month>=12,
  signal:"Un concurrent a levé des fonds le trimestre dernier. La presse locale en a parlé.",
@@ -179,10 +179,10 @@ const BIZCASES = [
    <br><br>Ton commercial te dit qu'on va « tous les perdre ».
    <br><br>Ton prix : <b>${eur(B.price)}</b> · ta marge brute : <b>${Math.round((1-B.mc/B.price)*100)} %</b> · ta trésorerie : <b>${eur(B.cash)}</b> · ton élasticité au point où tu es : <b>${B.elast.toFixed(2)}</b>.`,
  options:[
-  {k:"A", label:"Tu alignes tes prix (−20 %)", term:"Tu récupères ton volume."},
-  {k:"B", label:"Tu tiens ton prix", term:"Tu assumes de perdre du volume."},
-  {k:"C", label:"Tu segmentes", term:"Tu tiens ton prix et tu sors une offre d'entrée dégradée."},
-  {k:"D", label:"Tu baisses de 10 % et tu allonges les délais de paiement", term:"Un compromis pour retenir les clients qui partent."}
+  {k:"A", label:"Tu alignes tes prix (−20 %)", term:"Tu récupères ton volume.", q:-1},
+  {k:"B", label:"Tu tiens ton prix", term:"Tu assumes de perdre du volume.", q:2},
+  {k:"C", label:"Tu segmentes", term:"Tu tiens ton prix et tu sors une offre d'entrée dégradée.", q:1},
+  {k:"D", label:"Tu baisses de 10 % et tu allonges les délais de paiement", term:"Un compromis pour retenir les clients qui partent.", q:-2}
  ],
  apply:(B,k)=>{
    if(k==="A"){ B.price*=.8; B.compFactor=1; B.priceAnchored=true; }

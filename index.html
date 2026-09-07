@@ -99,6 +99,9 @@
   textarea:focus{outline:none;border-color:var(--acc)}
   .gridpt{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 13px;font-size:13.5px;line-height:1.55;color:#d5d8dd;margin-bottom:8px}
   .gridpt b{color:var(--acc)}
+  .ngL{transition:border-color .12s,background .12s}
+  .ngL.on{border-color:var(--acc);background:#2a2213}
+  .ngL.on::before{content:"✓ ";color:var(--acc);font-weight:900}
   /* LA BOÎTE */
   .bridge{display:flex;align-items:center;gap:6px;text-align:center}
   .bridge>div:not(.op){flex:1;background:#080604;border:1px solid var(--line);border-radius:10px;padding:9px 4px}
@@ -119,6 +122,13 @@
   .selfrow .s{background:var(--ok);color:#02180b}
   .coachnote{background:#141625;border:1px solid #3d3626;border-radius:12px;padding:12px 13px;font-size:13.5px;line-height:1.55;margin-top:10px}
   .coachnote b{color:var(--acc)}
+
+  .accroche{font-family:var(--serif);font-style:italic;font-size:16px;line-height:1.55;color:var(--acc);border-left:3px solid var(--accd);padding:3px 0 3px 14px;margin:4px 0 16px}
+  .lead{background:linear-gradient(135deg,#101526,#191712);border:1px solid #3d3626;border-top:2px solid var(--acc);border-radius:var(--r);padding:14px 15px;margin-bottom:14px}
+  .lead .lbl{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--acc);display:block;margin-bottom:9px}
+  .lead p{font-family:var(--serif);font-size:15px;line-height:1.62;color:#e6e9f0;margin-bottom:11px}
+  .lead p:last-child{margin-bottom:0}
+  .cle b,.pens b{color:var(--acc);display:block;margin-bottom:2px}
 
   .result{text-align:center;padding:26px 10px}
   .result .big{font-family:var(--mono);font-size:42px;font-weight:800;font-variant-numeric:tabular-nums}
@@ -212,6 +222,7 @@
   <button data-v="boite"><i>🏭</i>Ma boîte</button>
   <button data-v="deals"><i>📖</i>Deals</button>
   <button data-v="acad"><i>🎓</i>Académie</button>
+  <button data-v="eco"><i>🧭</i>Éco</button>
   <button data-v="spar"><i>🥊</i>Sparring</button>
   <button data-v="journal"><i>📓</i>Journal</button>
   <button data-v="profil"><i>👑</i>Profil</button>
@@ -226,11 +237,13 @@
 <script src="data-feynman.js"></script>
 <script src="data-masterclass.js"></script>
 <script src="data-boite.js"></script>
+<script src="data-boite-n1.js"></script>
+<script src="data-economie.js"></script>
 <script>
 // ================= ÉTAT =================
 const RANKS=[["Stagiaire",0],["Analyst",150],["Associate",400],["VP",800],["Director",1400],["Managing Director",2200],["Rainmaker",3200]];
 const KEY="closing_v1";
-const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[],mclass:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{},journal:[],biz:null,cimetiere:[]};
+const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[],mclass:[],eco:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{},journal:[],biz:null,cimetiere:[],bizDone:[]};
 let S=load();
 function load(){
   let s={};
@@ -244,6 +257,9 @@ function load(){
   o.journal=s.journal||[];
   o.biz=s.biz||null;
   o.cimetiere=s.cimetiere||[];
+  o.bizDone=s.bizDone||[];
+  if(o.biz){ o.biz.loans=o.biz.loans||[]; o.biz.level=o.biz.level||1;
+    o.biz.horizon=o.biz.horizon||36; o.biz.capacity=o.biz.capacity||1; }
   return o;
 }
 function save(){ localStorage.setItem(KEY,JSON.stringify(S)); }
@@ -396,11 +412,13 @@ function revLabel(e){
   if(e.t==="plbo"){const x=PLBO.find(y=>y.id===e.id); return x?["🧾","Paper LBO — "+x.title]:null;}
   if(e.t==="feyn"){const x=FEYNMAN.find(y=>y.id===e.id); return x?["🧒","Feynman — "+x.title]:null;}
   if(e.t==="mclass"){const x=MASTERCLASS.find(y=>y.id===e.id); return x?[x.icon,"Masterclass — "+x.domain]:null;}
+  if(e.t==="eco"){const x=ECO_CHAPITRES.find(y=>y.id===e.id); return x?[x.icon,"Éco — "+x.titre]:null;}
   return null;
 }
 function openRev(t,id){
   if(t==="deal") return dealQuiz(id);
   if(t==="mclass") return mcQuiz(id);
+  if(t==="eco") return chapitreQuiz(id);
   if(t==="lesson") return lessonQuiz(id);
   if(t==="teaser") return openTeaser(id);
   if(t==="feyn") return openFeyn(id);
@@ -413,8 +431,8 @@ function missItems(){
   const out=[];
   for(const m of S.miss){
     const [k,id,qi]=m.split("|");
-    const src=k==="D"?DEALS.find(d=>d.id===id):k==="M"?MASTERCLASS.find(x=>x.id===id):LESSONS.find(l=>l.id===id);
-    const label=k==="D"?"Deal — "+(src?src.title:""):k==="M"?"Masterclass — "+(src?src.domain:""):"Leçon — "+(src?src.title:"");
+    const src=k==="D"?DEALS.find(d=>d.id===id):k==="M"?MASTERCLASS.find(x=>x.id===id):k==="E"?ECO_CHAPITRES.find(x=>x.id===id):LESSONS.find(l=>l.id===id);
+    const label=k==="D"?"Deal — "+(src?src.title:""):k==="M"?"Masterclass — "+(src?src.domain:""):k==="E"?"Éco — "+(src?src.titre:""):"Leçon — "+(src?src.title:"");
     if(src&&src.questions[qi]) out.push({ref:m,q:src.questions[qi],from:label});
   }
   return out;
@@ -459,6 +477,17 @@ function checkMenu(kind,id){
 // ================= LA BOÎTE — MOTEUR =================
 const IS_RATE=.25, OD_RATE=.12, FACTOR_FEE=.025;
 
+// Tous les cas, tous niveaux confondus. Le filtrage se fait sur .lvl.
+function allCases(){ return BIZCASES.concat(typeof BIZCASES_N1!=="undefined"?BIZCASES_N1:[]); }
+function bizCase(id){ return allCases().find(c=>c.id===id); }
+function niveau(n){ return NIVEAUX.find(x=>x.n===n)||NIVEAUX[0]; }
+
+// Mensualité d'un prêt amortissable classique (annuités constantes).
+function loanPayment(amount,rate,months){
+  const r=rate/12;
+  return months<=0?0:(r>0 ? amount*r/(1-Math.pow(1+r,-months)) : amount/months);
+}
+
 function eur(n){
   n=Math.round(n);
   const s=Math.abs(n)>=10000 ? (n/1000).toFixed(1).replace(".",",")+" k€" : n.toLocaleString("fr-FR")+" €";
@@ -466,8 +495,9 @@ function eur(n){
 }
 function bizSector(){ return SECTORS.find(s=>s.id===S.biz.sector); }
 
-function bizNew(sectorId,name){
+function bizNew(sectorId,name,level){
   const sec=SECTORS.find(s=>s.id===sectorId);
+  const N=niveau(level||1);
   // Démarrage en régime établi : stock déjà constitué et crédit fournisseur déjà en place.
   // Sinon le mois 1 fabrique un faux afflux de cash (dettes fournisseurs surgies de rien).
   const q0=sec.a-sec.b*sec.p0;
@@ -476,7 +506,9 @@ function bizNew(sectorId,name){
   const cash0=12000;
   S.biz={
     name, sector:sectorId, emoji:sec.emoji, unitLabel:sec.unit,
+    level:N.n, horizon:N.duree, finished:false,
     month:0, alive:true, over:null,
+    loans:[], capacity:1, staff:0, badDebt:0,
     price:sec.p0, mc:sec.mc, fc:sec.fc,
     stockTarget:1, dso:0, dpo:45, b2bShare:0, b2b:false,
     demandMult:1, growth:1, compFactor:1, rep:1,
@@ -522,7 +554,10 @@ function bizTurn(){
   // Production sur PRÉVISION (le mois dernier), pas sur la demande réelle du mois :
   // une entreprise ne connaît pas sa demande à l'avance. C'est ce qui rend les ruptures
   // possibles — et donc le stock de sécurité réellement utile.
-  const prod=Math.max(0, Math.round(B.qPrev*(1+B.stockTarget) - B.stockU));
+  // La capacité de production plafonne ce qu'on peut fabriquer : c'est ce qui
+  // donne son sens au recrutement et à la sous-traitance.
+  const capQ=Math.round((sec.a-sec.b*sec.p0)*(B.capacity||1)*1.8);
+  const prod=Math.max(0, Math.min(capQ, Math.round(B.qPrev*(1+B.stockTarget) - B.stockU)));
   const avail=B.stockU+prod;
   const sold=Math.min(q,avail);
   const rupture=q-sold;
@@ -551,7 +586,19 @@ function bizTurn(){
   const ebitda=mb-B.fc;
   const interest=(B.cash<0 ? -B.cash*OD_RATE/12 : 0);
   const factorFee=B.factor ? creditCA*FACTOR_FEE : 0;
-  const rcai=ebitda-interest-factorFee;
+  // Les emprunts : seuls les INTÉRÊTS passent au compte de résultat.
+  // Le capital remboursé sort du cash sans jamais toucher le résultat —
+  // c'est le coeur du malentendu résultat / trésorerie.
+  let loanInt=0, loanCap=0;
+  (B.loans||[]).forEach(l=>{
+    if(l.principalLeft===undefined) l.principalLeft=l.amount;
+    if(l.principalLeft<=.01) return;
+    const it=l.principalLeft*l.rate/12;
+    const cp=Math.min(l.principalLeft, Math.max(0,l.pay-it));
+    l.principalLeft-=cp; loanInt+=it; loanCap+=cp; l.left=Math.max(0,(l.left||0)-1);
+  });
+  B.debt=(B.loans||[]).reduce((t,l)=>t+Math.max(0,l.principalLeft||0),0);
+  const rcai=ebitda-interest-factorFee-loanInt;
   const is=Math.max(0,rcai*IS_RATE);
   const rn=rcai-is;
 
@@ -559,19 +606,22 @@ function bizTurn(){
   // (car ΔCash = CA − ΔBFR − COGS − FC − intérêts − IS, et RN = CA − COGS − FC − intérêts − IS)
   const bfr=B.stockU*B.mc + B.ar - B.ap;
   const dbfr=bfr-bfrPrev;
-  const dcash=rn-dbfr;
+  const dcash=rn-dbfr-loanCap;
   B.cash+=dcash;
   B.bfr=bfr;
   B.reserves+=rn;
 
   B.hist.push({m:B.month,ca:Math.round(ca),ebitda:Math.round(ebitda),rn:Math.round(rn),
     cash:Math.round(B.cash),bfr:Math.round(bfr),dbfr:Math.round(dbfr),dcash:Math.round(dcash),
-    sold,rupture,price:B.price,elast:B.elast});
+    sold,rupture,price:B.price,elast:B.elast,loanCap:Math.round(loanCap),loanInt:Math.round(loanInt)});
 
   // cessation de paiements
   // facilité de caisse minimale d'office ; le découvert négocié (cas bc2) la quadruple
   const odLimit=B.overdraftOk ? B.fc*2 : B.fc*.5;
   if(B.cash < -odLimit){ B.alive=false; B.over="cessation"; save(); return; }
+
+  // Fin de parcours : on ne joue pas à l'infini, on rend des comptes.
+  if(B.month>=B.horizon){ B.finished=true; save(); return; }
 
   bizFireCase();
   save();
@@ -579,7 +629,7 @@ function bizTurn(){
 
 function bizFireCase(){
   const B=S.biz;
-  const c=BIZCASES.find(x=>!B.seen.includes(x.id) && x.when(B));
+  const c=allCases().find(x=>!B.seen.includes(x.id) && (x.lvl||1)<=B.level && x.when(B));
   if(!c) return;
   B.pending=c.id;
   const lastCA=B.hist.length?B.hist[B.hist.length-1].ca:0;
@@ -594,10 +644,15 @@ function bizBankrupt(){
 }
 
 // ================= LA BOÎTE — VUES =================
+let BZLVL=1;
+// Le nom du niveau ne transite JAMAIS par l'attribut onclick : « L'artisan »
+// contient une apostrophe, qui referme la chaîne et casse le handler.
+function bizSetLvl(n){ BZLVL=n; render(); toast("Niveau "+n+" — "+esc(niveau(n).nom)+"."); }
 function vBoite(){
   if(!S.biz) return vBoiteNew();
   const B=S.biz;
   if(!B.alive) return vBoiteDead();
+  if(B.finished) return vBoiteVerdict();
   const h=B.hist[B.hist.length-1];
   const sec=bizSector();
   const el=bizElast(B.price);
@@ -606,11 +661,12 @@ function vBoite(){
   const pmort=mUnit>0 ? Math.ceil(B.fc/mUnit) : Infinity;
 
   return `<h1 class="page">${B.emoji} ${esc(B.name)}</h1>
-  <div class="sub">${sec.name} · mois ${B.month} · ${B.b2b?"B2C + B2B":"vente directe"}</div>
+  <div class="sub">${sec.name} · <b>mois ${B.month} / ${B.horizon}</b> · ${niveau(B.level).emoji} ${niveau(B.level).nom} · ${B.b2b?"B2C + B2B":"vente directe"}</div>
+  ${B.debt>0?`<div class="crit" style="margin-bottom:10px">🏦 <b>Dette bancaire :</b> ${eur(B.debt)} restant · ${eur((B.loans||[]).reduce((t,l)=>t+(l.principalLeft>0?l.pay:0),0))}/mois de remboursement. Rappel : seuls les intérêts passent en charges — le capital ne fait que vider ton compte.</div>`:""}
 
   ${B.pending?`<div class="act hot" onclick="bizOpenCase()">
-    <div class="ico">${BIZCASES.find(c=>c.id===B.pending).icon}</div>
-    <div class="t"><b>${BIZCASES.find(c=>c.id===B.pending).title}</b><small>Une décision t'attend. Le mois ne passe pas sans elle.</small></div>
+    <div class="ico">${bizCase(B.pending).icon}</div>
+    <div class="t"><b>${bizCase(B.pending).title}</b><small>Une décision t'attend. Le mois ne passe pas sans elle.</small></div>
     <div class="st">›</div></div>`:""}
 
   <div class="hero">
@@ -653,7 +709,7 @@ function vBoite(){
   </div>
 
   <button class="btn" onclick="bizTurn();render()" ${B.pending?"disabled":""} style="font-size:16px">
-    ${B.pending?"Traite la décision d'abord":"▶︎ Passer au mois "+(B.month+1)}</button>
+    ${B.pending?"Traite la décision d'abord":B.month+1>=B.horizon?"▶︎ Dernier mois — rendre les comptes":"▶︎ Passer au mois "+(B.month+1)}</button>
 
   <h2 class="sec">Bilan · fin de mois ${B.month}</h2>
   <div class="card">
@@ -736,6 +792,17 @@ function bizChart(){
 function vBoiteNew(){
   return `<h1 class="page">Monte ta boîte</h1>
   <div class="sub">Tu pars de 12 000 € et de zéro client. Tu tiendras ou tu ne tiendras pas.</div>
+  <h2 class="sec">Choisis ton niveau</h2>
+  ${NIVEAUX.map(N=>{
+    const lock = N.n>1 && !(S.bizDone||[]).includes(N.n-1);
+    return `<div class="act ${lock?"":"hot"}" ${lock?"":`onclick="bizSetLvl(${N.n})"`} style="${lock?"opacity:.5":""}${BZLVL===N.n?";border-color:var(--acc)":""}">
+      <div class="ico">${lock?"🔒":N.emoji}</div>
+      <div class="t"><b>Niveau ${N.n} — ${N.nom}${BZLVL===N.n?" ✓":""}</b><small>${N.duree} mois · ${N.pitch}</small></div>
+      <div class="st">${lock?"":"›"}</div></div>
+      <div class="pt" style="margin:-6px 0 12px;font-size:13px">${N.resume}
+        <div style="margin-top:8px;color:var(--dim)"><b>Ce que ce niveau t'apprend :</b><br>${N.notions.map(x=>"• "+x).join("<br>")}</div>
+        ${lock?`<div style="margin-top:8px;color:var(--acc)"><b>Se débloque</b> en terminant le niveau ${N.n-1}.</div>`:""}</div>`;
+  }).join("")}
   <div class="coach">Tout ce que l'Académie t'a appris en théorie va te tomber dessus en factures. Ici le résultat ne te sauve pas : <b>seul le cash te garde en vie</b>. Une seule boîte à la fois, aucune sauvegarde, aucun retour en arrière.</div>
   ${S.cimetiere.length?`<div class="card" style="border-color:#55232c"><div class="xptxt">⚰️ <b>Cimetière :</b> ${S.cimetiere.map(c=>esc(c.emoji+" "+c.name+" — "+c.months+" mois")).join(" · ")}</div></div>`:""}
   <h2 class="sec">Choisis ton métier</h2>
@@ -754,13 +821,107 @@ function bizPick(id){
     <p><b>Ce prix de départ est une convention, pas une vérité.</b> La première chose que tu feras, c'est de décider s'il est juste.</p></div>
     <p class="sub" style="margin:14px 0 4px">Le nom de ta boîte :</p>
     <div class="bpmlog"><input id="bzName" type="text" placeholder="Maison Niclaeys…" style="text-align:left;font-family:inherit"></div>
-    <button class="btn" onclick="bizCreate('${id}')">Immatriculer</button>`);
+    <button class="btn" onclick="bizCreate('${id}')">Immatriculer — niveau ${BZLVL}, ${niveau(BZLVL).duree} mois</button>`);
 }
 function bizCreate(id){
   const n=(document.getElementById("bzName").value||"").trim();
   if(n.length<2) return toast("Donne-lui un nom. C'est la tienne.");
-  bizNew(id,n); closeOv();
+  bizNew(id,n,BZLVL); closeOv();
   toast("🏭 <b>"+esc(n)+"</b> est immatriculée. 12 000 € en banque, zéro client.");
+}
+
+// ---------- LE VERDICT DE FIN DE PARCOURS ----------
+// Note globale sur cinq axes. Quatre sont financiers et se lisent dans le bilan ;
+// le cinquième note la QUALITÉ des décisions, indépendamment du résultat obtenu.
+// Un bon choix peut mal tourner, un mauvais choix peut passer : on note les deux séparément.
+function bizVerdict(){
+  const B=S.biz, H=B.hist, N=Math.min(12,H.length);
+  const last12=H.slice(-12), first12=H.slice(0,12);
+  const ca12=last12.reduce((t,h)=>t+h.ca,0);
+  const caF=first12.reduce((t,h)=>t+h.ca,0);
+  const rn12=last12.reduce((t,h)=>t+h.rn,0);
+  const rnTot=H.reduce((t,h)=>t+h.rn,0);
+  const eb12=last12.reduce((t,h)=>t+h.ebitda,0);
+  const marge=ca12>0?rn12/ca12:0;
+  const crois=caF>0?ca12/caF:1;
+  const moisCash=B.fc>0?B.cash/B.fc:0;
+  const levier=eb12>0?(B.debt||0)/eb12:(B.debt>0?9:0);
+  const qs=B.answers.filter(a=>a.q!==undefined).map(a=>a.q);
+  const qMoy=qs.length?qs.reduce((t,x)=>t+x,0)/qs.length:0;
+
+  // Barème volontairement dur : survivre est le minimum, pas une performance.
+  // Le plus gros coefficient va à la QUALITÉ DU RAISONNEMENT, pas au résultat —
+  // c'est la seule chose qui se transfère à la vraie vie.
+  const ax=[
+   {k:"Survie", pts:B.alive?20:0, max:20,
+    txt:B.alive?"Tu es encore là au bout de "+B.horizon+" mois. C'est le minimum exigé, pas un exploit.":"Cessation de paiements. Tout le reste est théorique."},
+   {k:"Rentabilité", pts:Math.round(Math.max(0,Math.min(1,(marge-.02)/.10))*20), max:20,
+    txt:"Marge nette sur les 12 derniers mois : <b>"+(marge*100).toFixed(1)+" %</b>. Il faut dépasser <b>12 %</b> pour le maximum ; en dessous de <b>2 %</b>, tu travailles pour tes fournisseurs et tu ne touches aucun point."},
+   {k:"Croissance", pts:Math.round(Math.max(0,Math.min(1,(crois-1)/1.0))*15), max:15,
+    txt:"Ton CA de la dernière année vaut <b>"+crois.toFixed(2)+"×</b> celui de la première. Le maximum demande d'avoir <b>doublé</b> en trois ans."},
+   {k:"Solidité", pts:Math.round(Math.max(0,Math.min(1,moisCash/6))*12 + Math.max(0,Math.min(1,(3.5-levier)/2.5))*8), max:20,
+    txt:"Trésorerie finale : <b>"+moisCash.toFixed(1)+" mois</b> de charges fixes (il en faut <b>6</b> pour le maximum)"+(B.debt>0?" · dette / EBITDA : <b>"+levier.toFixed(1)+"×</b> — au-delà de 3,5×, une banque te ferme le robinet":"")+"."},
+   {k:"Qualité des décisions", pts:Math.round(Math.max(0,Math.min(1,(qMoy+1)/2.5))*25), max:25,
+    txt:"Moyenne de tes "+qs.length+" décisions : <b>"+qMoy.toFixed(2)+"</b> sur une échelle de −2 à +2. Il faut atteindre <b>+1,5</b> pour le maximum. Cet axe note ton <b>raisonnement</b>, pas ton résultat — un bon choix peut mal tourner, un mauvais peut passer."}
+  ];
+  const tot=ax.reduce((t,a)=>t+a.pts,0);
+  const note = tot>=88?"A" : tot>=76?"B" : tot>=62?"C" : tot>=48?"D" : tot>=32?"E" : "F";
+  const juge = !B.alive ? "Tu as coulé. Ce n'est pas une honte, c'est une facture — relis laquelle."
+    : tot>=85 ? "Tu as fait tourner une vraie boîte, et tu sais pourquoi elle a tenu."
+    : tot>=72 ? "Solide. Ce qui te manque n'est plus de la compréhension, c'est de la discipline sur deux ou trois décisions."
+    : tot>=58 ? "Tu tiens, mais tu tiens en subissant. Regarde l'axe le plus bas : c'est toute ta marge de progression."
+    : tot>=44 ? "Tu as survécu sans piloter. Les chiffres t'ont annoncé chaque problème et tu les as lus après coup."
+    : "Tu as joué au commerçant, pas au dirigeant. Reprends les cas où ta note de décision est négative.";
+  return {ax,tot,note,juge,marge,crois,moisCash,levier,qMoy,ca12,rnTot};
+}
+
+function vBoiteVerdict(){
+  const B=S.biz, V=bizVerdict();
+  const rates=B.answers.filter(a=>a.q!==undefined && a.q<=0);
+  const bons=B.answers.filter(a=>a.q!==undefined && a.q>=2);
+  return `<h1 class="page">${B.emoji} ${esc(B.name)} — le verdict</h1>
+  <div class="sub">${B.horizon} mois. ${niveau(B.level).emoji} Niveau ${B.level} — ${niveau(B.level).nom}.</div>
+
+  <div class="hero">
+    <div class="lab">Note globale</div>
+    <div class="big" style="font-size:56px;color:${V.tot>=72?"var(--ok)":V.tot>=44?"var(--acc)":"var(--bad)"}">${V.note}</div>
+    <div class="xptxt">${V.tot} / 100 — ${V.juge}</div>
+  </div>
+
+  <h2 class="sec">Le détail, axe par axe</h2>
+  ${V.ax.map(a=>`<div class="card"><div class="l" style="display:flex;justify-content:space-between;align-items:baseline">
+      <b>${a.k}</b><b style="color:${a.pts/a.max>=.7?"var(--ok)":a.pts/a.max>=.4?"var(--acc)":"var(--bad)"}">${a.pts} / ${a.max}</b></div>
+    <div style="height:6px;background:#2a2f3a;border-radius:4px;margin:8px 0;overflow:hidden">
+      <i style="display:block;height:100%;width:${Math.round(a.pts/a.max*100)}%;background:${a.pts/a.max>=.7?"var(--ok)":a.pts/a.max>=.4?"var(--acc)":"var(--bad)"}"></i></div>
+    <div class="xptxt">${a.txt}</div></div>`).join("")}
+
+  <h2 class="sec">Les leçons à tirer</h2>
+  ${rates.length?rates.map(a=>{
+    const c=bizCase(a.id);
+    return `<div class="card" style="border-color:#55232c">
+      <b>${c.icon} ${c.title}</b> <span class="tag">${c.concept}</span>
+      <div class="xptxt" style="margin:8px 0"><b>Ton choix :</b> ${esc(a.label||a.k)}</div>
+      <div class="gridpt">${c.grid[0]}</div>
+      <div class="pt" style="white-space:pre-wrap;font-size:12.5px;color:var(--dim);margin-top:8px">« ${esc(a.arg)} »</div>
+    </div>`;}).join("")
+   :`<div class="card"><div class="xptxt">Aucune décision négative. Soit tu as très bien joué, soit tu n'as pas rencontré assez de cas — regarde combien tu en as traités.</div></div>`}
+
+  ${bons.length?`<h2 class="sec">Ce que tu as bien vu</h2>
+  ${bons.map(a=>{const c=bizCase(a.id);
+    return `<div class="card" style="border-color:#1e4a35"><b>${c.icon} ${c.title}</b> — ${esc(a.label||a.k)}<div class="xptxt" style="margin-top:6px">${c.concept}</div></div>`;}).join("")}`:""}
+
+  <div class="coach">Cette note vient d'un barème, pas d'un jugement. <b>Envoie-moi la partie</b> : je reprends tes argumentaires un par un et je te dis ce qu'un DAF t'aurait répondu.</div>
+  <button class="btn" onclick="bizExport()">📋 Envoyer toute la partie à Claude</button>
+  <button class="btn ghost" onclick="bizArchive()">Archiver et remonter une boîte</button>`;
+}
+function bizArchive(){
+  const B=S.biz, V=bizVerdict();
+  S.bizDone=S.bizDone||[];
+  if(B.alive && !S.bizDone.includes(B.level)) S.bizDone.push(B.level);
+  S.cimetiere.push({name:B.name,emoji:B.emoji,months:B.month,
+    peakCA:Math.max(0,...B.hist.map(h=>h.ca)),cause:"terminé — note "+V.note});
+  S.biz=null; save(); render();
+  toast(B.alive&&B.level<3?"🔓 <b>Niveau "+(B.level+1)+" débloqué.</b>":"Partie archivée.");
 }
 
 function vBoiteDead(){
@@ -782,36 +943,124 @@ function vBoiteDead(){
 }
 
 // ---------- LES CAS ----------
+// Au niveau 1, on veut qu'il EXPLIQUE, pas qu'il rédige : 90 caractères suffisent.
+function argMin(){ return S.biz && S.biz.level===1 ? 90 : 200; }
+function bizArgBlock(ph){
+  return `<textarea id="bzArg" placeholder="${ph}" oninput="document.querySelectorAll('.bzOpt').forEach(b=>b.disabled=this.value.trim().length<${argMin()})"></textarea>
+    <div class="xptxt" style="margin-top:8px">Les boutons s'activent à ${argMin()} caractères. Deux phrases suffisent — mais elles doivent contenir un <b>chiffre</b>.</div>`;
+}
 function bizOpenCase(){
-  const B=S.biz, c=BIZCASES.find(x=>x.id===B.pending);
+  const B=S.biz, c=bizCase(B.pending);
+  if(c.type==="loan") return bizOpenLoan(c);
+  if(c.type==="nego") return bizOpenNego(c);
   openOv(ovTop(c.title)+`
     <div class="meta"><span class="tag">${c.icon} ${c.concept}</span>mois ${B.month}</div>
     <div class="crit" style="margin-bottom:12px"><b>Le signal était là :</b> ${c.signal}</div>
     <div class="story"><p>${c.setup(B)}</p></div>
     <h2 class="sec">Tes options</h2>
     ${c.options.map(o=>`<div class="pt"><b>${o.k}. ${o.label}</b><br>${o.term}</div>`).join("")}
-    <div class="coach">Aucune conséquence chiffrée ne t'est donnée. <b>C'est à toi de les estimer</b> — c'est exactement le travail. Écris ton argumentaire : quel choix, pourquoi, et ce que tu penses que ça va coûter.</div>
-    <textarea id="bzArg" placeholder="Mon choix est… parce que… J'estime que ça va me coûter environ… Ce que je vérifie avant de trancher, c'est…" oninput="document.querySelectorAll('.bzOpt').forEach(b=>b.disabled=this.value.trim().length<200)"></textarea>
+    <div class="coach">Aucune conséquence chiffrée ne t'est donnée. <b>C'est à toi de les estimer</b> — c'est exactement le travail. Dis quel choix, pourquoi, et ce que tu penses que ça va coûter.</div>
+    ${bizArgBlock("Je choisis… parce que… J'estime que ça va me coûter environ…")}
     <p class="sub" style="margin:14px 0 4px">Puis tranche — c'est définitif :</p>
     <div class="selfrow">
       ${c.options.map(o=>`<button class="btn m bzOpt" disabled onclick="bizDecide('${c.id}','${o.k}')">${o.k}</button>`).join("")}
-    </div>
-    <div class="xptxt" style="margin-top:8px">Les boutons s'activent à 200 caractères. Pas de raccourci.</div>`);
+    </div>`);
+}
+
+// ---------- LE PRÊT ----------
+function bizOpenLoan(c){
+  const B=S.biz;
+  openOv(ovTop(c.title)+`
+    <div class="meta"><span class="tag">${c.icon} ${c.concept}</span>mois ${B.month}</div>
+    <div class="crit" style="margin-bottom:12px"><b>Le signal était là :</b> ${c.signal}</div>
+    <div class="story"><p>${c.setup(B)}</p></div>
+    <h2 class="sec">Ce que la banque met sur la table</h2>
+    ${c.offers.map(o=>{
+      if(!o.amount) return `<div class="pt"><b>${o.k}. ${o.label}</b></div>`;
+      const pay=loanPayment(o.amount,o.rate,o.months);
+      const tot=pay*o.months;
+      return `<div class="pt"><b>${o.k}. ${o.label}</b> — taux ${(o.rate*100).toFixed(1)} %
+        <br><b style="color:var(--acc)">${eur(pay)}/mois</b> pendant ${o.months} mois
+        <br><span style="color:var(--dim)">Total remboursé ${eur(tot)} · coût du crédit ${eur(tot-o.amount)}</span></div>`;
+    }).join("")}
+    <div class="coach">La mensualité t'est donnée — c'est du calcul, pas du jugement. Ce qu'on te demande, c'est <b>quel besoin précis tu finances et sur quelle durée ce besoin existe</b>.</div>
+    ${bizArgBlock("Je prends… pour financer… ce besoin dure environ… mois, donc…")}
+    <p class="sub" style="margin:14px 0 4px">Ta décision :</p>
+    <div class="selfrow">
+      ${c.offers.map(o=>`<button class="btn m bzOpt" disabled onclick="bizTakeLoan('${c.id}','${o.k}')">${o.k}</button>`).join("")}
+    </div>`);
+}
+function bizTakeLoan(cid,k){
+  const B=S.biz, c=bizCase(cid), o=c.offers.find(x=>x.k===k);
+  const arg=(document.getElementById("bzArg").value||"").trim();
+  if(o.amount>0){
+    const pay=loanPayment(o.amount,o.rate,o.months);
+    B.loans.push({label:o.label,amount:o.amount,rate:o.rate,months:o.months,left:o.months,principalLeft:o.amount,pay:pay});
+    B.cash+=o.amount; B.debt=(B.debt||0)+o.amount;
+  }
+  B.answers.push({id:cid,k,arg,month:B.month,q:o.q,label:o.label});
+  B.seen.push(cid); B.pending=null; addXP(12); save();
+  bizDebrief(c,k,o.label,c.debrief(B,k));
+}
+
+// ---------- LA NÉGOCIATION ----------
+let NEGOPICK=[];
+function bizOpenNego(c){
+  const B=S.biz; NEGOPICK=[];
+  openOv(ovTop(c.title)+`
+    <div class="meta"><span class="tag">${c.icon} ${c.concept}</span>mois ${B.month}</div>
+    <div class="crit" style="margin-bottom:12px"><b>Le signal était là :</b> ${c.signal}</div>
+    <div class="story"><p>${c.setup(B)}</p></div>
+    <h2 class="sec">${c.goal} — choisis tes arguments</h2>
+    <div class="xptxt" style="margin-bottom:10px">Tu peux en retenir <b>${c.max}</b> au maximum. Certains portent, certains se retournent contre toi — et rien ne te dit lesquels.</div>
+    <div id="ngList">${c.levers.map(l=>`<div class="pt ngL" data-k="${l.k}" onclick="negoTog('${c.id}','${l.k}')" style="cursor:pointer">${l.label}</div>`).join("")}</div>
+    <div class="coach">Un argument de plus n'est pas un argument de mieux : au-delà de ${c.max}, tu dilues et ta contrepartie choisit celui qui l'arrange.</div>
+    ${bizArgBlock("J'attaque sur… parce que… ce que je ne veux surtout pas lui dire, c'est…")}
+    <p class="sub" style="margin:14px 0 4px">Puis entre dans la pièce :</p>
+    <button class="btn bzOpt" disabled onclick="bizNegoGo('${c.id}')">Négocier</button>`);
+}
+function negoTog(cid,k){
+  const c=bizCase(cid);
+  const i=NEGOPICK.indexOf(k);
+  if(i>=0) NEGOPICK.splice(i,1);
+  else { if(NEGOPICK.length>=c.max) return toast("Trois arguments maximum. <b>Choisis.</b>"); NEGOPICK.push(k); }
+  document.querySelectorAll(".ngL").forEach(e=>e.classList.toggle("on",NEGOPICK.includes(e.dataset.k)));
+}
+function bizNegoGo(cid){
+  const B=S.biz, c=bizCase(cid);
+  if(!NEGOPICK.length) return toast("Tu entres sans un seul argument ?");
+  const arg=(document.getElementById("bzArg").value||"").trim();
+  const picks=NEGOPICK.slice();
+  const r=c.resolve(B,picks);
+  const q=Math.max(-2,Math.min(2,Math.round(r.p/2)));
+  B.answers.push({id:cid,k:picks.join("+"),arg,month:B.month,q,label:picks.map(k=>c.levers.find(l=>l.k===k).label).join(" · ")});
+  B.seen.push(cid); B.pending=null; addXP(14); save();
+  const detail=`<h2 class="sec">Tes arguments, un par un</h2>`+picks.map(k=>{
+    const l=c.levers.find(x=>x.k===k);
+    return `<div class="pt" style="border-left:3px solid ${l.power>0?"var(--ok)":"var(--bad)"}">
+      <b>${l.power>0?"✔︎":"✘"} ${l.label}</b><br><span style="color:var(--dim)">${l.why}</span></div>`;
+  }).join("")+`<h2 class="sec">Ceux que tu n'as pas joués</h2>`+c.levers.filter(l=>!picks.includes(l.k)).map(l=>
+      `<div class="pt" style="opacity:.72"><b>${l.power>0?"✔︎":"✘"} ${l.label}</b><br><span style="color:var(--dim)">${l.why}</span></div>`).join("");
+  bizDebrief(c,picks.join("+"),c.goal,c.debrief(B,picks,r)+detail);
 }
 function bizDecide(cid,k){
-  const B=S.biz, c=BIZCASES.find(x=>x.id===cid);
+  const B=S.biz, c=bizCase(cid);
   const arg=(document.getElementById("bzArg").value||"").trim();
-  B.answers.push({id:cid,k,arg,month:B.month});
+  const opt=c.options.find(o=>o.k===k);
+  B.answers.push({id:cid,k,arg,month:B.month,q:opt.q,label:opt.label});
   c.apply(B,k);
   B.seen.push(cid); B.pending=null;
   addXP(12); save();
-  const opt=c.options.find(o=>o.k===k);
+  bizDebrief(c,k,opt.label,c.debrief(B,k));
+}
+function bizDebrief(c,k,label,body){
+  const arg=(S.biz.answers[S.biz.answers.length-1]||{}).arg||"";
   openOv(ovTop("Débriefing")+`
-    <div class="meta"><span class="tag">${c.concept}</span>Ton choix : <b>${k}. ${opt.label}</b></div>
-    <div class="story">${c.debrief(B,k)}</div>
+    <div class="meta"><span class="tag">${c.concept}</span>Ton choix : <b>${esc(label)}</b></div>
+    <div class="story">${body}</div>
     <h2 class="sec">Ce qu'il fallait avoir regardé</h2>
     ${c.grid.map(g=>`<div class="gridpt">${g}</div>`).join("")}
-    <div class="coach">Relis ton argumentaire. Combien de ces quatre points y étaient <b>vraiment</b>, chiffrés ? C'est ta note — personne d'autre ne peut te la donner.</div>
+    <div class="coach">Relis ce que tu as écrit. Combien de ces points y étaient <b>vraiment</b>, chiffrés ?</div>
     <div class="pt" style="white-space:pre-wrap;font-size:13px;color:var(--dim)">${esc(arg)}</div>
     <button class="btn ghost" onclick="bizExport()">📋 Envoyer ce cas à Claude pour le sparring</button>
     <button class="btn" onclick="closeOv()">Encaisser la facture</button>
@@ -823,7 +1072,8 @@ function bizExport(){
   const sec=bizSector();
   let t=`Débriefing LA BOÎTE (CLOSING) — coache-moi sur mes décisions.\n\n`;
   t+=`MA BOÎTE : ${B.name} — ${sec.name}\n`;
-  t+=`Mois ${B.month}${B.alive?"":" — CESSATION DE PAIEMENTS"}\n`;
+  t+=`Niveau ${B.level} (${niveau(B.level).nom}) — partie de ${B.horizon} mois\n`;
+  t+=`Mois ${B.month}${B.alive?"":" — CESSATION DE PAIEMENTS"}${B.finished?" — PARTIE TERMINÉE":""}\n`;
   t+=`Prix : ${B.price} € / ${sec.unit} (coût de revient ${B.mc.toFixed(2)} €, charges fixes ${B.fc} €/mois)\n`;
   t+=`Élasticité à mon point de prix : ${bizElast(B.price).toFixed(2)}\n\n`;
   t+=`DERNIER MOIS : CA ${h.ca} € · EBITDA ${h.ebitda} € · résultat net ${h.rn} €\n`;
@@ -831,10 +1081,20 @@ function bizExport(){
   t+=`ΔBFR ${h.dbfr} € · Δtrésorerie ${h.dcash} € · DSO ${B.dso} j · DPO ${B.dpo} j · stock cible ${B.stockTarget} mois\n\n`;
   t+=`MES DÉCISIONS ET MES ARGUMENTAIRES :\n`;
   B.answers.forEach(a=>{
-    const c=BIZCASES.find(x=>x.id===a.id);
-    const o=c.options.find(x=>x.k===a.k);
-    t+=`\n— Mois ${a.month} · ${c.title} (${c.concept})\n  Choix : ${a.k}. ${o.label}\n  Mon argumentaire : "${a.arg}"\n`;
+    const c=bizCase(a.id);
+    const o=(c.options||[]).find(x=>x.k===a.k);
+    t+=`\n— Mois ${a.month} · ${c.title} (${c.concept})\n  Choix : ${a.label||(o?o.label:a.k)}\n  Note objective de l'app : ${a.q!==undefined?a.q+"/2":"n/a"}\n  Ce que j'ai écrit : "${a.arg}"\n`;
   });
+  if(B.loans&&B.loans.length){
+    t+=`\nMES EMPRUNTS :\n`;
+    B.loans.forEach(l=>{t+=`— ${l.label} : ${Math.round(l.amount)} € à ${(l.rate*100).toFixed(1)} % sur ${l.months} mois · mensualité ${Math.round(l.pay)} € · reste dû ${Math.round(l.principalLeft||0)} €\n`;});
+  }
+  if(B.finished||!B.alive){
+    const V=bizVerdict();
+    t+=`\nVERDICT DE L'APP : ${V.note} (${V.tot}/100)\n`;
+    V.ax.forEach(a=>{t+=`— ${a.k} : ${a.pts}/${a.max}\n`;});
+    t+=`Marge nette 12 mois ${(V.marge*100).toFixed(1)} % · croissance ${V.crois.toFixed(2)}× · trésorerie ${V.moisCash.toFixed(1)} mois de charges fixes · qualité moyenne des décisions ${V.qMoy.toFixed(2)}/2\n`;
+  }
   t+=`\nDémonte mon raisonnement. Dis-moi ce que je n'ai pas regardé, ce que j'ai cru sans le chiffrer, et ce qu'un DAF m'aurait répondu. Ne me ménage pas.`;
   navigator.clipboard.writeText(t).then(
     ()=>toast("📋 <b>Copié.</b> Colle-le dans Claude — j'ai tout ce qu'il me faut pour te démonter."),
@@ -1047,7 +1307,7 @@ function importSave(){
 
 function render(){
   ensureMenu();
-  document.getElementById("main").innerHTML=({jour:vJour,boite:vBoite,deals:vDeals,acad:vAcad,spar:vSpar,journal:vJournal,profil:vProfil})[view]();
+  document.getElementById("main").innerHTML=({jour:vJour,boite:vBoite,deals:vDeals,acad:vAcad,eco:vEco,spar:vSpar,journal:vJournal,profil:vProfil})[view]();
   header();
 }
 
@@ -1236,6 +1496,57 @@ function lessonQuiz(id){
     addXP(xp); checkMenu("lesson",id); save();
     quizVerdict(good,total,xp,first?"":" (révision)");
   },{missBase:i=>"L|"+id+"|"+i});
+}
+
+// ---------- ÉCONOMIE (le Master) ----------
+function vEco(){
+  const total=ECO_CHAPITRES.length, done=S.done.eco.length;
+  return `<h1 class="page">Économie</h1>
+  <div class="sub">Le Master que tu te construis. Pas des recettes de deal : les forces de fond — doctrines, monnaie, échanges, crises — qui expliquent pourquoi le monde est ainsi. Comprendre en profondeur, développer une intuition. Pas réciter.</div>
+  <div class="coach"><b>${done}/${total} chapitres</b> — le corpus s'étoffe thème par thème. Chaque chapitre : la définition, la logique, les mécanismes, les applications, les critiques, les penseurs, puis l'intuition à garder — et un quiz pour ancrer.</div>`+
+  ECO_THEMES.map(t=>{
+    const chs=ECO_CHAPITRES.filter(c=>c.theme===t.id);
+    const d=chs.filter(c=>S.done.eco.includes(c.id)).length;
+    return `<div class="mod" onclick="openTheme('${t.id}')">
+      <div class="ico">${t.icon}</div>
+      <div class="t"><b>${t.nom}</b><small>${t.desc}</small></div>
+      <div class="pc">${chs.length?`${d}/${chs.length}`:"à venir"}</div>
+    </div>`;
+  }).join("");
+}
+function openTheme(tid){
+  const t=ECO_THEMES.find(x=>x.id===tid), chs=ECO_CHAPITRES.filter(c=>c.theme===tid);
+  openOv(ovTop(t.nom)+`<div class="sub" style="margin-bottom:14px">${t.desc}</div>`+
+    (chs.length?chs.map(c=>`
+    <div class="act ${S.done.eco.includes(c.id)?"done":""}" onclick="openChapitre('${c.id}')">
+      <div class="ico">${c.icon}</div>
+      <div class="t"><b>${c.titre}</b><small>${c.niveau} · ~${c.minutes} min · cours + ${c.questions.length} questions</small></div>
+      <div class="st">${S.done.eco.includes(c.id)?"✓":"›"}</div>
+    </div>`).join("")
+    :`<div class="coach">Chapitres à venir — on écrira ce thème ensemble, en profondeur. L'infrastructure est prête à les accueillir.</div>`));
+}
+function openChapitre(id){
+  const c=ECO_CHAPITRES.find(x=>x.id===id), t=ECO_THEMES.find(x=>x.id===c.theme);
+  openOv(ovTop(c.titre)+`
+    <div class="meta"><span class="tag">${t.icon} ${t.nom}</span>${c.niveau} · ~${c.minutes} min de lecture</div>
+    <div class="accroche">${c.accroche}</div>
+    <div class="lead"><span class="lbl">L'ESSENTIEL</span>${c.def.map(p=>`<p>${p}</p>`).join("")}</div>
+    ${c.sections.map(s=>`<h2 class="sec">${s.h}</h2><div class="story">${s.p.map(p=>`<p>${p}</p>`).join("")}</div>`).join("")}
+    ${c.cles&&c.cles.length?`<h2 class="sec">Concepts-clés</h2>${c.cles.map(k=>`<div class="gridpt cle"><b>${k.t}</b>${k.d}</div>`).join("")}`:""}
+    ${c.penseurs&&c.penseurs.length?`<h2 class="sec">Les penseurs</h2>${c.penseurs.map(p=>`<div class="gridpt pens"><b>${p.n}</b>${p.r}</div>`).join("")}`:""}
+    <div class="coach"><b>L'intuition à garder.</b> ${c.intuition}</div>
+    ${c.debat?`<div class="coachnote"><b>Le débat vivant :</b> ${c.debat}</div>`:""}
+    <button class="btn" onclick="chapitreQuiz('${c.id}')">Quiz — on vérifie que c'est ancré</button>`);
+}
+function chapitreQuiz(id){
+  const c=ECO_CHAPITRES.find(x=>x.id===id);
+  startQuiz(c.questions,c.titre,(good,total)=>{
+    const first=!S.done.eco.includes(id);
+    const xp=first?good*5+10:good*2;
+    if(first){ S.done.eco.push(id); scheduleRev("eco",id); } else bumpRev("eco",id);
+    addXP(xp); checkMenu("eco",id); save();
+    quizVerdict(good,total,xp,first?"":" (révision)");
+  },{missBase:i=>"E|"+id+"|"+i});
 }
 
 // ---------- FLASHCARDS ----------
