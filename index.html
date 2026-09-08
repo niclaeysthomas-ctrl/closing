@@ -231,6 +231,7 @@
 <script src="data-deals.js"></script>
 <script src="data-academy.js"></script>
 <script src="data-sparring.js"></script>
+<script src="data-paliers.js"></script>
 <script src="data-lexique.js"></script>
 <script src="data-drills.js"></script>
 <script src="data-flashcards.js"></script>
@@ -243,7 +244,7 @@
 // ================= ÉTAT =================
 const RANKS=[["Stagiaire",0],["Analyst",150],["Associate",400],["VP",800],["Director",1400],["Managing Director",2200],["Rainmaker",3200]];
 const KEY="closing_v1";
-const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[],mclass:[],eco:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{},journal:[],biz:null,cimetiere:[],bizDone:[]};
+const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[],mclass:[],eco:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{},journal:[],biz:null,cimetiere:[],bizDone:[],pal:{}};
 let S=load();
 function load(){
   let s={};
@@ -257,6 +258,7 @@ function load(){
   o.journal=s.journal||[];
   o.biz=s.biz||null;
   o.cimetiere=s.cimetiere||[];
+  o.pal=s.pal||{};
   o.bizDone=s.bizDone||[];
   if(o.biz){ o.biz.loans=o.biz.loans||[]; o.biz.level=o.biz.level||1;
     o.biz.horizon=o.biz.horizon||36; o.biz.capacity=o.biz.capacity||1; }
@@ -1675,28 +1677,171 @@ function renderLex(q){
 function openSparList(type){
   const sp=SPAR[type];
   const list=sp.l(), done=sp.d(), title=sp.lab, ico=sp.ico;
-  openOv(ovTop(title)+list.map(s=>`
+  openOv(ovTop(title)+list.map(s=>{
+    const lad=typeof PALIERS!=="undefined"&&PALIERS[s.id];
+    const n=lad?palCount(s.id):0;
+    return `
     <div class="act ${done.includes(s.id)?"done":""}" onclick="openSpar('${type}','${s.id}')">
-      <div class="ico">${ico}</div><div class="t"><b>${s.title||s.q.slice(0,60)+"…"}</b><small>${s.tag||s.cat}</small></div>
+      <div class="ico">${ico}</div><div class="t"><b>${s.title||s.q.slice(0,60)+"…"}</b><small>${s.tag||s.cat}${lad&&!done.includes(s.id)?` · 🪜 ${n}/5 marches`:""}</small></div>
       <div class="st">${done.includes(s.id)?"✓":"›"}</div>
-    </div>`).join(""));
+    </div>`;}).join(""));
+}
+
+// ---------- LES PALIERS : l'escalier avant le grand bain ----------
+const PAL_STEPS=[
+  {k:"mots",ico:"📖",lab:"Les mots de l'énoncé",sub:"Le vocabulaire du cas, en français simple. Deux minutes."},
+  {k:"chiffres",ico:"🔢",lab:"Lire les chiffres",sub:"Ce que l'énoncé dit vraiment — trois questions."},
+  {k:"meca",ico:"⚙️",lab:"Le mécanisme",sub:"Le pourquoi que personne ne t'a expliqué."},
+  {k:"reflexe",ico:"🎯",lab:"Le réflexe",sub:"Trois réponses possibles. Une seule tient."},
+  {k:"guide",ico:"✍️",lab:"Le cas, guidé",sub:"Une question à la fois, avec les pistes sous les yeux."}
+];
+const PAL_LAB={chiffres:"Lire les chiffres",meca:"Le mécanisme",reflexe:"Le réflexe"};
+function palDone(id,k){ return !!(S.pal[id]&&S.pal[id][k]); }
+function palCount(id){ return PAL_STEPS.filter(st=>palDone(id,st.k)).length; }
+function palMark(id,k,xp){
+  S.pal[id]=S.pal[id]||{};
+  const first=!S.pal[id][k];
+  S.pal[id][k]=1; save();
+  if(first&&xp) addXP(xp);
+  return first;
+}
+function palItem(type,id){ return SPAR[type].l().find(x=>x.id===id); }
+
+function openPaliers(type,id){
+  const s=palItem(type,id), n=palCount(id), fini=SPAR[type].d().includes(id);
+  openOv(ovTop(s.title)+`
+    <div class="meta"><span class="tag ${type==="case"?"":"b"}">${s.tag}</span>L'escalier — ${n}/5 marches</div>
+    <div class="coach">${type==="nego"?"Cette négociation est écrite au niveau de quelqu'un qui en mène toutes les semaines":"Ce cas est écrit au niveau d'un DAF de groupe coté"} : c'est normal de ne pas savoir par où le prendre. <b>On ne commence pas par la réponse.</b> Cinq marches, deux à trois minutes chacune — le vocabulaire, les chiffres, le mécanisme, le réflexe, puis l'écriture guidée. Le cas complet t'attend en bas, il n'a pas bougé.</div>
+    ${PAL_STEPS.map((st,i)=>`
+    <div class="act ${palDone(id,st.k)?"done":""}" onclick="palOpen('${type}','${id}','${st.k}')">
+      <div class="ico">${st.ico}</div>
+      <div class="t"><b>${i+1}. ${st.lab}</b><small>${st.sub}</small></div>
+      <div class="st">${palDone(id,st.k)?"✓":"›"}</div>
+    </div>`).join("")}
+    <button class="btn ghost" onclick="openSparFull('${type}','${id}')">${fini?"Refaire le cas complet":"Le cas complet, sans filet →"}</button>`);
+}
+function palOpen(type,id,k){
+  if(k==="mots") return palMots(type,id);
+  if(k==="meca") return palMeca(type,id);
+  if(k==="guide") return palGuide(type,id);
+  return palAsk(type,id,k);
+}
+function palMots(type,id){
+  const s=palItem(type,id), P=PALIERS[id];
+  openOv(ovTop("Les mots — "+s.title)+`
+    <div class="story"><p>${s.setup}</p></div>
+    <p class="sub" style="margin:14px 0 8px">Le même énoncé, mot par mot. Lis tranquillement : tout le reste s'appuie là-dessus.</p>
+    ${P.mots.map(m=>`<div class="gridpt"><b style="color:var(--acc)">${m.t}</b><br>${m.d}</div>`).join("")}
+    <button class="btn" onclick="palMark('${id}','mots',4);openPaliers('${type}','${id}')">J'ai lu — marche suivante</button>
+    <button class="btn ghost" onclick="openPaliers('${type}','${id}')">Retour à l'escalier</button>`);
+}
+function palMeca(type,id){
+  const s=palItem(type,id), P=PALIERS[id];
+  openOv(ovTop("Le mécanisme — "+s.title)+`
+    <div class="qq">${P.meca.titre}</div>
+    ${P.meca.bloc.map(b=>`<div class="gridpt">${b}</div>`).join("")}
+    <button class="btn" onclick="palAsk('${type}','${id}','meca')">Deux questions pour vérifier</button>
+    <button class="btn ghost" onclick="openPaliers('${type}','${id}')">Retour à l'escalier</button>`);
+}
+let PALQ=null;
+function palAsk(type,id,key){
+  const P=PALIERS[id];
+  const items=key==="chiffres"?P.chiffres:key==="meca"?P.meca.q:P.reflexe;
+  PALQ={type,id,key,items,i:0,good:0};
+  palAskStep();
+}
+function palAskStep(){
+  const q=PALQ.items[PALQ.i], s=palItem(PALQ.type,PALQ.id);
+  openOv(ovTop(PAL_LAB[PALQ.key]+" — "+s.title)+`
+    <div class="prog">Question ${PALQ.i+1}/${PALQ.items.length}</div>
+    ${PALQ.key!=="meca"?`<details style="margin-bottom:12px;color:var(--dim);font-size:13px"><summary>Relire l'énoncé</summary><p style="margin-top:8px;color:var(--txt);line-height:1.55">${s.setup}</p></details>`:""}
+    <div class="qq">${q.q}</div>
+    ${q.opts.map((o,k)=>`<button class="opt" onclick="palAnswer(${k})"><b style="color:var(--acc)">${"ABCD"[k]}.</b> ${o}</button>`).join("")}
+    <div id="palexp"></div>`);
+}
+function palAnswer(k){
+  const q=PALQ.items[PALQ.i], ok=k===q.a;
+  if(ok) PALQ.good++;
+  document.querySelectorAll(".opt").forEach((b,j)=>{
+    b.disabled=true;
+    if(j===q.a) b.classList.add("ok"); else if(j===k) b.classList.add("ko");
+  });
+  document.getElementById("palexp").innerHTML=`<div class="exp"><b style="color:${ok?"var(--ok)":"var(--bad)"}">${ok?"Exact.":"Non."}</b> ${q.exp}</div>
+    <button class="btn" onclick="palAskNext()">${PALQ.i+1<PALQ.items.length?"Question suivante":"Marche franchie"}</button>`;
+}
+function palAskNext(){
+  PALQ.i++;
+  if(PALQ.i<PALQ.items.length) return palAskStep();
+  const {type,id,key,good,items}=PALQ; PALQ=null;
+  const xp=3+good*2, first=palMark(id,key,xp);
+  const s=palItem(type,id);
+  const msg=good===items.length?"Marche franchie proprement. La suivante s'appuie dessus."
+    :good?"Presque. Relis l'explication de ce que tu as raté — c'est exactement ce qui te manquait pour comprendre le cas."
+    :"Rien de grave : c'est la marche qui sert à ça. Refais-la, elle sera à toi en trois minutes.";
+  openOv(ovTop("Marche "+(PAL_STEPS.findIndex(x=>x.k===key)+1)+"/5")+`
+    <div class="result">
+      <div class="big">${good}/${items.length}</div>
+      ${first?`<div class="xp">+${xp} XP</div>`:""}
+      <p>${msg}</p>
+    </div>
+    <button class="btn" onclick="openPaliers('${type}','${id}')">Retour à l'escalier</button>
+    <button class="btn ghost" onclick="palAsk('${type}','${id}','${key}')">Refaire cette marche</button>`);
+}
+let PALG=null;
+function palGuide(type,id){
+  const s=palItem(type,id), P=PALIERS[id];
+  const steps=P.guide.map((g,i)=>({q:g.q||(s.questions?s.questions[i]:s.task),p:g.p}));
+  PALG={type,id,steps,i:0,ans:[]};
+  palGuideStep();
+}
+function palGuideStep(){
+  const st=PALG.steps[PALG.i], s=palItem(PALG.type,PALG.id), last=PALG.i+1>=PALG.steps.length;
+  openOv(ovTop("Guidé — "+s.title)+`
+    <div class="prog">Question ${PALG.i+1}/${PALG.steps.length} — une seule à la fois</div>
+    <details style="margin-bottom:12px;color:var(--dim);font-size:13px"><summary>Relire l'énoncé</summary><p style="margin-top:8px;color:var(--txt);line-height:1.55">${s.setup}</p></details>
+    <div class="qq">${st.q}</div>
+    <div class="coach"><b>Ta réponse doit contenir :</b>
+      <ul style="margin:8px 0 0 18px;padding:0">${st.p.map(x=>`<li style="margin-bottom:5px">${x}</li>`).join("")}</ul>
+    </div>
+    <p class="sub" style="margin:12px 0 6px">Réponds à cette question seulement. <b>Minimum 120 caractères</b> — on est à l'entraînement, pas encore devant le board.</p>
+    <textarea id="palTxt" placeholder="Une phrase par piste, ça suffit pour commencer…" oninput="document.getElementById('gnext').disabled=this.value.trim().length<120">${esc(PALG.ans[PALG.i]||"")}</textarea>
+    <button class="btn" id="gnext" disabled onclick="palGuideNext()">${last?"Voir la correction":"Question suivante"}</button>
+    <button class="btn ghost" onclick="openPaliers('${PALG.type}','${PALG.id}')">Abandonner cette marche</button>`);
+  const t=document.getElementById("palTxt");
+  if(t&&t.value.trim().length>=120) document.getElementById("gnext").disabled=false;
+}
+function palGuideNext(){
+  PALG.ans[PALG.i]=document.getElementById("palTxt").value;
+  PALG.i++;
+  if(PALG.i<PALG.steps.length) return palGuideStep();
+  const {type,id,steps,ans}=PALG; PALG=null;
+  palMark(id,"guide",6);
+  const txt=steps.map((st,i)=>"— "+st.q+"\n"+(ans[i]||"")).join("\n\n");
+  revealGrid(type,id,txt);
 }
 function openSpar(type,id){
   if(type==="teaser") return openTeaser(id);
+  if(typeof PALIERS!=="undefined"&&PALIERS[id]&&palCount(id)<5&&!SPAR[type].d().includes(id)) return openPaliers(type,id);
+  return openSparFull(type,id);
+}
+function openSparFull(type,id){
   const s=SPAR[type].l().find(x=>x.id===id);
   const qs=s.questions?s.questions.map((q,i)=>`<div class="gridpt"><b>Q${i+1}.</b> ${q}</div>`).join(""):`<div class="gridpt"><b>Mission :</b> ${s.task}</div>`;
   const ctx={case:"Tu es le DAF. Le board attend.",nego:"Négociation en conditions réelles.",cascade:"Déroule les trois états, dans l'ordre, en chiffrant tout.",plbo:"Chrono mental : 5 minutes en entretien réel."}[type];
+  const lad=typeof PALIERS!=="undefined"&&PALIERS[id];
   openOv(ovTop(s.title)+`
     <div class="meta"><span class="tag ${type==="case"?"":"b"}">${s.tag}</span>${ctx}</div>
     <div class="story"><p>${s.setup}</p></div>
     ${qs}
     <p class="sub" style="margin:12px 0 6px">Ta réponse écrite — complète, structurée, chiffrée quand c'est possible. <b>Minimum 200 caractères, le flou ne passe pas.</b></p>
     <textarea id="sparTxt" placeholder="Écris comme si l'associé lisait par-dessus ton épaule…" oninput="document.getElementById('revealBtn').disabled=this.value.trim().length<200"></textarea>
-    <button class="btn" id="revealBtn" disabled onclick="revealGrid('${type}','${id}')">Révéler la grille de correction</button>`);
+    <button class="btn" id="revealBtn" disabled onclick="revealGrid('${type}','${id}')">Révéler la grille de correction</button>
+    ${lad?`<button class="btn ghost" onclick="openPaliers('${type}','${id}')">🪜 Trop raide ? Reprendre par l'escalier (${palCount(id)}/5)</button>`:""}`);
 }
-function revealGrid(type,id){
+function revealGrid(type,id,txt){
   const s=SPAR[type].l().find(x=>x.id===id);
-  const mine=document.getElementById("sparTxt").value;
+  const el=document.getElementById("sparTxt");
+  const mine=txt!=null?txt:(el?el.value:"");
   openOv(ovTop(s.title+" — correction")+`
     <p class="sub" style="margin-bottom:10px">Point par point : coche UNIQUEMENT ce que ta réponse écrite contenait vraiment. Le score se calcule tout seul.</p>
     ${s.grid.map((g,i)=>`<label class="gridpt" style="display:flex;gap:10px;cursor:pointer"><input type="checkbox" class="gchk" style="margin-top:3px;flex-shrink:0;accent-color:var(--acc);width:17px;height:17px"><span><b>${i+1}.</b> ${g}</span></label>`).join("")}
