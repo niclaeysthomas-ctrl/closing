@@ -239,6 +239,9 @@
 <script src="data-masterclass.js"></script>
 <script src="data-boite.js"></script>
 <script src="data-boite-n1.js"></script>
+<script src="data-boite-n2.js"></script>
+<script src="data-boite-n3.js"></script>
+<script src="data-deals-tech.js"></script>
 <script src="data-economie.js"></script>
 <script>
 // ================= ÉTAT =================
@@ -480,7 +483,14 @@ function checkMenu(kind,id){
 const IS_RATE=.25, OD_RATE=.12, FACTOR_FEE=.025;
 
 // Tous les cas, tous niveaux confondus. Le filtrage se fait sur .lvl.
-function allCases(){ return BIZCASES.concat(typeof BIZCASES_N1!=="undefined"?BIZCASES_N1:[]); }
+function allCases(){
+  // Les decks des niveaux 2 et 3 ont été écrits le 2026-09-20 : jusque-là,
+  // jouer en niveau 2 ou 3 servait le deck artisan sur 48 ou 60 mois.
+  return BIZCASES
+    .concat(typeof BIZCASES_N1!=="undefined"?BIZCASES_N1:[])
+    .concat(typeof BIZCASES_N2!=="undefined"?BIZCASES_N2:[])
+    .concat(typeof BIZCASES_N3!=="undefined"?BIZCASES_N3:[]);
+}
 function bizCase(id){ return allCases().find(c=>c.id===id); }
 function niveau(n){ return NIVEAUX.find(x=>x.n===n)||NIVEAUX[0]; }
 
