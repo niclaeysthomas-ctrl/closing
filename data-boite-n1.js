@@ -245,6 +245,10 @@ const BIZCASES_N1 = [
      B.acquired=true; B.acqPrice=price; B.acqEarnout=picks.includes("d");
      const cashNow=picks.includes("d") ? price*.6 : price;
      B.cash-=cashNow;
+     /* Ce qu'on paie pour une clientèle et une marque n'est pas du vent :
+        c'est un FONDS DE COMMERCE, et il doit figurer à l'actif — sinon le
+        bilan perd le prix payé et ne s'équilibre plus. */
+     B.goodwill=(B.goodwill||0)+cashNow;
      B.earnoutLeft=picks.includes("d") ? price*.4 : 0;
      B.demandMult*=1.55; B.fc+=B.fc*.55; B.rep=Math.min(1.25,B.rep+.05);
      if(!picks.includes("a")) B.fc+=2600;          // il faut payer un remplaçant
@@ -344,7 +348,11 @@ const BIZCASES_N1 = [
   {k:"D", label:"Tu ne fais rien pour l'instant", term:"Tu continues à la main.", q:-1}
  ],
  apply:(B,k)=>{
-   if(k==="A"){ B.cash-=B.fc*4; B.mc*=.85; B.capex=(B.capex||0)+B.fc*4; B.fc+=B.fc*4/60; }
+   if(k==="A"){ const inv=B.fc*4;                      /* la machine : un vrai ACTIF */
+     B.cash-=inv; B.mc*=.85;
+     B.capex=(B.capex||0)+inv;                          /* il est porté au bilan… */
+     B.amortM=(B.amortM||0)+inv/60;                     /* …et amorti sur 60 mois */
+     B.fc+=inv/60; }
    if(k==="B"){ B.mc*=.85; B.fc+=B.fc*4/48*1.09; B.leasing=true; }
    if(k==="C"){ B.mc*=1.12; B.flexible=true; }
    if(k==="D"){ B.capacity=Math.min(B.capacity||1,1); B.rep=Math.max(.6,B.rep-.03); }

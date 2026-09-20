@@ -583,6 +583,54 @@ function bizDemand(price,noise){
   return Math.max(0, Math.round((sec.a-sec.b*price)*B.rep*season*B.demandMult*B.compFactor*n));
 }
 
+
+/* ---------- LE BILAN, ENFIN COMPLET ----------
+   Il manquait TROIS lignes, et l'app affichait tranquillement un bilan
+   déséquilibré :
+   · ACTIF  — les immobilisations (B.capex existait, n'était affiché nulle part :
+              acheter la machine sortait le cash et l'actif s'évaporait)
+   · ACTIF  — le fonds de commerce d'une acquisition
+   · PASSIF — les emprunts (B.debt existait, n'était affiché nulle part)
+   Le moteur mensuel, lui, est juste : ΔCash = RN − ΔBFR − loanCap et
+   réserves += RN maintiennent l'identité à la perfection. Ce sont les
+   apply() des cas qui bougent le cash sans contrepartie. */
+/* La dette RÉELLE se lit dans les emprunts, jamais dans B.debt — qui n'est
+   recalculé qu'au tour suivant. Un cas qui pousse un emprunt (n1saison) sans
+   toucher B.debt créait sinon une fausse recette : le rééquilibrage voyait du
+   cash sans contrepartie et le passait en BÉNÉFICE, puis bizTurn découvrait la
+   dette. L'emprunt se retrouvait compté deux fois au passif. */
+/* Fabrique un emprunt AU FORMAT DU MOTEUR. Sans pay/principalLeft, la boucle
+   de service de la dette calcule undefined − … = NaN, et le résultat, la
+   trésorerie et les réserves partent en NaN en silence. */
+function mkLoan(amount,rate,months,label){
+  return {label:label||"Emprunt", amount, rate, months, left:months,
+          principalLeft:amount, pay:loanPayment(amount,rate,months)};
+}
+function bizDebtOf(B){
+  return (B.loans||[]).reduce((t,l)=>
+    t+Math.max(0, l.principalLeft!==undefined ? l.principalLeft : (l.amount||0)), 0);
+}
+function bizBalance(B){
+  B=B||S.biz; if(!B) return null;
+  const immo=Math.max(0,(B.capex||0)-(B.amort||0));
+  const gw=B.goodwill||0;
+  const stock=B.stockU*B.mc;
+  const debt=bizDebtOf(B);
+  const actif=Math.max(0,B.cash)+stock+B.ar+immo+gw;
+  const passif=B.capital+B.reserves+B.ap+Math.max(0,-B.cash)+debt;
+  return {immo,gw,stock,debt,actif,passif,ecart:actif-passif};
+}
+/* Un cas peut sortir du cash sans rien mettre en face (une machine, un rachat,
+   un impayé). Économiquement, du cash parti sans actif en face EST une charge :
+   on passe donc l'écart par le résultat. L'identité redevient vraie, et elle
+   le reste. */
+function bizRebalance(){
+  if(S.biz) S.biz.debt=bizDebtOf(S.biz);   /* on synchronise AVANT de juger l'écart */
+  const b=bizBalance(); if(!b) return 0;
+  if(Math.abs(b.ecart)>0.5){ S.biz.reserves+=b.ecart; return b.ecart; }
+  return 0;
+}
+
 function bizTurn(){
   const B=S.biz, sec=bizSector();
   if(!B.alive||B.pending) return;
@@ -651,12 +699,28 @@ function bizTurn(){
   // (car ΔCash = CA − ΔBFR − COGS − FC − intérêts − IS, et RN = CA − COGS − FC − intérêts − IS)
   const bfr=B.stockU*B.mc + B.ar - B.ap;
   const dbfr=bfr-bfrPrev;
-  const dcash=rn-dbfr-loanCap;
+  /* LA DOTATION AUX AMORTISSEMENTS EST UNE CHARGE SANS DÉCAISSEMENT.
+     Elle est déjà dans fc, donc déjà dans rn : il faut la REMETTRE au cash,
+     sinon la machine est payée deux fois — une fois à l'achat, puis un
+     soixantième par mois. C'est exactement la distinction charge/décaissement
+     que le niveau 2 est censé enseigner ; autant que le moteur la respecte. */
+  const dot = (B.capex && (B.amort||0) < B.capex) ? Math.min(B.amortM||0, B.capex-(B.amort||0)) : 0;
+  const dcash=rn-dbfr-loanCap+dot;
   B.cash+=dcash;
   B.bfr=bfr;
   B.reserves+=rn;
 
-  B.hist.push({m:B.month,ca:Math.round(ca),ebitda:Math.round(ebitda),rn:Math.round(rn),
+  /* La machine est amortie : sa dotation était déjà dans les charges fixes
+     (donc déjà dans le résultat, donc déjà dans les réserves). Il faut que
+     l'ACTIF baisse du même montant, sinon le bilan se déséquilibre un peu
+     plus chaque mois. Et quand elle est totalement amortie, la charge doit
+     s'arrêter — sans ça les réserves continueraient à baisser toutes seules. */
+  if(dot>0){
+    B.amort=(B.amort||0)+dot;
+    if(B.amort>=B.capex-.01){ B.fc=Math.max(0,B.fc-B.amortM); B.amortM=0; }
+  }
+
+  B.hist.push({m:B.month,ca:Math.round(ca),ebitda:Math.round(ebitda),rn:Math.round(rn),dot:Math.round(dot),
     cash:Math.round(B.cash),bfr:Math.round(bfr),dbfr:Math.round(dbfr),dcash:Math.round(dcash),
     sold,rupture,price:B.price,elast:B.elast,loanCap:Math.round(loanCap),loanInt:Math.round(loanInt)});
 
@@ -704,6 +768,12 @@ function vBoite(){
   const q=bizDemand(B.price);
   const mUnit=B.price-B.mc;
   const pmort=mUnit>0 ? Math.ceil(B.fc/mUnit) : Infinity;
+  /* Migration unique : les parties commencées avant le 2026-09-20 ont pu
+     accumuler un écart (cash sorti sans contrepartie). Une fois les
+     immobilisations et les emprunts affichés, l'écart résiduel est passé
+     par le résultat — là où il aurait toujours dû aller. */
+  if(!B.migBal){ B.migBal=1; bizRebalance(); save(); }
+  const BAL=bizBalance();
 
   return `<h1 class="page">${B.emoji} ${esc(B.name)}</h1>
   <div class="sub">${sec.name} · <b>mois ${B.month} / ${B.horizon}</b> · ${niveau(B.level).emoji} ${niveau(B.level).nom} · ${B.b2b?"B2C + B2B":"vente directe"}</div>
@@ -762,20 +832,26 @@ function vBoite(){
       <div class="side">
         <div class="sh">ACTIF</div>
         <div class="l"><span>Trésorerie</span><b>${eur(Math.max(0,B.cash))}</b></div>
-        <div class="l"><span>Stock</span><b>${eur(B.stockU*B.mc)}</b></div>
+        <div class="l"><span>Stock</span><b>${eur(BAL.stock)}</b></div>
         <div class="l"><span>Créances clients</span><b>${eur(B.ar)}</b></div>
-        <div class="l tot"><span>Total</span><b>${eur(Math.max(0,B.cash)+B.stockU*B.mc+B.ar)}</b></div>
+        ${BAL.immo?`<div class="l"><span>Immobilisations nettes</span><b>${eur(BAL.immo)}</b></div>`:""}
+        ${BAL.gw?`<div class="l"><span>Fonds de commerce</span><b>${eur(BAL.gw)}</b></div>`:""}
+        <div class="l tot"><span>Total</span><b>${eur(BAL.actif)}</b></div>
       </div>
       <div class="side">
         <div class="sh">PASSIF</div>
         <div class="l"><span>Capital</span><b>${eur(B.capital)}</b></div>
         <div class="l"><span>Réserves</span><b style="color:${B.reserves<0?"var(--bad)":"inherit"}">${eur(B.reserves)}</b></div>
+        ${BAL.debt?`<div class="l"><span>Emprunts</span><b>${eur(BAL.debt)}</b></div>`:""}
         <div class="l"><span>Dettes fournisseurs</span><b>${eur(B.ap)}</b></div>
         <div class="l"><span>Découvert</span><b style="color:${B.cash<0?"var(--bad)":"inherit"}">${eur(Math.max(0,-B.cash))}</b></div>
-        <div class="l tot"><span>Total</span><b>${eur(B.capital+B.reserves+B.ap+Math.max(0,-B.cash))}</b></div>
+        <div class="l tot"><span>Total</span><b>${eur(BAL.passif)}</b></div>
       </div>
     </div>
     <div class="xptxt" style="margin-top:12px;line-height:1.5">
+      ${Math.abs(BAL.ecart)<=1
+        ? `<b style="color:var(--ok)">✓ Actif = Passif</b> — un bilan équilibré n'est pas une performance, c'est une obligation : chaque euro que tu possèdes vient forcément de quelque part.<br>`
+        : `<b style="color:var(--bad)">⚠️ Écart de ${eur(BAL.ecart)}</b> — signale-le, c'est un défaut de la simulation.<br>`}
       <b>BFR = stock + créances − dettes fournisseurs = ${eur(B.bfr)}</b>${h&&h.ca>0?` · soit <b>${Math.round(B.bfr/h.ca*30)} jours de CA</b> immobilisés en permanence.`:""}
     </div>
   </div>
@@ -1191,6 +1267,7 @@ function bizTakeLoan(cid,k){
     B.loans.push({label:o.label,amount:o.amount,rate:o.rate,months:o.months,left:o.months,principalLeft:o.amount,pay:pay});
     B.cash+=o.amount; B.debt=(B.debt||0)+o.amount;
   }
+  bizRebalance();
   B.answers.push({id:cid,k,arg,month:B.month,q:o.q,label:o.label});
   B.seen.push(cid); B.pending=null; addXP(12); save();
   bizDebrief(c,k,o.label,c.debrief(B,k));
@@ -1228,6 +1305,7 @@ function bizNegoGo(cid){
   const arg=(document.getElementById("bzArg").value||"").trim();
   const picks=NEGOPICK.slice();
   const r=c.resolve(B,picks);
+  bizRebalance();     /* idem après une négociation : resolve() bouge le bilan */
   const q=Math.max(-2,Math.min(2,Math.round(r.p/2)));
   B.answers.push({id:cid,k:picks.join("+"),arg,month:B.month,q,label:picks.map(k=>c.levers.find(l=>l.k===k).label).join(" · ")});
   B.seen.push(cid); B.pending=null; addXP(14); save();
@@ -1245,6 +1323,7 @@ function bizDecide(cid,k){
   const opt=c.options.find(o=>o.k===k);
   B.answers.push({id:cid,k,arg,month:B.month,q:opt.q,label:opt.label});
   c.apply(B,k);
+  bizRebalance();     /* un cas peut sortir du cash sans actif en face : c'est une charge */
   B.seen.push(cid); B.pending=null;
   addXP(12); save();
   bizDebrief(c,k,opt.label,c.debrief(B,k));

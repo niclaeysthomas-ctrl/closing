@@ -26,8 +26,12 @@ const BIZCASES_N3 = [
  ],
  apply:(B,k)=>{
    const st={A:{d:8000000,e:4000000,mz:0},B:{d:6000000,e:4000000,mz:2000000},C:{d:5000000,e:7000000,mz:0},D:{d:9000000,e:3000000,mz:0}}[k];
+   /* Le LBO se monte dans une HOLDING de reprise : sa dette ne figure pas au
+      bilan de l'exploitation. On la garde donc dans B.lbo et on ne touche ni
+      au cash ni aux emprunts de la boîte — sinon on injecte 8 M€ de dette
+      dans un artisan et le bilan n'a plus aucun sens. */
    B.lbo={debt:st.d,mezz:st.mz,equity:st.e,ebitda:2000000};
-   B.debt+=st.d+st.mz; B.leverage=(st.d+st.mz)/2000000;
+   B.leverage=(st.d+st.mz)/2000000;
    if(k==="D") B.lboStress=true;
  },
  debrief:(B,k)=>`

@@ -1,5 +1,5 @@
 // LE CLOSING — service worker : cache-first, app 100 % hors-ligne
-const CACHE = "closing-v11-calculatrice";
+const CACHE = "closing-v12-bilan-equilibre";
 const ASSETS = [
   "./",
   "./index.html",

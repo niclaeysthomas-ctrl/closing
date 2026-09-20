@@ -61,10 +61,10 @@ const BIZCASES_N2 = [
  ],
  apply:(B,k)=>{
    const eb12=B.hist.slice(-12).reduce((t,h)=>t+h.ebitda,0);
-   if(k==="A"){ B.debt+=250000; B.cash+=250000; B.loans.push({p:250000,rate:.045,n:60}); B.covenant={max:3,grace:0}; B.capacity*=1.5; }
-   if(k==="B"){ B.debt+=250000; B.cash+=250000; B.loans.push({p:250000,rate:.048,n:60}); B.covenant={max:3.5,grace:1}; B.capacity*=1.5; }
+   if(k==="A"){ B.cash+=250000; B.loans.push(mkLoan(250000,.045,60,"Prêt de développement")); B.covenant={max:3,grace:0}; B.capacity*=1.5; }
+   if(k==="B"){ B.cash+=250000; B.loans.push(mkLoan(250000,.048,60,"Prêt de développement")); B.covenant={max:3.5,grace:1}; B.capacity*=1.5; }
    if(k==="C"){ B.cash-=Math.min(B.cash*.6,120000); B.capacity*=1.2; B.noDebt=true; }
-   if(k==="D"){ B.debt+=125000; B.cash+=125000; B.loans.push({p:125000,rate:.047,n:60}); B.covenant={max:3,grace:0}; B.capacity*=1.25; }
+   if(k==="D"){ B.cash+=125000; B.loans.push(mkLoan(125000,.047,60,"Prêt de développement")); B.covenant={max:3,grace:0}; B.capacity*=1.25; }
  },
  debrief:(B,k)=>{const eb12=B.hist.slice(-12).reduce((t,h)=>t+h.ebitda,0);
   const ratio=eb12>0?((B.debt+250000-B.cash)/eb12).toFixed(2):"n/a";
@@ -97,10 +97,10 @@ const BIZCASES_N2 = [
   {k:"D", label:"Tu montes 300 000 € de dette et tu lèves le reste plus tard", term:"Tu fais la moitié du chemin et tu te redonnes le choix.", q:1}
  ],
  apply:(B,k)=>{
-   if(k==="A"){ B.debt+=600000; B.cash+=600000; B.loans.push({p:600000,rate:.052,n:84}); B.covenant={max:3,grace:0}; B.cautionPerso=true; B.capacity*=1.8; }
-   if(k==="B"){ B.cash+=600000; B.equityIn=(B.equityIn||0)+600000; B.dilution=.30; B.board=true; B.capacity*=1.8; }
-   if(k==="C"){ B.cash+=600000; B.equityIn=(B.equityIn||0)+600000; B.dilution=.18; B.bsa=true; B.board=true; B.capacity*=1.8; }
-   if(k==="D"){ B.debt+=300000; B.cash+=300000; B.loans.push({p:300000,rate:.052,n:84}); B.capacity*=1.4; }
+   if(k==="A"){ B.cash+=600000; B.loans.push(mkLoan(600000,.052,84,"Prêt bancaire 7 ans")); B.covenant={max:3,grace:0}; B.cautionPerso=true; B.capacity*=1.8; }
+   if(k==="B"){ B.cash+=600000; B.capital+=600000; B.equityIn=(B.equityIn||0)+600000; B.dilution=.30; B.board=true; B.capacity*=1.8; }
+   if(k==="C"){ B.cash+=600000; B.capital+=600000; B.equityIn=(B.equityIn||0)+600000; B.dilution=.18; B.bsa=true; B.board=true; B.capacity*=1.8; }
+   if(k==="D"){ B.cash+=300000; B.loans.push(mkLoan(300000,.052,84,"Prêt bancaire 7 ans")); B.capacity*=1.4; }
  },
  debrief:(B,k)=>{const eb12=B.hist.slice(-12).reduce((t,h)=>t+h.ebitda,0);
   return `
@@ -132,9 +132,9 @@ const BIZCASES_N2 = [
  ],
  apply:(B,k)=>{
    if(k==="A"){ B.offerRejected=true; B.rep=Math.max(.7,B.rep-.03); }
-   if(k==="B"){ B.acquired=true; B.cash-=Math.min(B.cash,300000); B.debt+=1140000; B.demandMult*=1.75; B.fc+=14000; B.goodwill=(B.goodwill||0)+600000; }
-   if(k==="C"){ B.acquired=true; B.cash-=Math.min(B.cash,400000); B.debt+=1400000; B.demandMult*=1.75; B.fc+=14000; B.goodwill=(B.goodwill||0)+950000; B.overpaid=true; }
-   if(k==="D"){ B.acquired=true; B.cash-=Math.min(B.cash,250000); B.debt+=1050000; B.earnout=300000; B.demandMult*=1.7; B.fc+=14000; B.goodwill=(B.goodwill||0)+520000; }
+   if(k==="B"){ B.acquired=true; B.cash-=Math.min(B.cash,300000); B.loans.push(mkLoan(1140000,.05,84,"Dette d'acquisition")); B.demandMult*=1.75; B.fc+=14000; B.goodwill=(B.goodwill||0)+600000; }
+   if(k==="C"){ B.acquired=true; B.cash-=Math.min(B.cash,400000); B.loans.push(mkLoan(1400000,.05,84,"Dette d'acquisition")); B.demandMult*=1.75; B.fc+=14000; B.goodwill=(B.goodwill||0)+950000; B.overpaid=true; }
+   if(k==="D"){ B.acquired=true; B.cash-=Math.min(B.cash,250000); B.loans.push(mkLoan(1050000,.05,84,"Dette d'acquisition")); B.earnout=300000; B.demandMult*=1.7; B.fc+=14000; B.goodwill=(B.goodwill||0)+520000; }
  },
  debrief:(B,k)=>`
   <p><b>Le piège est dans la première ligne de l'annonce, et presque tout le monde tombe dedans.</b> Un multiple d'EBITDA donne une <b>valeur d'entreprise</b> — la valeur de l'outil, indépendamment de qui l'a financé. Le prix que tu paies pour les <i>actions</i>, lui, vaut : valeur d'entreprise − dette nette. Ici : 6 × 300 000 = 1 800 000 € de VE, moins (420 000 − 60 000) = 360 000 € de dette nette, soit <b>1 440 000 € pour les titres</b>. Le vendeur t'a annoncé sa VE en te laissant croire que c'était son prix. Ce n'est pas de la malhonnêteté, c'est du métier.</p>
