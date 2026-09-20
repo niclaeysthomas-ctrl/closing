@@ -178,6 +178,179 @@ const BIZCASES_N2 = [
   "Avoir identifié l'homme-clé et chiffré ce que son départ coûterait.",
   "Avoir compris qu'en PME on achète une relation client, pas seulement un outil.",
   "Avoir accepté de payer pour de la rétention plutôt que d'encaisser une économie immédiate."
- ]}
+ ]},
+
+
+{id:"n2bfrnorm", lvl:2, type:"choice", ch:3, icon:"📏", title:"Ce que ta croissance coûtera l'an prochain",
+ concept:"BFR normatif · financement de la croissance", lesson:"b4",
+ when:B=>B.level>=2 && B.month>=12 && B.hist.length>=6 && B.growth>1.02,
+ signal:"Ton expert-comptable t'a demandé un prévisionnel. Personne ne demande ça pour le plaisir.",
+ setup:B=>{const h=B.hist[B.hist.length-1]||{ca:0};
+  const bfr=Math.round(B.stockU*B.mc+B.ar-B.ap), j=h.ca>0?Math.round(bfr/h.ca*30):0;
+  return `Ton banquier veut savoir de combien tu auras besoin dans douze mois. Tu n'en as aucune idée, et lui non plus — mais lui sait le calculer.
+   <br><br>Aujourd'hui : CA <b>${eur(h.ca)}</b>/mois · BFR <b>${eur(bfr)}</b>, soit <b>${j} jours de CA</b> immobilisés en permanence.
+   <br><br>Ton plan : <b>+60 % de chiffre d'affaires</b> sur douze mois.
+   <br><br>Avant de choisir : si ton BFR représente ${j} jours de CA aujourd'hui et que ton modèle ne change pas, combien te faudra-t-il quand ton CA aura grandi de 60 % ?`;},
+ options:[
+  {k:"A", label:"Tu demandes une ligne de trésorerie couvrant le besoin calculé", term:"Tu chiffres, tu négocies à froid, avant d'en avoir besoin.", q:2},
+  {k:"B", label:"Tu attends de voir venir", term:"Tu aviseras quand la trésorerie baissera.", q:-2},
+  {k:"C", label:"Tu réduis le BFR d'abord, tu finances le reste ensuite", term:"Acomptes, relances, stock : tu fais baisser le ratio avant de grandir.", q:2},
+  {k:"D", label:"Tu freines la croissance pour rester autofinancé", term:"Tu grandis au rythme de ton cash.", q:0}
+ ],
+ apply:(B,k)=>{
+   const bfr=B.stockU*B.mc+B.ar-B.ap;
+   if(k==="A"){ B.ligneTreso=Math.round(bfr*.6); B.loans.push(mkLoan(Math.max(5000,Math.round(bfr*.6)),.055,24,"Ligne de trésorerie")); B.cash+=Math.max(5000,Math.round(bfr*.6)); }
+   if(k==="B"){ B.bfrBlind=true; }
+   if(k==="C"){ B.dso=Math.max(15,B.dso-12); B.stockTarget=Math.max(.5,B.stockTarget-.3); B.acompte=Math.max(B.acompte||0,.2); }
+   if(k==="D"){ B.growth=Math.min(B.growth,1.02); }
+ },
+ debrief:(B,k)=>{const h=B.hist[B.hist.length-1]||{ca:0};
+  const bfr=Math.round(B.stockU*B.mc+B.ar-B.ap), j=h.ca>0?Math.round(bfr/h.ca*30):0;
+  return `
+  <p><b>Le BFR normatif, c'est ton BFR exprimé en JOURS de chiffre d'affaires</b> — et c'est une constante de ton modèle, pas un montant. Le tien vaut <b>${j} jours</b>. Tant que tes délais clients, tes délais fournisseurs et ta politique de stock ne bougent pas, ces ${j} jours ne bougeront pas non plus.</p>
+  <p><b>Le calcul qu'il fallait poser.</b> +60 % de CA, c'est +60 % de BFR : environ <b>${eur(Math.round(bfr*.6))}</b> de plus à financer sur l'année. Ce n'est pas une dépense, c'est de l'argent immobilisé — il reviendra, mais seulement le jour où tu arrêteras de grandir. <b>La croissance rentable consomme du cash</b>, et c'est ce paradoxe qui tue des entreprises parfaitement bénéficiaires.</p>
+  <p><b>A et C sont tous les deux justes, et pour des raisons opposées.</b> A traite le symptôme mais au bon moment : une ligne négociée <i>à froid</i>, quand tes ratios sont bons, coûte bien moins cher qu'un découvert négocié dans l'urgence — la banque prête volontiers à qui n'en a pas besoin. C traite la cause : passer de ${j} à ${Math.max(5,j-12)} jours de BFR change ton modèle pour toujours et te dispense d'une partie du financement.</p>
+  <p><b>B est la pire option du jeu, et c'est la plus fréquente dans la vraie vie.</b> Attendre de voir, c'est découvrir le besoin le jour où la trésorerie devient négative — c'est-à-dire au moment précis où ton dossier devient mauvais. <b>On négocie son financement quand on va bien.</b> D n'est pas absurde : refuser une croissance qu'on ne peut pas financer est une décision légitime — mais c'est un choix, pas une prudence, et il se paie en parts de marché.</p>`;},
+ grid:[
+  "Avoir exprimé le BFR en JOURS de CA, et pas seulement en euros.",
+  "Avoir projeté le besoin futur en appliquant la croissance au BFR normatif.",
+  "Avoir compris qu'on négocie un financement AVANT d'en avoir besoin.",
+  "Avoir envisagé de réduire le ratio plutôt que de financer le montant."
+ ]},
+
+{id:"n2levier", lvl:2, type:"choice", ch:5, icon:"⚗️", title:"Les deux leviers, en même temps",
+ concept:"Levier opérationnel × levier financier", lesson:"a1",
+ when:B=>B.level>=2 && B.month>=17 && B.hist.length>=12,
+ signal:"Le commercial de l'équipementier et ton chargé d'affaires bancaire t'ont appelé la même semaine. Ce n'est jamais un hasard.",
+ setup:B=>{const h=B.hist[B.hist.length-1]||{ca:0,ebitda:0};
+  return `Deux propositions arrivent ensemble, et chacune est bonne prise séparément.
+   <br><br><b>L'équipementier</b> : une ligne à <b>${eur(B.fc*6)}</b> qui ferait baisser ton coût unitaire de <b>18 %</b> — mais ajouterait <b>${eur(B.fc*.35)}</b> de charges fixes par mois.
+   <br><br><b>La banque</b> : elle financerait l'opération à 100 %, sur 5 ans.
+   <br><br>Tes chiffres : charges fixes <b>${eur(B.fc)}</b>/mois · EBITDA du mois <b>${eur(h.ebitda)}</b> · marge unitaire <b>${eur(B.price-B.mc)}</b>.
+   <br><br>Avant de choisir : que deviendrait ton point mort si tu prends les deux ?`;},
+ options:[
+  {k:"A", label:"Les deux : la ligne, financée par la dette", term:"Tu maximises. Coût unitaire en baisse, aucune sortie de cash.", q:-2},
+  {k:"B", label:"La ligne, payée sur ta trésorerie", term:"Un seul levier : l'opérationnel. Pas de dette.", q:2},
+  {k:"C", label:"Rien pour l'instant", term:"Tu gardes ta structure souple.", q:0},
+  {k:"D", label:"Une demi-ligne, autofinancée", term:"La moitié du gain, la moitié du risque fixe.", q:1}
+ ],
+ apply:(B,k)=>{
+   const inv=B.fc*6, dotM=inv/60;
+   if(k==="A"){ B.loans.push(mkLoan(Math.round(inv),.05,60,"Financement équipement")); B.cash+=inv;
+     B.cash-=inv; B.capex=(B.capex||0)+inv; B.amortM=(B.amortM||0)+dotM; B.fc+=B.fc*.35+dotM; B.mc*=.82; B.deuxLeviers=true; }
+   if(k==="B"){ B.cash-=inv; B.capex=(B.capex||0)+inv; B.amortM=(B.amortM||0)+dotM; B.fc+=B.fc*.35+dotM; B.mc*=.82; }
+   if(k==="C"){ B.flexible=true; }
+   if(k==="D"){ const i2=inv/2, d2=i2/60; B.cash-=i2; B.capex=(B.capex||0)+i2; B.amortM=(B.amortM||0)+d2; B.fc+=B.fc*.18+d2; B.mc*=.91; }
+ },
+ debrief:(B,k)=>`
+  <p><b>Un levier multiplie ce qui arrive — dans les deux sens.</b> Le levier <b>opérationnel</b> transforme du coût variable en coût fixe : ta marge unitaire monte, ton point mort aussi. Le levier <b>financier</b> remplace des fonds propres par de la dette : ton rendement monte, et ton obligation de payer devient inconditionnelle. Chacun, seul, est un outil. <b>Ensemble, ils se multiplient l'un l'autre.</b></p>
+  <p><b>Le calcul qu'il fallait poser.</b> Ton point mort vaut charges fixes ÷ marge unitaire. Les charges fixes augmentent de 35 % et la marge unitaire de 18 % : <b>ton point mort monte d'environ 15 %</b> — il te faut vendre 15 % de plus pour simplement exister. Ajoute une mensualité de dette, qui ne dépend pas non plus de tes ventes, et tu as empilé deux obligations fixes sur un chiffre d'affaires qui, lui, reste variable.</p>
+  <p><b>C'est exactement ce qui se passe quand l'activité recule de 20 %.</b> Sans levier, tu gagnes moins. Avec un levier, tu perds. Avec les deux, tu es en défaut — parce que ni les charges fixes ni les mensualités ne reculent avec ton chiffre d'affaires. <b>A est le seul piège à −2 de tout le niveau</b>, et c'est aussi l'option qui paraît la plus intelligente : elle ne coûte rien tout de suite.</p>
+  <p><b>La règle qu'un directeur financier applique sans même y penser : un seul levier à la fois.</b> Si tu veux l'outil, paie-le comptant. Si tu veux la dette, garde ta structure de coûts souple. Et si ta visibilité est mauvaise, ne prends ni l'un ni l'autre — <b>C n'est pas de la frilosité, c'est le prix de l'option d'attendre</b>, et cette option vaut cher quand on ne sait pas où va la demande.</p>`,
+ grid:[
+  "Avoir recalculé le POINT MORT après l'investissement, pas seulement la marge unitaire.",
+  "Avoir vu que charges fixes et mensualités sont deux obligations indépendantes du CA.",
+  "Avoir simulé un recul d'activité de 20 % avant de cumuler les deux leviers.",
+  "Avoir compris qu'un seul levier à la fois est une règle, pas une préférence."
+ ]},
+
+{id:"n2amort", lvl:2, type:"choice", ch:4, icon:"📉", title:"La charge qui ne sort pas de ta poche",
+ concept:"Charge vs décaissement · provision · dotation", lesson:"b3",
+ when:B=>B.level>=2 && B.month>=22 && B.ar>0,
+ signal:"Ton comptable a passé une écriture que tu n'as pas demandée, et ton résultat a baissé sans que ton compte bouge.",
+ setup:B=>`Clôture de l'exercice. Deux écritures te sont proposées, et aucune des deux ne fait bouger ton compte en banque.
+   <br><br><b>1. La dotation aux amortissements</b> sur ton matériel : une charge annuelle qui étale le prix payé sur la durée de vie.
+   <br><br><b>2. Une provision</b> sur une créance de <b>${eur(Math.round(B.ar*.3))}</b> dont le client ne répond plus depuis quatre mois.
+   <br><br>Ton résultat avant ces écritures : positif. Après : nettement moins.
+   <br><br>Ta trésorerie : <b>${eur(B.cash)}</b>. Elle ne bougera pas d'un euro dans les deux cas.`,
+ options:[
+  {k:"A", label:"Tu passes les deux", term:"Résultat en baisse, image fidèle, moins d'impôt.", q:2},
+  {k:"B", label:"Tu refuses la provision : le client va payer", term:"Tu gardes un résultat flatteur pour la banque.", q:-2},
+  {k:"C", label:"Tu passes la provision, tu discutes l'amortissement", term:"Tu allonges la durée pour lisser la charge.", q:0},
+  {k:"D", label:"Tu passes les deux ET tu relances le client le jour même", term:"L'écriture comptable ne remplace pas le recouvrement.", q:2}
+ ],
+ apply:(B,k)=>{
+   const prov=B.ar*.3;
+   if(k==="A"){ B.reserves-=prov; B.ar-=prov; B.provision=(B.provision||0)+prov; }
+   if(k==="B"){ B.noProvision=true; B.badDebt=(B.badDebt||0)+prov; }
+   if(k==="C"){ B.reserves-=prov; B.ar-=prov; B.amortM=(B.amortM||0)*.7; }
+   if(k==="D"){ B.reserves-=prov; B.ar-=prov*.6; B.cash+=prov*.4; B.provision=(B.provision||0)+prov; B.dso=Math.max(15,B.dso-8); }
+ },
+ debrief:(B,k)=>`
+  <p><b>Une charge n'est pas un décaissement, et c'est la distinction la plus mal comprise de toute la comptabilité.</b> La dotation aux amortissements constate qu'un bien payé <i>autrefois</i> perd de la valeur <i>aujourd'hui</i> : l'argent est sorti il y a des années. La provision constate qu'une créance ne vaut probablement plus ce qui est écrit : aucun euro ne sort. Les deux font baisser ton résultat sans toucher ton compte en banque.</p>
+  <p><b>C'est pour ça que le tableau de flux existe.</b> On part du résultat net, on <b>rajoute</b> les charges non décaissées (dotations, provisions), on retranche la variation du BFR et les investissements : on obtient le cash réellement produit. Un résultat de 50 000 € avec 30 000 € de dotations, ce n'est pas la même entreprise qu'un résultat de 50 000 € sans aucune dotation — la première génère 80 000 € de cash d'exploitation.</p>
+  <p><b>B est le piège de la vanité comptable, et il se retourne toujours.</b> Refuser une provision pour garder un beau résultat, c'est afficher à l'actif une créance que tu sais douteuse — et payer de l'impôt sur un profit que tu n'encaisseras jamais. Ton banquier, lui, retraite ça en dix minutes : il regarde l'antériorité de tes créances. <b>Tu ne trompes que toi.</b></p>
+  <p><b>D est la seule réponse complète, et la nuance vaut le détour.</b> Provisionner est un acte <i>comptable</i> : ça constate une perte probable. Relancer est un acte <i>commercial</i> : ça essaie de l'éviter. Beaucoup de dirigeants croient qu'en provisionnant ils ont « traité » le problème — ils ont seulement arrêté de se mentir sur sa taille. <b>L'écriture ne récupère pas un euro.</b></p>`,
+ grid:[
+  "Avoir séparé ce qui fait baisser le RÉSULTAT de ce qui fait baisser la TRÉSORERIE.",
+  "Avoir compris qu'on rajoute les dotations au résultat pour obtenir le cash d'exploitation.",
+  "Avoir refusé de gonfler le résultat en laissant une créance douteuse à l'actif.",
+  "Avoir vu que provisionner ne remplace pas relancer."
+ ]},
+
+{id:"n2concentration", lvl:2, type:"choice", ch:4, icon:"🎯", title:"Un client pèse 40 % de ton chiffre",
+ concept:"Risque de concentration · pouvoir de négociation", lesson:"a1",
+ when:B=>B.level>=2 && B.month>=26 && B.b2b && B.b2bShare>=.4,
+ signal:"Leur acheteur a changé. Le nouveau t'a demandé ta structure de coûts « pour mieux travailler ensemble ».",
+ setup:B=>{const h=B.hist[B.hist.length-1]||{ca:0};
+  return `Ta chaîne d'épiceries pèse désormais <b>${Math.round((B.b2bShare||0)*100)} %</b> de ton chiffre d'affaires — environ <b>${eur(Math.round(h.ca*(B.b2bShare||0)))}</b> par mois.
+   <br><br>Ils te demandent <b>−7 % sur tes tarifs</b> pour l'année prochaine, « comme tous leurs fournisseurs ». Et ils rappellent, sans insister, qu'ils référencent deux torréfacteurs concurrents.
+   <br><br>Ta marge unitaire actuelle : <b>${eur(B.price-B.mc)}</b> sur un prix de <b>${eur(B.price)}</b>. Une baisse de 7 % du prix, c'est <b>${Math.round(B.price*.07/(B.price-B.mc)*100)} %</b> de ta marge unitaire.
+   <br><br>Ta trésorerie : <b>${eur(B.cash)}</b>.`;},
+ options:[
+  {k:"A", label:"Tu acceptes : tu ne peux pas perdre 40 % de ton CA", term:"Tu préserves le volume.", q:-1},
+  {k:"B", label:"Tu refuses net", term:"Tu tiens ton prix et tu prends le risque.", q:0},
+  {k:"C", label:"Tu accordes 3 % contre un engagement de volume ferme", term:"Tu échanges de la marge contre de la visibilité contractuelle.", q:2},
+  {k:"D", label:"Tu acceptes, et tu lances la reconquête du direct en parallèle", term:"Tu paies le temps de réduire ta dépendance.", q:2}
+ ],
+ apply:(B,k)=>{
+   if(k==="A"){ B.price*=.93; B.concentration=true; }
+   if(k==="B"){ if(Math.random()<.5){ B.demandMult*=.62; B.b2b=false; B.b2bShare=0; B.perduGrandCompte=true; } else { B.rep=Math.min(1.25,B.rep+.04); } }
+   if(k==="C"){ B.price*=.97; B.engagementVolume=true; B.demandMult*=1.05; B.growth=Math.max(B.growth,1.03); }
+   if(k==="D"){ B.price*=.93; B.fc+=Math.round(B.fc*.08); B.b2bShare=Math.max(.2,(B.b2bShare||0)-.15); B.dso=Math.max(15,B.dso-10); B.reconquete=true; }
+ },
+ debrief:(B,k)=>`
+  <p><b>Ce n'est pas une négociation de prix, c'est le prix de ta dépendance — et il t'est présenté avec un an de retard.</b> Le moment où tu as perdu ce rapport de force, c'est le jour où ce client est passé de 15 à 40 % de ton chiffre d'affaires. Tout ce qui se joue aujourd'hui n'est que la facture de cette évolution.</p>
+  <p><b>Le calcul qu'il fallait poser.</b> −7 % sur le prix, ce n'est pas −7 % sur la marge : c'est <b>${Math.round(B.price*.07/Math.max(.01,B.price-B.mc)*100)} %</b> de ta marge unitaire qui disparaît, parce que tes coûts, eux, ne baissent pas de 7 %. C'est l'erreur d'arithmétique la plus coûteuse du commerce : <b>une remise sur le prix se mesure toujours en pourcentage de la MARGE</b>, jamais du prix.</p>
+  <p><b>A et B sont les deux faces de la même absence de stratégie.</b> Accepter sans contrepartie, c'est enseigner à l'acheteur que la demande fonctionne — il reviendra l'an prochain, et tu n'auras aucune raison de refuser alors que tu n'en avais aucune cette fois-ci. Refuser net sans avoir préparé d'alternative, c'est parier 40 % de ton activité sur un bluff que tu n'as pas les moyens de tenir.</p>
+  <p><b>C et D sont justes parce qu'ils achètent quelque chose avec la remise.</b> C achète de la visibilité : un engagement de volume ferme transforme une menace récurrente en contrat, et rend ton prévisionnel finançable. D achète du temps : tu paies 7 % pendant que tu reconstruis du direct, et l'an prochain tu négocies à 25 % de dépendance au lieu de 40. <b>Une remise n'est jamais une perte si elle achète autre chose — c'est une perte si elle n'achète que la paix.</b></p>`,
+ grid:[
+  "Avoir converti la remise sur le PRIX en pourcentage de la MARGE.",
+  "Avoir identifié que le problème date du jour où la dépendance s'est installée.",
+  "Avoir exigé une contrepartie : volume ferme, durée, exclusivité — quelque chose.",
+  "Avoir traité la dépendance elle-même, et pas seulement la demande de remise."
+ ]},
+
+{id:"n2earnout", lvl:2, type:"choice", ch:5, icon:"🤝", title:"Payer maintenant, ou payer si ça marche",
+ concept:"Structuration du prix · earn-out · crédit-vendeur", lesson:"j6",
+ when:B=>B.level>=2 && B.acquired && B.month>=32,
+ signal:"Le vendeur a accepté ton prix sans discuter le montant, mais il insiste beaucoup sur le calendrier de paiement.",
+ setup:B=>`Prix arrêté : <b>1 440 000 €</b>. Reste à décider comment tu le paies — et c'est là que tout se joue.
+   <br><br>Tu as <b>${eur(B.cash)}</b> en banque. La banque financerait jusqu'à 900 000 € sur 7 ans.
+   <br><br>Le vendeur reste dirigeant un an, puis part. Il affirme que l'EBITDA de 300 000 € tient tout seul ; tu penses qu'une partie dépend de lui.
+   <br><br>Personne ne peut trancher ce désaccord aujourd'hui. C'est exactement ce que la structure du prix sert à régler.`,
+ options:[
+  {k:"A", label:"Tout comptant, dette bancaire maximale", term:"Le vendeur est payé, l'affaire est close, tu portes tout le risque.", q:-1},
+  {k:"B", label:"60 % au closing, 40 % en earn-out sur l'EBITDA à 2 ans", term:"Tu ne paies le solde que si les résultats tiennent.", q:2},
+  {k:"C", label:"70 % au closing, 30 % en crédit-vendeur sur 3 ans", term:"Le vendeur te prête une partie du prix, avec intérêts.", q:1},
+  {k:"D", label:"50 % comptant, 25 % earn-out, 25 % crédit-vendeur", term:"Tu combines les deux mécanismes.", q:2}
+ ],
+ apply:(B,k)=>{
+   if(k==="A"){ B.cash-=Math.min(B.cash,540000); B.loans.push(mkLoan(900000,.05,84,"Dette d'acquisition")); B.goodwill=(B.goodwill||0)+1440000; B.risqueVendeur=true; }
+   if(k==="B"){ B.cash-=Math.min(B.cash,264000); B.loans.push(mkLoan(600000,.05,84,"Dette d'acquisition")); B.earnout=576000; B.goodwill=(B.goodwill||0)+864000; }
+   if(k==="C"){ B.cash-=Math.min(B.cash,308000); B.loans.push(mkLoan(700000,.05,84,"Dette d'acquisition")); B.loans.push(mkLoan(432000,.04,36,"Crédit-vendeur")); B.goodwill=(B.goodwill||0)+1440000; }
+   if(k==="D"){ B.cash-=Math.min(B.cash,220000); B.loans.push(mkLoan(500000,.05,84,"Dette d'acquisition")); B.loans.push(mkLoan(360000,.04,36,"Crédit-vendeur")); B.earnout=360000; B.goodwill=(B.goodwill||0)+1080000; }
+ },
+ debrief:(B,k)=>`
+  <p><b>Quand deux parties ne s'accordent pas sur une valeur, on ne coupe pas la poire en deux : on structure.</b> Tu penses que l'EBITDA dépend du dirigeant, il affirme le contraire. Aucun des deux ne peut le prouver aujourd'hui — mais dans deux ans, les chiffres trancheront tout seuls. <b>L'earn-out dit : prouve-le, et je paie.</b> Il ne règle pas le désaccord, il le reporte à la date où il devient vérifiable.</p>
+  <p><b>Le crédit-vendeur fait un autre travail, et on les confond souvent.</b> Il n'indexe rien sur la performance : il étale simplement le paiement. Son vrai intérêt est ailleurs — <b>il garde le vendeur créancier</b>, donc intéressé à ce que tu survives, et il te donne un levier de compensation si un passif caché remonte : tu retiens sur les échéances à venir plutôt que d'aller plaider.</p>
+  <p><b>A est la pire structure, et c'est la plus demandée par les vendeurs.</b> Tout comptant, c'est payer aujourd'hui la totalité d'un résultat dont tu doutes, avec la dette maximale, en gardant 100 % du risque d'exécution et zéro recours si la réalité déçoit. Tu as transféré tout l'argent et gardé toute l'incertitude.</p>
+  <p><b>Et l'avertissement qui va avec B et D : l'earn-out est la clause la plus procédurière du M&A.</b> Il faut définir l'EBITDA au mot près, dire qui produit les comptes, et surtout écrire ce que l'acheteur <b>s'interdit</b> de faire pendant la période — refacturer des frais de siège, changer les méthodes comptables, réorganiser. Sans ces garde-fous, l'earn-out ne résout pas le litige : il le programme.</p>`,
+ grid:[
+  "Avoir vu que la structure du prix sert à régler un désaccord de VALEUR, pas de trésorerie.",
+  "Avoir distingué earn-out (indexé sur la performance) et crédit-vendeur (simple étalement).",
+  "Avoir refusé de payer comptant un résultat dont on doute.",
+  "Avoir anticipé la définition contractuelle de l'EBITDA et les engagements de l'acheteur."
+ ]},
 
 ];

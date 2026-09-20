@@ -53,6 +53,34 @@
   .xpbar{height:9px;border-radius:2px;background:#0009;overflow:hidden;margin:6px 0 4px}
   .xpbar i{display:block;height:100%;background:linear-gradient(90deg,var(--accd),var(--acc));border-radius:2px;transition:width .4s}
   .xptxt{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.2px}
+
+  /* ---------- LE FORMULAIRE ---------- */
+  .fmcats{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+  .fmcats button{border:none;border-radius:999px;padding:7px 11px;font-size:11.5px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--dim)}
+  .fmcats button.on{background:var(--acc);color:#1a1300}
+  .fmc{background:var(--bg);border:1px solid var(--line);border-radius:11px;margin-bottom:7px;overflow:hidden}
+  .fmh{display:flex;align-items:center;gap:9px;padding:11px 12px;cursor:pointer}
+  .fmh .i{font-size:17px}
+  .fmh b{font-size:13.5px;flex:1;line-height:1.3}
+  .fmh .ar{color:var(--dim);font-size:11px}
+  .fmb{display:none;padding:0 12px 12px}
+  .fmc.open .fmb{display:block}
+  .fmq{font-size:12.5px;color:var(--dim);line-height:1.5;margin-bottom:9px;font-style:italic}
+  .fmf{font-family:var(--mono);font-size:12px;background:#0f1420;border-left:3px solid var(--acc);border-radius:0 8px 8px 0;
+    padding:10px 11px;color:var(--acc);white-space:pre-wrap;line-height:1.6;margin-bottom:11px}
+  .fmin{display:grid;grid-template-columns:1fr auto;gap:7px 9px;align-items:center;margin-bottom:10px}
+  .fmin label{font-size:12px;color:var(--dim)}
+  .fmin input{width:110px;background:var(--bg2);border:1px solid var(--line);border-radius:8px;color:var(--txt);
+    padding:8px 9px;font-family:var(--mono);font-size:14px;text-align:right}
+  .fmin input:focus{outline:none;border-color:var(--acc)}
+  .fmr{background:var(--bg2);border-radius:9px;padding:11px 12px;font-size:13px;line-height:1.55;margin-bottom:9px}
+  .fmr .v{font-family:var(--mono);font-size:19px;font-weight:800;color:var(--acc);display:block;margin-bottom:5px}
+  .fmn{font-size:12.5px;line-height:1.55;color:#c7ccd6;margin-bottom:7px}
+  .fmp{font-size:12.5px;line-height:1.55;color:#e8b98a;background:rgba(232,163,61,.08);border-radius:8px;padding:9px 10px}
+  .fmp b{color:var(--acc)}
+  .fmacts{display:flex;gap:6px;margin-bottom:10px}
+  .fmacts button{flex:1;border:none;border-radius:9px;padding:9px 4px;font-size:11.5px;font-weight:700;cursor:pointer;background:var(--bg2);color:var(--dim)}
+  .fmacts button:active{background:var(--line)}
   /* ---------- LA CALCULATRICE (écrans de décision) ---------- */
   .calcw{background:var(--bg2);border:1px solid var(--line);border-radius:12px;margin-top:10px;overflow:hidden}
   .calch{display:flex;align-items:center;gap:8px;padding:11px 13px;cursor:pointer;user-select:none}
@@ -272,6 +300,7 @@
 <script src="data-masterclass.js"></script>
 <script src="data-boite.js"></script>
 <script src="data-boite-n1.js"></script>
+<script src="data-formules.js"></script>
 <script src="data-boite-n2.js"></script>
 <script src="data-boite-n3.js"></script>
 <script src="data-deals-tech.js"></script>
@@ -858,6 +887,7 @@ function vBoite(){
 
   ${B.hist.length>1?`<h2 class="sec">Résultat vs trésorerie</h2>${bizChart()}`:""}
 
+  <button class="btn ghost" onclick="formRoom()">📐 Les formules — les 14 calculs qui décident</button>
   ${B.hist.length?`<button class="btn ghost" onclick="bizExport()">📋 Débriefer avec Claude</button>`:""}
   <button class="danger" onclick="if(confirm('Liquider ${esc(B.name)} et repartir de zéro ?')){S.biz=null;save();render()}">Liquider et recommencer</button>`;
 }
@@ -1177,6 +1207,110 @@ function calcMemDraw(){
     : "";
 }
 
+
+/* ---------- LE FORMULAIRE : les formules, calculables ----------
+   « mets les formules quelque part, je ne les connais pas ». Son débriefing
+   de la partie 1 l'a montré : sur 4 décisions coûteuses, un calcul de dix
+   secondes donnait la réponse, il n'en a fait aucun — faute de connaître la
+   formule. Une fiche = la question, la formule, des champs, un résultat EN
+   DIRECT, et une LECTURE du résultat (une formule qu'on ne sait pas lire ne
+   sert à rien). « Mes chiffres » la remplit avec l'état réel de sa boîte. */
+let FORMCAT="Cash & BFR", FORMOPEN=null;
+const FORMVALS={};
+function formVals(f){
+  if(!FORMVALS[f.id]){ FORMVALS[f.id]={}; f.champs.forEach(c=>FORMVALS[f.id][c.k]=c.v); }
+  return FORMVALS[f.id];
+}
+/* remplissage depuis la boîte en cours — uniquement ce qui a un sens */
+const FORM_PRE={
+  bfr:       B=>({st:Math.round(B.stockU*B.mc), cr:Math.round(B.ar), df:Math.round(B.ap), ca:Math.round(formCA(B))}),
+  /* le CA À CRÉDIT, pas le CA total : seules les ventes B2B créent des créances */
+  dso:       B=>({cr:Math.round(B.ar), ca:Math.max(1,Math.round(formCA(B)*(B.b2bShare||1))), df:Math.round(B.ap), ach:Math.round(B.lastPurch||B.mc*B.qPrev||1)}),
+  pointmort: B=>({p:Math.round(B.price*100)/100, cv:Math.round(B.mc*100)/100, cf:Math.round(B.fc)}),
+  salarie:   B=>({net:1900, mu:Math.round((B.price-B.mc)*100)/100}),
+  commande:  B=>({pp:Math.round(B.price*.6*100)/100, cv:Math.round(B.mc*100)/100, qte:500}),
+  elast:     B=>({e:Math.round((B.elast||-1)*100)/100, dp:8}),
+  prixopt:   B=>({pc:(bizSector()||{}).choke||26, cv:Math.round(B.mc*100)/100, p:Math.round(B.price*100)/100}),
+  gearing:   B=>({d:Math.round(B.debt||0), tr:Math.round(Math.max(0,B.cash)), eb:Math.round(formEb12(B))}),
+  multiple:  B=>({mult:6, eb:Math.round(formEb12(B)), d:Math.round(B.debt||0), tr:Math.round(Math.max(0,B.cash))}),
+};
+function formCA(B){ return (B.hist&&B.hist.length) ? B.hist[B.hist.length-1].ca : 1; }
+function formEb12(B){ return B.hist ? B.hist.slice(-12).reduce((t,h)=>t+(h.ebitda||0),0) : 0; }
+function formPre(id){
+  const B=S.biz; if(!B||!FORM_PRE[id]) return toast("Pas de partie en cours.");
+  try{ Object.assign(formVals(FORMULES.find(f=>f.id===id)), FORM_PRE[id](B)); }catch(e){ return toast("Chiffres indisponibles."); }
+  formDraw(); toast("Rempli avec tes chiffres.");
+}
+function formBlock(){
+  return `<div class="calcw${S.formOpen?" open":""}" id="formw">
+    <div class="calch" onclick="formToggle()"><span>📐</span><b>Les formules</b>
+      <span class="xptxt">tu ne calcules pas de tête</span><span class="ar">›</span></div>
+    <div class="calcb"><div id="formbody"></div></div></div>`;
+}
+function formToggle(){
+  const w=document.getElementById("formw"); if(!w) return;
+  w.classList.toggle("open"); S.formOpen=w.classList.contains("open"); save();
+  if(S.formOpen) formDraw();
+}
+function formDraw(){
+  const host=document.getElementById("formbody"); if(!host) return;
+  const list=FORMULES.filter(f=>f.cat===FORMCAT);
+  host.innerHTML=`<div class="fmcats">${FORM_CATS.map(c=>
+      `<button class="${c===FORMCAT?"on":""}" onclick="FORMCAT='${c.replace(/'/g,"\\'")}';FORMOPEN=null;formDraw()">${c}</button>`).join("")}</div>
+    ${list.map(f=>{
+      const v=formVals(f), open=FORMOPEN===f.id;
+      let res=null; try{ res=f.calc(v); }catch(e){}
+      return `<div class="fmc${open?" open":""}">
+        <div class="fmh" onclick="FORMOPEN=${open?"null":"'"+f.id+"'"};formDraw()">
+          <span class="i">${f.ic}</span><b>${f.t}</b><span class="ar">${open?"▾":"›"}</span></div>
+        <div class="fmb">
+          <div class="fmq">${f.q}</div>
+          <div class="fmf">${f.f}</div>
+          <div class="fmin">${f.champs.map(c=>
+            `<label>${c.lab}</label><input type="number" step="${c.pas||1}" value="${v[c.k]}"
+              oninput="formSet('${f.id}','${c.k}',this.value)">`).join("")}</div>
+          <div class="fmr"><span class="v">${res==null?"—":fmtNum(res)+" "+f.unite}</span>${
+            (()=>{ try{ return f.lire(res,v); }catch(e){ return "—"; } })()}</div>
+          <div class="fmacts">
+            ${FORM_PRE[f.id]&&S.biz?`<button onclick="formPre('${f.id}')">📥 Mes chiffres</button>`:""}
+            ${res!=null?`<button onclick="formToCalc(${res})">🧮 Vers la calculatrice</button>`:""}
+          </div>
+          <div class="fmn">💡 ${f.note}</div>
+          <div class="fmp"><b>Le piège :</b> ${f.piege}</div>
+        </div></div>`;
+    }).join("")}`;
+}
+function fmtNum(v){
+  if(!isFinite(v)) return "—";
+  return Math.abs(v)>=1000 ? Math.round(v).toLocaleString("fr-FR")
+       : (Math.round(v*100)/100).toLocaleString("fr-FR",{maximumFractionDigits:2});
+}
+function formSet(id,k,val){
+  const f=FORMULES.find(x=>x.id===id); const v=formVals(f);
+  const n=parseFloat(String(val).replace(",","."));
+  v[k]=isFinite(n)?n:0;
+  /* on ne redessine que la ligne de résultat : sinon le champ perd le focus */
+  const card=[...document.querySelectorAll(".fmc")].find(c=>c.querySelector(".fmh b")&&c.querySelector(".fmh b").textContent===f.t);
+  if(!card) return;
+  let res=null; try{ res=f.calc(v); }catch(e){}
+  const r=card.querySelector(".fmr");
+  if(r) r.innerHTML=`<span class="v">${res==null?"—":fmtNum(res)+" "+f.unite}</span>`+
+    (()=>{ try{ return f.lire(res,v); }catch(e){ return "—"; } })();
+}
+function formToCalc(v){
+  const w=document.getElementById("calcw");
+  if(w && !w.classList.contains("open")) calcToggle();
+  calcIns(Math.round(v*10000)/10000);
+  toast("Résultat envoyé à la calculatrice.");
+}
+/* consultable hors décision : depuis l'écran de la boîte */
+function formRoom(){
+  openOv(ovTop("📐 Les formules")+`
+    <p class="sub" style="margin-bottom:10px">Les quatorze calculs qui décident à ta place — si tu les poses. Chacun se calcule ici, avec tes chiffres.</p>
+    <div id="formbody"></div>`);
+  formDraw();
+}
+
 // ---------- LES CAS ----------
 // Au niveau 1, on veut qu'il EXPLIQUE, pas qu'il rédige : 90 caractères suffisent.
 function argMin(){ return S.biz && S.biz.level===1 ? 90 : 200; }
@@ -1212,6 +1346,7 @@ function bzArgSync(){
 }
 function bizArgBlock(ph){
   return `${calcBlock()}
+    ${formBlock()}
     <textarea id="bzArg" placeholder="${ph}" oninput="bzArgSync()"></textarea>
     <div class="xptxt gateko" id="bzGate" style="margin-top:8px">Il manque : encore <b>${argMin()}</b> caractères</div>`;
 }
