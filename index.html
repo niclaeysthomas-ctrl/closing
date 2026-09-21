@@ -2109,6 +2109,12 @@ function vJour(){
         <div class="st">↻</div></div>`;
     }).join("");
   }
+  /* La reprise des exos entre dans la boucle quotidienne, au même rang que
+     les révisions : une base qu'on ne revoit pas n'est pas une base. */
+  const dusExo=(typeof exoDus==="function")?exoDus():[];
+  const exoHtml=dusExo.length?`<div class="act rev" onclick="exoReprise()">
+    <div class="ico">🔁</div><div class="t"><b>Reprise des calculs — ${dusExo.length} palier${dusExo.length>1?"s":""}</b><small>${dusExo.slice(0,5).map(nn=>{const p=exoPal(nn);return p?p.ic+" "+esc(p.titre):"";}).filter(Boolean).join(" · ")}${dusExo.length>5?" …":""}</small></div>
+    <div class="st">›</div></div>`:"";
   const nMiss=S.miss.length;
   const missHtml=nMiss?`<div class="act rev" onclick="startRattrapage()">
     <div class="ico">🩹</div><div class="t"><b>Rattrapage — ${nMiss} question${nMiss>1?"s":""} ratée${nMiss>1?"s":""}</b><small>tes erreurs t'attendent. Elles ne partiront pas seules.</small></div>
@@ -2123,6 +2129,7 @@ function vJour(){
     <div class="xptxt">${nr?`${nr[1]-S.xp} XP avant le grade ${nr[0]}`:"Grade maximal. Reste au sommet."}</div>
   </div>
   <div class="coach">${coachLine()}</div>
+  ${exoHtml}
   ${readHtml}
   <div class="act ${m.dLesson?"done":""}" onclick="openLesson('${les.id}')">
     <div class="ico">🎓</div><div class="t"><b>Leçon — ${les.title}</b><small>${MODULES.find(x=>x.id===les.module).name} · cours + quiz (~10 min)</small></div>
@@ -2179,9 +2186,76 @@ function vDeals(){
    réponse, on apprend un geste. ================================= */
 const EXO_SERIE=3;        /* exercices par séance (chacun porte 2 à 4 questions) */
 const EXO_SEUIL=.80;      /* pour valider un palier et ouvrir le suivant */
-function exosSt(){ if(!S.exos) S.exos={cur:1,p:{}}; if(!S.exos.p) S.exos.p={}; if(!S.exos.cur) S.exos.cur=1; return S.exos; }
+function exosSt(){
+  if(!S.exos) S.exos={cur:1,p:{}}; if(!S.exos.p) S.exos.p={}; if(!S.exos.cur) S.exos.cur=1;
+  /* Migration : un palier validé AVANT l'arrivée de la reprise n'a pas
+     d'échéance — sans ça il ne reviendrait jamais, et l'espacement ne
+     servirait qu'aux paliers futurs. On les fait entrer dans le cycle,
+     étalés sur quelques jours pour ne pas tous les servir le même matin. */
+  if(!S.exos.mig){
+    let d=1;
+    Object.keys(S.exos.p).forEach(k=>{
+      const e=S.exos.p[k];
+      if(e && e.valide && !e.due){
+        e.box=e.box||1;
+        const dt=new Date(); dt.setDate(dt.getDate()+d);
+        e.due=dt.toISOString().slice(0,10); d=Math.min(d+1,5);
+      }
+    });
+    S.exos.mig=1; save();
+  }
+  return S.exos;
+}
+
 function exoPal(n){ return EXOS.find(p=>p.n===n); }
-function exoEtat(n){ const st=exosSt(); return st.p[n]||{best:0,done:0,valide:false}; }
+function exoEtat(n){ const st=exosSt(); return Object.assign({best:0,done:0,valide:false,box:0,due:null,ko:{},vus:0,fautes:0}, st.p[n]||{}); }
+/* ================================================================
+   LA REPRISE — ajoutée le 2026-09-21.
+   Un palier validé à 80 % et jamais revu, c'est une base qui n'en est
+   pas une : au moment d'arriver au bêta, le point mort du palier 3
+   aura vingt jours et sera parti. L'app a de l'espacement partout
+   ailleurs (flashcards, quintes du dojo) ; les exos n'en avaient pas.
+   Chaque palier validé porte donc une échéance. Une reprise réussie
+   l'éloigne, une reprise ratée la ramène à demain et REFERME rien —
+   on ne lui enlève jamais un palier ouvert, on lui demande juste d'y
+   repasser. ================================================== */
+const EXO_PAS=[0,2,5,11,23,45];     /* jours avant la reprise, par palier de boîte */
+function exoAujourdhui(){ return new Date().toISOString().slice(0,10); }
+function exoDansNJours(j){ const d=new Date(); d.setDate(d.getDate()+j); return d.toISOString().slice(0,10); }
+function exoDue(n){ const e=exoEtat(n); return e.valide && e.due && e.due<=exoAujourdhui(); }
+function exoDus(){ return EXOS.filter(p=>exoDue(p.n)).map(p=>p.n); }
+function exoProchaine(){
+  const ds=EXOS.map(p=>exoEtat(p.n)).filter(e=>e.valide&&e.due).map(e=>e.due).sort();
+  return ds[0]||null;
+}
+/* Le point faible : on compte les fautes PAR QUESTION (sa clé = l'étiquette
+   courte), pas seulement par palier. C'est ce qui permet de dire « le BFR
+   te coûte » au lieu de « tu es moyen au palier 4 ». */
+function exoNotePoint(n, lab, ok){
+  const st=exosSt(), e=Object.assign({best:0,done:0,valide:false,box:0,due:null,ko:{},vus:0,fautes:0}, st.p[n]||{});
+  if(!e.ko) e.ko={};
+  const k=e.ko[lab]||{n:0,ko:0};
+  k.n++; if(!ok) k.ko++;
+  e.ko[lab]=k; e.vus=(e.vus||0)+1; if(!ok) e.fautes=(e.fautes||0)+1;
+  st.p[n]=e;
+}
+function exoPointFaible(){
+  /* on ne juge que ce qui a été vu au moins trois fois : sinon une seule
+     faute d'inattention désignerait un « point faible » qui n'en est pas */
+  let pire=null;
+  EXOS.forEach(p=>{
+    const e=exoEtat(p.n);
+    Object.keys(e.ko||{}).forEach(lab=>{
+      const k=e.ko[lab];
+      if(k.n<3) return;
+      const tx=k.ko/k.n;
+      if(tx<.34) return;
+      if(!pire || tx>pire.tx || (tx===pire.tx && k.ko>pire.ko)) pire={n:p.n, titre:p.titre, lab, tx, ko:k.ko, vus:k.n};
+    });
+  });
+  return pire;
+}
+
 function exoOuvert(n){ return n===1 || exoEtat(n-1).valide; }
 function exoRng(){
   /* Générateur simple : on veut du hasard à chaque série, pas de la
@@ -2225,17 +2299,31 @@ function exoFmt(v,u){
 function exosRoom(){
   const st=exosSt();
   const lignes=EXOS.map(p=>{
-    const e=exoEtat(p.n), ouvert=exoOuvert(p.n);
+    const e=exoEtat(p.n), ouvert=exoOuvert(p.n), du=exoDue(p.n);
     const pc=e.best?Math.round(e.best*100):0;
-    return `<div class="mod${e.valide?" gold":""}" ${ouvert?`onclick="exoPalRoom(${p.n})"`:``} style="${ouvert?"":"opacity:.45"}">
-      <div class="ico">${ouvert?p.ic:"🔒"}</div>
-      <div class="t"><b>${p.n}. ${esc(p.titre)}</b><small>${esc(p.sujet)}${e.done?` · meilleur score ${pc} %`:""}</small></div>
-      <div class="pc">${e.valide?"✓":ouvert?"›":""}</div>
+    /* un palier dû se voit : c'est le seul moyen qu'une base reste une base */
+    return `<div class="mod${e.valide?" gold":""}" ${ouvert?`onclick="exoPalRoom(${p.n})"`:``} style="${ouvert?"":"opacity:.45"}${du?";border-color:var(--acc)":""}">
+      <div class="ico">${du?"🔁":ouvert?p.ic:"🔒"}</div>
+      <div class="t"><b>${p.n}. ${esc(p.titre)}</b><small>${esc(p.sujet)}${e.done?` · meilleur score ${pc} %`:""}${du?` · <b style="color:var(--acc)">à revoir</b>`:e.valide&&e.due?` · revu le ${e.due.slice(8)}/${e.due.slice(5,7)}`:""}</small></div>
+      <div class="pc">${du?"🔁":e.valide?"✓":ouvert?"›":""}</div>
     </div>`;}).join("");
   const faits=EXOS.filter(p=>exoEtat(p.n).valide).length;
   openOv(ovTop("🧮 Les exos")+`
     <p class="sub">Je te donne les chiffres, tu calcules. Douze paliers, et <b>chacun ouvre le suivant</b> : on ne saute pas une marche. Le premier est une soustraction, le dernier désendette un bêta.</p>
-    <div class="crit" style="margin:10px 0"><b>${faits}/12 paliers validés.</b> ${faits===0?"Commence par le 1. Même si tu crois le savoir — surtout si tu crois le savoir.":faits<12?"Le palier "+(faits+1)+" t'attend.":"Les douze sont tombés. Reprends-en un au hasard de temps en temps : ça se reperd."}</div>
+    <div class="crit" style="margin:10px 0"><b>${faits}/12 paliers validés.</b> ${faits===0?"Commence par le 1. Même si tu crois le savoir — surtout si tu crois le savoir.":faits<12?"Le palier "+(faits+1)+" t'attend.":"Les douze sont tombés — et c'est maintenant que la reprise compte."}</div>
+    ${(()=>{ const dus=exoDus(), pf=exoPointFaible(), nd=exoProchaine();
+      let h='';
+      if(dus.length){
+        const noms=dus.slice(0,4).map(nn=>{const p=exoPal(nn); return p?p.ic+' '+p.n:'';}).filter(Boolean).join(' · ');
+        h+=`<div class="card" style="border-color:var(--acc)">
+          <div class="lab" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--acc);font-weight:800">🔁 À reprendre aujourd'hui</div>
+          <div class="sub" style="margin-top:4px">${dus.length} palier${dus.length>1?'s':''} : ${noms}${dus.length>4?' …':''}. Les questions sont <b>mélangées</b> — c'est le mélange qui fait la solidité, pas le bloc.</div>
+          <button class="btn mt" onclick="exoReprise()">Faire la reprise</button></div>`;
+      } else if(nd){
+        h+=`<div class="xptxt" style="text-align:center;margin:-2px 0 10px">Rien à reprendre aujourd'hui · prochaine reprise le <b>${nd.slice(8)}/${nd.slice(5,7)}</b></div>`;
+      }
+      if(pf) h+=`<div class="crit" style="margin:10px 0">🎯 <b>Ton point faible :</b> ${esc(pf.lab)} — palier ${pf.n}, ${esc(pf.titre)}. <b>${pf.ko} faute${pf.ko>1?'s':''} sur ${pf.vus} passages.</b> <span style="text-decoration:underline;cursor:pointer" onclick="exoPalRoom(${pf.n})">Refaire ce palier</span>.</div>`;
+      return h; })()}
     ${lignes}
     <div class="xptxt" style="margin-top:10px">Les chiffres changent à chaque série. Tu ne peux pas retenir une réponse — seulement apprendre le geste.</div>`);
 }
@@ -2263,7 +2351,28 @@ function exoStart(n){
   EXS={n, p, ex, e:0, q:0, bons:0, total:ex.reduce((t,x)=>t+x.questions.length,0), answered:false, rates:[], acquis:[]};
   exoDraw();
 }
+/* La reprise mélange les paliers dus : une question de point mort, une de
+   BFR, une de WACC. C'est le mélange qui fait la solidité — réviser un
+   palier en bloc, c'est se souvenir du bloc, pas de la formule. */
+function exoReprise(){
+  const dus=exoDus(); if(!dus.length){ toast('Rien à reprendre aujourd\'hui.'); return exosRoom(); }
+  const R=exoRng(), ex=[];
+  dus.slice(0,4).forEach(nn=>{
+    const p=exoPal(nn); if(!p) return;
+    const e=p.gen(R);
+    e.questions.forEach(q=>q.pal=nn);
+    e.palIc=p.ic; e.palTitre=p.titre; e.palN=nn;
+    ex.push(e);
+  });
+  if(!ex.length) return exosRoom();
+  ex.sort(()=>Math.random()-.5);
+  EXS={n:0, mode:'reprise', dus, p:{ic:'🔁', titre:'La reprise', n:0},
+       ex, e:0, q:0, bons:0, total:ex.reduce((t,x)=>t+x.questions.length,0),
+       answered:false, rates:[], acquis:[], parPal:{}};
+  exoDraw();
+}
 function exoDraw(){
+
   if(!EXS) return;
   const {p,ex,e,q}=EXS, cur=ex[e], it=cur.questions[q];
   const faits=ex.slice(0,e).reduce((t,x)=>t+x.questions.length,0)+q;
@@ -2271,7 +2380,8 @@ function exoDraw(){
       <div class="lb">${esc(d[0])}</div>
       <div style="font-weight:800;font-size:15px;white-space:nowrap">${exoFmt(d[1],d[2])}</div></div>`).join("");
   openOv(ovTop(p.ic+" "+p.titre)+`
-    <div class="meta"><span class="tag">Palier ${p.n} · exercice ${e+1}/${ex.length}</span>question ${faits+1} / ${EXS.total}</div>
+    <div class="meta"><span class="tag">${EXS.mode==='reprise'?`${cur.palIc} Palier ${cur.palN}`:`Palier ${p.n}`} · exercice ${e+1}/${ex.length}</span>question ${faits+1} / ${EXS.total}</div>
+    ${EXS.mode==='reprise'?`<div class="xptxt" style="margin:-4px 0 8px">🔁 Reprise — ${esc(cur.palTitre)}</div>`:''}
     ${cur.contexte?`<div class="xptxt" style="margin-bottom:8px">${cur.contexte}</div>`:""}
     <div class="bld">${don}</div>
     <div class="card"><h2 style="font-size:17px;line-height:1.4">${esc(it.q)}</h2></div>
@@ -2306,6 +2416,12 @@ function exoCheck(){
      et le faire repartir d'un chiffre faux en enchaînerait une deuxième. */
   if(!EXS.acquis) EXS.acquis=[];
   EXS.acquis.push({lab:exoLab(it.q), val:Math.round(it.val*1000)/1000});
+  /* chaque réponse nourrit le point faible, y compris en reprise */
+  exoNotePoint(it.pal||EXS.n, exoLab(it.q), ok);
+  if(EXS.mode==='reprise'){
+    const pn=it.pal||0; if(!EXS.parPal[pn]) EXS.parPal[pn]={bons:0,total:0};
+    EXS.parPal[pn].total++; if(ok) EXS.parPal[pn].bons++;
+  }
   document.getElementById("exoOut").innerHTML=`
     <div class="expl ${ok?"ok":"no"}">${ok?"✅ Juste."
       : unite?"❌ <b>Ton calcul est juste</b> — c'est l'unité. Tu as répondu en milliers ; la réponse attendue est <b>"+exoFmt(it.val,it.unit)+"</b>. En finance, l'ordre de grandeur fait partie de la réponse."
@@ -2324,11 +2440,22 @@ function exoNext(){
   exoFin();
 }
 function exoFin(){
+  if(EXS.mode==='reprise') return exoFinReprise();
   const {n,p,bons,total,rates}=EXS;
   const part=total?bons/total:0, valide=part>=EXO_SEUIL;
   const st=exosSt(), e=exoEtat(n);
   const avantValide=e.valide;
-  st.p[n]={best:Math.max(e.best||0,part), done:(e.done||0)+1, valide:e.valide||valide};
+  /* L'espacement : une série réussie éloigne l'échéance d'un cran, une
+     série ratée la ramène à demain. Un palier déjà ouvert ne se referme
+     jamais — on ne retire pas un acquis, on demande d'y repasser. */
+  const etaitDu=exoDue(n);
+  let box=e.box||0;
+  if(part>=EXO_SEUIL) box=Math.min(box+1, EXO_PAS.length-1); else box=0;
+  const valideMaintenant=e.valide||valide;
+  st.p[n]=Object.assign({}, e, {
+    best:Math.max(e.best||0,part), done:(e.done||0)+1, valide:valideMaintenant,
+    box, due: valideMaintenant ? exoDansNJours(part>=EXO_SEUIL?EXO_PAS[box]||1:1) : null
+  });
   if(valide && !avantValide && n<12) st.cur=Math.max(st.cur,n+1);
   addXP(6+bons*3+(valide&&!avantValide?25:0));
   save();
@@ -2349,15 +2476,46 @@ function exoFin(){
     <button class="btn ghost" onclick="exosRoom()">‹ L'échelle</button>`);
   EXS=null;
 }
+/* Chaque palier repris est reprogrammé SELON SON PROPRE score : on peut
+   très bien consolider le BFR et devoir revoir le WACC dès demain. */
+function exoFinReprise(){
+  const {bons,total,rates,parPal}=EXS, st=exosSt();
+  const lignes=[];
+  Object.keys(parPal).forEach(k=>{
+    const nn=+k, r=parPal[k], e=exoEtat(nn), p=exoPal(nn); if(!p) return;
+    const part=r.total?r.bons/r.total:0, ok=part>=EXO_SEUIL;
+    const box=ok?Math.min((e.box||0)+1, EXO_PAS.length-1):0;
+    const j=ok?(EXO_PAS[box]||1):1;
+    st.p[nn]=Object.assign({}, e, {box, due:exoDansNJours(j),
+      done:(e.done||0)+1, best:Math.max(e.best||0,part)});
+    lignes.push({n:nn, ic:p.ic, titre:p.titre, r, ok, j});
+  });
+  const xp=5+bons*2; addXP(xp); save();
+  const pf=exoPointFaible();
+  openOv(ovTop("🔁 Reprise")+`
+    <div class="card" style="text-align:center;border-color:${bons===total?"var(--ok)":"var(--line)"}">
+      <div style="font-size:42px">${bons===total?"👑":"🔁"}</div>
+      <h2 style="font-size:26px;margin-top:6px">${bons} / ${total}</h2>
+      <div class="sub mt">${lignes.length} palier${lignes.length>1?'s':''} repris · +${xp} XP</div>
+    </div>
+    <div class="card"><div class="lab" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--acc);font-weight:800;margin-bottom:8px">Palier par palier</div>
+      ${lignes.map(l=>`<div class="bldfix" style="padding:8px 0">${l.ok?"✓":"✗"} <b>${l.ic} ${l.n}. ${esc(l.titre)}</b> — ${l.r.bons}/${l.r.total}. ${l.ok?`On le revoit dans <b>${l.j} jour${l.j>1?'s':''}</b>.`:`<b>Demain</b> : il n'est pas encore à toi.`}</div>`).join("")}</div>
+    ${rates.length?`<div class="card"><div class="lab" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--bad);font-weight:800;margin-bottom:8px">Ce qui a manqué</div>
+      ${rates.map(r=>`<div class="bldfix" style="padding:8px 0"><b>${esc(r.q)}</b><br>${r.cle}</div>`).join("")}</div>`:''}
+    ${pf?`<div class="crit" style="margin:10px 0">🎯 <b>Ton point faible :</b> ${esc(pf.lab)} (palier ${pf.n} — ${esc(pf.titre)}). ${pf.ko} faute${pf.ko>1?'s':''} sur ${pf.vus} passages. <b>Refais ce palier</b> : c'est là que tu perds le plus.</div>`:''}
+    <button class="btn" onclick="exosRoom()">‹ L'échelle</button>`);
+  EXS=null;
+}
 function exoQuit(){ EXS=null; exosRoom(); }
+
 function exosFaits(){ return EXOS.filter(p=>exoEtat(p.n).valide).length; }
 
 function vAcad(){
   const cd=cardsDue().length, cm=cardsMastered();
   return `<h1 class="page">Académie</h1><div class="sub">${S.done.lessons.length}/${LESSONS.length} leçons. Du bilan au SPA — le juridique n'est pas en option.</div>
   <div class="mod gold" onclick="exosRoom()" style="border-color:#453a20">
-    <div class="ico">🧮</div><div class="t"><b>Les exos — les calculs, depuis le début</b><small>${exosFaits()}/12 paliers validés. Je te donne les chiffres, tu calcules : marge, EBITDA, BFR, point mort… jusqu'au FCFF, au WACC et aux bêtas. Chacun ouvre le suivant.</small></div>
-    <div class="pc">${exosFaits()||"›"}</div>
+    <div class="ico">${exoDus().length?"🔁":"🧮"}</div><div class="t"><b>Les exos — les calculs, depuis le début</b><small>${exosFaits()}/12 paliers validés${exoDus().length?` · <b style="color:var(--acc)">${exoDus().length} à reprendre</b>`:""}. Je te donne les chiffres, tu calcules : marge, EBITDA, BFR, point mort… jusqu'au FCFF, au WACC et aux bêtas. Chacun ouvre le suivant.</small></div>
+    <div class="pc">${exoDus().length||exosFaits()||"›"}</div>
   </div>
   <div class="mod gold" onclick="openCardIntro()">
     <div class="ico">🃏</div><div class="t"><b>Flashcards — révision espacée</b><small>${cd?cd+" carte"+(cd>1?"s":"")+" due"+(cd>1?"s":"")+" · ":""}${cm} maîtrisée${cm>1?"s":""} sur ${FLASHCARDS.length}. Vocabulaire, multiples, réalité du métier.</small></div>
