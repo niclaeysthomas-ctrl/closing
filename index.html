@@ -317,6 +317,7 @@
 <script src="data-boite.js"></script>
 <script src="data-boite-n1.js"></script>
 <script src="data-formules.js"></script>
+<script src="data-boite-marche.js"></script>
 <script src="data-boite-n2.js"></script>
 <script src="data-boite-n3.js"></script>
 <script src="data-deals-tech.js"></script>
@@ -607,15 +608,143 @@ function bizNew(sectorId,name,level){
     capital:cash0+stock0-ap0, reserves:0,   // le bilan équilibre : actif = passif
     hist:[], seen:[], pending:null, answers:[],
     rupturesTot:0, lastRupture:0, lastSold:0, lastPurch:0,
-    elast:0, est60:0, bfr:stock0-ap0
+    elast:0, est60:0, bfr:stock0-ap0,
+    mkt:mktInit(), seed:Math.floor(Math.random()*1e9)
   };
   save();
 }
 
 // Élasticité au point de prix : e = -b·P / (a - b·P). Elle bouge quand le prix bouge.
+/* ================================================================
+   LE MARCHÉ — ajouté le 2026-09-21, sur « mets plus de challenge,
+   d'imprévisible, l'élasticité ne change pas vraiment ».
+   Il avait raison : a et b sont des constantes de secteur que RIEN
+   ne modifiait. L'élasticité n'était fonction que du prix qu'il
+   fixait lui-même — donc le prix optimal se calculait au mois 1 et
+   ne bougeait plus de 48 mois. Le seul aléa était un bruit ±12 %
+   symétrique dont le commentaire disait « le bruit ne tue pas ».
+   Désormais la COURBE elle-même bouge :
+   · un régime de marché qui change (expansion / normal / tension /
+     crise), avec ses propres probabilités de transition ;
+   · une dérive lente et continue de la taille du marché et de la
+     sensibilité au prix ;
+   · des CHOCS exogènes, asymétriques, sans signal préalable.
+   Garde-fou unique : il existe toujours un prix rentable
+   (prix d'étranglement maintenu au-dessus du coût de revient),
+   sinon l'aléa ne serait plus un risque mais une condamnation. */
+const MKT_REGIMES = {
+  boom:    {nom:"Expansion",  ic:"📈", aM:1.18, cM:1.12, col:"#1fc584",
+            desc:"Le marché tire. Les clients regardent moins l'étiquette."},
+  normal:  {nom:"Normal",     ic:"➖", aM:1.00, cM:1.00, col:"#8a94ab",
+            desc:"Rien de particulier. Profites-en pour regarder tes chiffres."},
+  tension: {nom:"Tension",    ic:"⚠️", aM:0.93, cM:0.93, col:"#d6b25e",
+            desc:"Les volumes s'essoufflent et les clients comparent."},
+  crise:   {nom:"Crise",      ic:"🔻", aM:0.80, cM:0.84, col:"#f4506a",
+            desc:"Le marché se contracte et devient très sensible au prix."}
+};
+/* Transitions mensuelles. Durées moyennes visées : 8-10 mois en normal,
+   4-6 en tension, 3-5 en crise — il doit en traverser deux ou trois
+   sur une partie de 48 mois, sans que ce soit un métronome. */
+const MKT_TRANS = {
+  boom:    [["normal",.16],["tension",.05]],
+  normal:  [["tension",.07],["boom",.05]],
+  tension: [["crise",.10],["normal",.18],["boom",.02]],
+  crise:   [["tension",.24],["normal",.04]]
+};
+function mktInit(){ return {regime:"normal", since:0, aMult:1, bMult:1, chocs:[], news:[], vus:[]}; }
+function mkt(B){ B=B||S.biz; if(!B) return mktInit(); if(!B.mkt) B.mkt=mktInit(); return B.mkt; }
+function mktReg(B){ return MKT_REGIMES[mkt(B).regime] || MKT_REGIMES.normal; }
+/* Multiplicateurs effectifs = régime × dérive × chocs actifs. */
+/* ---- LE BON PARAMÉTRAGE, et c'est ce qui a tout débloqué ----
+   Sur une demande linéaire Q = a − bP, l'élasticité au prix P vaut
+   −P / (Pc − P) où Pc = a/b est le prix d'étranglement. Elle ne dépend
+   donc QUE DE Pc, jamais de la pente b. Première version : je faisais
+   bouger a et b indépendamment, leur rapport variait du simple au
+   quadruple, et l'élasticité partait de 12x sur une partie — un autre
+   métier tous les six mois, pas un marché qui bouge.
+   On pilote donc les deux grandeurs qui ont un sens économique :
+   · le PRIX D'ÉTRANGLEMENT, qui porte l'élasticité ET le prix optimal ;
+   · la TAILLE du marché (la pente), qui porte les volumes sans toucher
+     à l'élasticité.
+   Un choc qui rendait la clientèle « plus sensible au prix » (bM > 1)
+   fait donc BAISSER le prix d'étranglement, ce qui est la même chose
+   dite correctement. */
+/* La TURBULENCE dépend du niveau, et c'est cohérent avec la philosophie
+   des trois paliers : « aide maximale » à l'artisan, « aucun garde-fou »
+   au dealmaker. Un même moteur, trois duretés. Mesuré sur 30 parties par
+   niveau : sans ce réglage, le niveau 1 tuait 23 % des joueurs attentifs
+   alors qu'il est censé être le palier où l'on apprend. */
+function mktInt(B){ return [0,.50,1,1.35][(B&&B.level)||1] || 1; }
+function bl(x,k){ return 1+((x||1)-1)*k; }   /* rapproche un multiplicateur de 1 */
+function mktSize(B){ const m=mkt(B), k=mktInt(B);
+  return bl(m.aMult,k)*bl(mktReg(B).aM,k)*m.chocs.reduce((t,c)=>t*bl(c.aM,k),1); }
+function mktChoke(B){ const m=mkt(B), k=mktInt(B);
+  return bl(m.bMult,k)*bl(mktReg(B).cM,k)*m.chocs.reduce((t,c)=>t/bl(c.bM,k),1); }
+function curveB(B){ B=B||S.biz; return bizSector().b * mktSize(B); }
+function curveChoke(B){ B=B||S.biz;
+  const s=bizSector(), brut=s.choke*mktChoke(B);
+  /* Bornes : le marché peut devenir très dur, il ne devient jamais
+     impossible — il reste toujours un prix qui gagne de l'argent. */
+  const bas=Math.max(B.mc*1.30, s.choke*.74), haut=s.choke*1.38;
+  return Math.min(haut, Math.max(bas, brut));
+}
+function curveA(B){ B=B||S.biz; return curveB(B)*curveChoke(B); }
+/* Le tour de marché : dérive, régime, expiration et tirage des chocs.
+   Appelé au tout début du mois, AVANT que la demande ne soit calculée. */
+function mktTurn(B){
+  const m=mkt(B);
+  m.news=[];
+  /* 1. dérive lente et continue — rien n'est jamais tout à fait stable */
+  const g=()=> (Math.random()+Math.random()+Math.random()-1.5)/1.5;   /* ~ loi normale, bornée */
+  /* AR(1) avec RAPPEL VERS 1, pas une marche aléatoire libre : sans le rappel,
+     la dérive partait aux bornes et y restait — mesuré sur 40 parties,
+     l'élasticité variait de 12,8× et le prix optimal de 130 %, ce qui ne fait
+     plus un marché mouvant mais un autre métier tous les six mois. Avec
+     phi = 0,97 l'écart-type stationnaire tourne autour de 8 %, et les régimes
+     et les chocs se superposent par-dessus. */
+  m.aMult=Math.min(1.40,Math.max(.72, 1+(m.aMult-1)*.97+g()*.022));   /* taille du marché */
+  m.bMult=Math.min(1.22,Math.max(.84, 1+(m.bMult-1)*.96+g()*.013));   /* prix d'étranglement */
+  /* 2. les chocs actifs vieillissent */
+  m.chocs.forEach(c=>c.left--);
+  const finis=m.chocs.filter(c=>c.left<=0);
+  finis.forEach(c=>{
+    /* un choc qui a modifié une VALEUR (coût de revient, découvert) doit
+       pouvoir la rendre : sinon le message de fin ment sur ses effets */
+    const def=(typeof MKT_CHOCS!=="undefined"?MKT_CHOCS:[]).find(x=>x.id===c.id);
+    if(def&&def.onFin){ try{ def.onFin(B); }catch(e){} }
+    if(c.fin) m.news.push({t:"🕊️ "+c.fin, k:"fin"});
+  });
+  m.chocs=m.chocs.filter(c=>c.left>0);
+  /* 3. le régime peut basculer */
+  m.since++;
+  if(m.since>=3){
+    let r=Math.random();
+    for(const [vers,p] of (MKT_TRANS[m.regime]||[])){
+      if(r<p){ m.regime=vers; m.since=0;
+        m.news.push({t:MKT_REGIMES[vers].ic+" <b>"+MKT_REGIMES[vers].nom+"</b> — "+MKT_REGIMES[vers].desc, k:"regime"});
+        break; }
+      r-=p;
+    }
+  }
+  /* 4. un choc, peut-être. Sans signal préalable : c'est la promesse
+     écrite du niveau 2 (« les événements arrivent sans signal »). */
+  if(B.month>=4 && Math.random()<.10*mktInt(B)+.05){
+    const dispo=(typeof MKT_CHOCS!=="undefined"?MKT_CHOCS:[]).filter(c=>
+      !m.vus.includes(c.id) && (c.lvl||1)<=B.level && (!c.when||c.when(B)));
+    if(dispo.length){
+      const c=dispo[Math.floor(Math.random()*dispo.length)];
+      m.vus.push(c.id);
+      const actif={id:c.id, left:c.duree||1, aM:c.aM, bM:c.bM, fin:c.fin};
+      if(c.aM||c.bM) m.chocs.push(actif);
+      if(c.apply) c.apply(B);
+      m.news.push({t:c.ic+" <b>"+c.titre+"</b> — "+c.texte(B), k:"choc"});
+    }
+  }
+  return m.news;
+}
 function bizElast(price){
-  const sec=bizSector(), q=sec.a-sec.b*price;
-  return q>0 ? -(sec.b*price)/q : -99;
+  const B=S.biz, A=curveA(B), bb=curveB(B), q=A-bb*price;
+  return q>0 ? -(bb*price)/q : -99;
 }
 // Demande de base sur la courbe, avant les multiplicateurs (qui ne changent pas l'élasticité).
 function bizDemand(price,noise){
@@ -625,7 +754,7 @@ function bizDemand(price,noise){
   // stock de sécurité existe — sans lui, le stock ne serait que du cash gaspillé.
   // Aucune injustice : le bruit ne tue pas, il fait payer l'imprudence.
   const n=noise===undefined?1:noise;
-  return Math.max(0, Math.round((sec.a-sec.b*price)*B.rep*season*B.demandMult*B.compFactor*n));
+  return Math.max(0, Math.round((curveA(B)-curveB(B)*price)*B.rep*season*B.demandMult*B.compFactor*n));
 }
 
 
@@ -695,6 +824,7 @@ function bizTurn(){
   if(!B.alive||B.pending) return;
   const bfrPrev=B.stockU*B.mc + B.ar - B.ap;
   B.month++;
+  const news=mktTurn(B);   /* le marché bouge AVANT que la demande ne se calcule */
 
   // La chaîne étend son référencement : la croissance est CONTINUE, donc le ΔBFR l'est aussi.
   // C'est la croissance soutenue qui tue, pas un palier unique — qui, lui, se digère.
@@ -795,10 +925,46 @@ function bizTurn(){
   save();
 }
 
+/* Retard d'éligibilité : déterministe pour une partie donnée (sinon un cas
+   pourrait avancer et reculer d'un mois sur l'autre), différent d'une
+   partie à l'autre grâce à B.seed. */
+function caseDelay(B,id){
+  let h=(((B&&B.seed)||1)^0x9e3779b9)>>>0;
+  for(let i=0;i<id.length;i++) h=Math.imul(h^id.charCodeAt(i),2654435761)>>>0;
+  h^=h>>>15; h=Math.imul(h,2246822507)>>>0;
+  return (h>>>0)%6;
+}
 function bizFireCase(){
   const B=S.biz;
-  const c=allCases().find(x=>!B.seen.includes(x.id) && (x.lvl||1)<=B.level && x.when(B));
-  if(!c) return;
+  /* On ne prenait que le PREMIER du tableau : l'ordre des cas était donc
+     rigoureusement identique d'une partie à l'autre — « tu me ressors les
+     mêmes choses qu'hier ». On tire au sort parmi tous les cas éligibles,
+     avec un poids 3 pour ceux du niveau en cours (sans quoi un joueur de
+     niveau 2 rejoue surtout le deck artisan). Les cas « build » restent
+     ordonnés entre eux : ce sont leurs propres gardes qui l'imposent
+     (n2tft exige n2cr vu, n2bilan exige n2tft vu). */
+  const elig=allCases().filter(x=>!B.seen.includes(x.id) && (x.lvl||1)<=B.level && x.when(B));
+  if(!elig.length) return;
+  /* Le tirage au sort ne suffisait pas : dans les premiers mois, les gardes
+     « month >= X » ne laissent souvent qu'UN candidat éligible, donc les
+     trois premiers cas étaient identiques dans les six parties testées.
+     On mémorise le mois où chaque cas devient éligible et on lui impose un
+     retard de 0 à 5 mois, propre à la partie ET au cas. Deux parties
+     divergent donc dès le premier mois. Filet : si le retard écarte tout
+     le monde, on reprend la liste complète — le jeu ne cale jamais. */
+  if(!B.elig) B.elig={};
+  elig.forEach(x=>{ if(B.elig[x.id]===undefined) B.elig[x.id]=B.month; });
+  const prets=elig.filter(x=>B.month-B.elig[x.id] >= caseDelay(B,x.id));
+  /* Pas de filet ici : le filet « si personne n'est prêt, on prend toute la
+     liste » annulait tout le dispositif, puisque le cas unique éligible
+     des premiers mois repassait aussitôt devant. Un mois sans décision
+     est un mois normal. Aucun risque de blocage : le retard est plafonné
+     à 5 mois et l'éligibilité est réévaluée à chaque tour. */
+  if(!prets.length) return;
+  const pool=prets;
+  const poids=x=>((x.lvl||1)===B.level?3:1);
+  let tot=pool.reduce((t,x)=>t+poids(x),0), r=Math.random()*tot, c=pool[0];
+  for(const x of pool){ r-=poids(x); if(r<=0){ c=x; break; } }
   B.pending=c.id;
   const lastCA=B.hist.length?B.hist[B.hist.length-1].ca:0;
   B.est60=lastCA*1.5*.45*2; // BFR estimé du contrat 60 j après croissance
@@ -816,6 +982,31 @@ let BZLVL=1;
 // Le nom du niveau ne transite JAMAIS par l'attribut onclick : « L'artisan »
 // contient une apostrophe, qui referme la chaîne et casse le handler.
 function bizSetLvl(n){ BZLVL=n; render(); toast("Niveau "+n+" — "+esc(niveau(n).nom)+"."); }
+/* Ce que le marché lui laisse voir : le régime en cours, les nouvelles du
+   mois, et l'élasticité MESURÉE à son prix actuel. Jamais les
+   multiplicateurs : un patron lit la presse et ses propres ventes, pas les
+   paramètres de la simulation. */
+function mktPanel(B){
+  const m=mkt(B), R=mktReg(B), el=bizElast(B.price), ch=curveChoke(B);
+  const news=(m.news||[]).map(x=>`<div class="pt" style="margin:6px 0">${x.t}</div>`).join("");
+  const dur=Math.abs(el)>1.15?"ÉLASTIQUE — baisser le prix peut rapporter, le monter fait mal"
+          :Math.abs(el)<.85?"INÉLASTIQUE — tu peux monter tes prix sans perdre grand-chose"
+          :"À LA BASCULE — autour de −1, ton chiffre d'affaires ne bouge presque plus";
+  return `<div class="card" style="border-color:${R.col}55;background:linear-gradient(135deg,${R.col}12,transparent)">
+    <div class="lab" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:${R.col};font-weight:800">
+      ${R.ic} Le marché · ${R.nom}</div>
+    <div class="sub" style="margin-top:4px">${R.desc}</div>
+    <div class="bridge" style="margin-top:10px">
+      <div><small>Élasticité à ${B.price.toFixed(2)} €</small><b style="color:${Math.abs(el)>1.15?"var(--bad)":Math.abs(el)<.85?"var(--ok)":"var(--acc)"}">${el.toFixed(2)}</b></div>
+      <div class="op">·</div>
+      <div><small>Prix d'étranglement</small><b>${ch.toFixed(2)} €</b></div>
+      <div class="op">·</div>
+      <div><small>Prix optimal</small><b>${((ch+B.mc)/2).toFixed(2)} €</b></div>
+    </div>
+    <div class="xptxt" style="margin-top:8px">${dur}. <b>Ces trois chiffres bougent avec le marché</b> — les relire chaque mois fait partie du métier.</div>
+    ${news?`<div style="margin-top:10px">${news}</div>`:""}
+  </div>`;
+}
 function vBoite(){
   if(!S.biz) return vBoiteNew();
   const B=S.biz;
@@ -842,6 +1033,8 @@ function vBoite(){
     <div class="ico">${bizCase(B.pending).icon}</div>
     <div class="t"><b>${bizCase(B.pending).title}</b><small>Une décision t'attend. Le mois ne passe pas sans elle.</small></div>
     <div class="st">›</div></div>`:""}
+
+  ${mktPanel(B)}
 
   <div class="hero">
     <div class="lab">Trésorerie</div>
@@ -927,7 +1120,7 @@ function bizPreviewHtml(p){
   const el=bizElast(p), q=bizDemand(p), mUnit=p-B.mc;
   const mb=q*mUnit, ebitda=mb-fcCash(B), ebit=mb-B.fc;   /* EBITDA avant dotations · EBIT après */
   const pmort=mUnit>0?Math.ceil(B.fc/mUnit):Infinity;
-  const pstar=(sec.choke+B.mc)/2;
+  const pstar=(curveChoke(B)+B.mc)/2;   /* il bouge avec le marché, désormais */
   return `<div class="prow" style="grid-template-columns:repeat(3,1fr)">
     <div class="p"><small>Élasticité ici</small><b style="color:${Math.abs(el)<1?"var(--ok)":"var(--acc)"}">${el.toFixed(2)}</b></div>
     <div class="p"><small>Demande</small><b>${q}</b></div>
@@ -1260,7 +1453,7 @@ const FORM_PRE={
   salarie:   B=>({net:1900, mu:Math.round((B.price-B.mc)*100)/100}),
   commande:  B=>({pp:Math.round(B.price*.6*100)/100, cv:Math.round(B.mc*100)/100, qte:500}),
   elast:     B=>({e:Math.round((B.elast||-1)*100)/100, dp:8}),
-  prixopt:   B=>({pc:(bizSector()||{}).choke||26, cv:Math.round(B.mc*100)/100, p:Math.round(B.price*100)/100}),
+  prixopt:   B=>({pc:Math.round(curveChoke(B)*100)/100, cv:Math.round(B.mc*100)/100, p:Math.round(B.price*100)/100}),
   gearing:   B=>({d:Math.round(B.debt||0), tr:Math.round(Math.max(0,B.cash)), eb:Math.round(formEb12(B))}),
   multiple:  B=>({mult:6, eb:Math.round(formEb12(B)), d:Math.round(B.debt||0), tr:Math.round(Math.max(0,B.cash))}),
 };
@@ -1380,6 +1573,16 @@ function bizArgBlock(ph){
     <textarea id="bzArg" placeholder="${ph}" oninput="bzArgSync()"></textarea>
     <div class="xptxt gateko" id="bzGate" style="margin-top:8px">Il manque : encore <b>${argMin()}</b> caractères</div>`;
 }
+/* « Les événements arrivent sans signal préalable » : c'est le résumé du
+   niveau 2, et les quatre écrans imprimaient pourtant « Le signal était
+   là : … » juste avant l'énoncé. Au niveau 1 on garde l'aide ; à partir
+   du 2 le signal disparaît de l'écran de décision et revient AU
+   DÉBRIEFING, là où il devient une leçon au lieu d'un cadeau. */
+function sigBlock(c){
+  const B=S.biz;
+  if(B && B.level>=2) return "";
+  return `<div class="crit" style="margin-bottom:12px"><b>Le signal était là :</b> ${c.signal}</div>`;
+}
 function bizOpenCase(){
   const B=S.biz, c=bizCase(B.pending);
   NEGOACTIVE=null;
@@ -1388,7 +1591,7 @@ function bizOpenCase(){
   if(c.type==="build") return bizOpenBuild(c);
   openOv(ovTop(c.title)+`
     <div class="meta"><span class="tag">${c.icon} ${c.concept}</span>mois ${B.month}</div>
-    <div class="crit" style="margin-bottom:12px"><b>Le signal était là :</b> ${c.signal}</div>
+    ${sigBlock(c)}
     <div class="story"><p>${c.setup(B)}</p></div>
     <h2 class="sec">Tes options</h2>
     ${c.options.map(o=>`<div class="pt"><b>${o.k}. ${o.label}</b><br>${o.term}</div>`).join("")}
@@ -1407,7 +1610,7 @@ function bizOpenLoan(c){
   NEGOACTIVE=null;
   openOv(ovTop(c.title)+`
     <div class="meta"><span class="tag">${c.icon} ${c.concept}</span>mois ${B.month}</div>
-    <div class="crit" style="margin-bottom:12px"><b>Le signal était là :</b> ${c.signal}</div>
+    ${sigBlock(c)}
     <div class="story"><p>${c.setup(B)}</p></div>
     <h2 class="sec">Ce que la banque met sur la table</h2>
     ${c.offers.map(o=>{
@@ -1473,7 +1676,7 @@ function bizOpenBuild(c){
   BUILDST={id:c.id, lines, done:false};
   openOv(ovTop(c.title)+`
     <div class="meta"><span class="tag">${c.icon} ${c.concept}</span>mois ${B.month}</div>
-    <div class="crit" style="margin-bottom:12px"><b>Le signal était là :</b> ${c.signal}</div>
+    ${sigBlock(c)}
     <div class="story"><p>${c.setup(B)}</p></div>
     <h2 class="sec">${c.tableTitle||"À toi de construire"}</h2>
     <div class="xptxt" style="margin-bottom:8px">${c.intro||"Un montant par case, en euros. Les espaces, le € et les séparateurs de milliers sont acceptés. Une case vide compte comme fausse."}</div>
@@ -1546,7 +1749,7 @@ function bizOpenNego(c){
   const B=S.biz; NEGOPICK=[]; NEGOACTIVE=c.id;
   openOv(ovTop(c.title)+`
     <div class="meta"><span class="tag">${c.icon} ${c.concept}</span>mois ${B.month}</div>
-    <div class="crit" style="margin-bottom:12px"><b>Le signal était là :</b> ${c.signal}</div>
+    ${sigBlock(c)}
     <div class="story"><p>${c.setup(B)}</p></div>
     <h2 class="sec">${c.goal} — coche tes arguments</h2>
     <div class="xptxt" style="margin-bottom:10px"><b>Touche une ligne pour la retenir</b> — elle se coche. Tu peux en retenir <b>${c.max}</b> au maximum. Certains portent, certains se retournent contre toi — et rien ne te dit lesquels.</div>
@@ -1600,6 +1803,7 @@ function bizDebrief(c,k,label,body){
   openOv(ovTop("Débriefing")+`
     <div class="meta"><span class="tag">${c.concept}</span>Ton choix : <b>${esc(label)}</b></div>
     <div class="story">${body}</div>
+    ${(S.biz.level>=2&&c.signal)?`<div class="crit" style="margin:12px 0"><b>Le signal que tu n'as pas eu :</b> ${c.signal}<br><span class="xptxt">À ce niveau, l'app ne te prévient plus avant. Il était dans tes chiffres — c'est là qu'il faut le chercher.</span></div>`:""}
     <h2 class="sec">Ce qu'il fallait avoir regardé</h2>
     ${c.grid.map(g=>`<div class="gridpt">${g}</div>`).join("")}
     <div class="coach">Relis ce que tu as écrit. Combien de ces points y étaient <b>vraiment</b>, chiffrés ?</div>

@@ -31,14 +31,35 @@
    Tout est déterministe (aucun Math.random) et arrondi à la
    centaine : son calcul à la main doit tomber sur le corrigé.
    ============================================================ */
+/* Les chiffres ne doivent PAS être les mêmes d'une partie à l'autre — la
+   première version était volontairement déterministe pour que l'arithmétique
+   soit reproductible, mais du coup il retombait sur le même exercice. Le
+   tirage est donc semé par B.seed : DIFFÉRENT à chaque nouvelle boîte,
+   IDENTIQUE tout au long d'une même partie (indispensable : les trois cas
+   partagent le même mois, et rouvrir un cas doit redonner les mêmes cases).
+   Le bilan tombe quel que soit le tirage — c'est structurel, pas une
+   propriété des ratios : chaque montant a deux jambes et les réserves
+   d'ouverture équilibrent. Vérifié sur 400 tirages. */
+function n2rnd(B,k){
+  let h=((B&&B.seed)||123456789)>>>0;
+  for(let i=0;i<k.length;i++) h=Math.imul(h^k.charCodeAt(i),2654435761)>>>0;
+  h^=h>>>15; h=Math.imul(h,2246822507)>>>0; h^=h>>>13;
+  return (h>>>0)/4294967296;
+}
+function n2v(B,k,min,max){ return min+(max-min)*n2rnd(B,k); }
 function n2ops(B){
   const h=(B.hist&&B.hist.length)?B.hist[B.hist.length-1]:null;
   const c100=x=>Math.round(x/100)*100;
   const ca=Math.max(14000, c100((h&&h.ca)||20000));
-  const achats=c100(ca*.46), salaires=c100(ca*.22), loyer=c100(ca*.05), autres=c100(ca*.04);
-  const dot=c100(ca*.03), interets=c100(ca*.012);
-  const machine=c100(ca*.90), remb=c100(ca*.05), emprunt=c100(ca*.60), acompte=c100(ca*.12);
-  const dcr=c100(ca*.20);              /* hausse des créances clients */
+  /* Fourchettes volontairement larges : sur 400 tirages la première version
+     ne produisait AUCUN mois en perte, donc jamais d'impôt à zéro ni de
+     réserves qui baissent. Un mois déficitaire est une leçon à part entière. */
+  const achats=c100(ca*n2v(B,"ach",.38,.56)), salaires=c100(ca*n2v(B,"sal",.15,.34)),
+        loyer=c100(ca*n2v(B,"loy",.03,.10)), autres=c100(ca*n2v(B,"aut",.02,.08));
+  const dot=c100(ca*n2v(B,"dot",.02,.05)), interets=c100(ca*n2v(B,"int",.008,.02));
+  const machine=c100(ca*n2v(B,"mac",.55,1.35)), remb=c100(ca*n2v(B,"rem",.03,.08)),
+        emprunt=c100(ca*n2v(B,"emp",.30,.95)), acompte=c100(ca*n2v(B,"aco",.07,.20));
+  const dcr=c100(ca*n2v(B,"dcr",.12,.30));              /* hausse des créances clients */
   const dbfr=dcr-acompte;              /* BFR net : l'acompte est de l'argent du client chez toi */
   /* compte de résultat — chaque ligne dérive des composantes ARRONDIES */
   const mb=ca-achats;
@@ -51,13 +72,16 @@ function n2ops(B){
   const fluxExpl=rn+dot-dbfr, fluxInv=-machine, fluxFin=emprunt-remb;
   const dcash=fluxExpl+fluxInv+fluxFin;
   /* bilan d'ouverture : les réserves ÉQUILIBRENT, elles ne sont pas choisies */
-  const im0=c100(machine*.4), st=c100(achats*1.2), cr=c100(ca*.90);
+  const im0=c100(machine*n2v(B,"im0",.2,.9)), st=c100(achats*n2v(B,"st",.8,1.8)), cr=c100(ca*n2v(B,"cr",.6,1.3));
   const treso0=c100(Math.min(ca*1.6, Math.max(ca*.8, (B&&B.cash)||ca*1.1)));
-  const cap=c100(ca*.50), fo=c100(achats*1.5);
+  const cap=c100(ca*n2v(B,"cap",.3,.8)), fo=c100(achats*n2v(B,"fo",1.0,2.0));
   const actif0=im0+st+cr+treso0;
-  let dette0=c100(ca*1.40);
+  let dette0=c100(ca*n2v(B,"det",.9,1.8));
   let res0=actif0-cap-fo-dette0;
+  /* les réserves ÉQUILIBRENT le bilan d'ouverture : si le tirage les rend
+     trop maigres, c'est la dette qu'on rabote, jamais l'équilibre. */
   if(res0<c100(ca*.10)){ const manque=c100(ca*.10)-res0; dette0-=manque; res0+=manque; }
+  if(dette0<c100(ca*.20)){ const manque=c100(ca*.20)-dette0; dette0+=manque; res0-=manque; }
   const treso1=treso0+dcash;
   /* bilan de clôture */
   const im1=im0+machine-dot, cr1=cr+dcr, res1=res0+rn, dette1=dette0+emprunt-remb;
@@ -110,10 +134,13 @@ const BIZCASES_N2 = [
    how:`${eur(o.ebit)} − ${eur(o.interets)} d'intérêts = <b>${eur(o.rcai)}</b>.`,
    trap:`Dans l'échéance de ${eur(o.remb+o.interets)}, seuls les ${eur(o.interets)} d'intérêts sont une charge. Les ${eur(o.remb)} de capital remboursé ne passent jamais par le résultat : ils éteignent une dette au passif. C'est le malentendu qui coûte le plus cher aux dirigeants.`},
   {k:"is",   label:"Impôt sur les sociétés", hint:"25 % du résultat avant impôt", val:o.is,
-   how:`25 % × ${eur(o.rcai)} = <b>${eur(o.is)}</b>.`},
+   how:o.rcai>0?`25 % × ${eur(o.rcai)} = <b>${eur(o.is)}</b>.`
+              :`Le résultat avant impôt est négatif (${eur(o.rcai)}) : l'impôt est de <b>0 €</b>.`,
+   trap:o.rcai>0?null:"On ne paie pas d'impôt sur une perte — et le déficit s'impute sur les bénéfices des exercices suivants. Écrire 25 % d'un nombre négatif, c'est s'accorder un crédit d'impôt qui n'existe pas."},
   {k:"rn",   label:"Résultat net", hint:"le bas du tableau", val:o.rn,
    how:`${eur(o.rcai)} − ${eur(o.is)} = <b>${eur(o.rn)}</b>.`,
-   trap:"Retiens ce chiffre : le cas suivant repart de lui, et tu verras que ce mois bénéficiaire fait baisser ta trésorerie."}
+   trap:o.rn>=0?"Retiens ce chiffre : le cas suivant repart de lui, et tu verras que ce mois bénéficiaire fait baisser ta trésorerie."
+              :"Le mois est déficitaire. Retiens le chiffre quand même : au cas suivant tu verras que ta trésorerie, elle, ne suit pas forcément le même sens — un mois en perte peut très bien encaisser."}
  ];},
  debrief:(B,r)=>{const o=n2ops(B); return `
   <p><b>Les cinq intrus.</b> La machine (${eur(o.machine)}), l'emprunt débloqué (${eur(o.emprunt)}), le capital remboursé (${eur(o.remb)}), l'acompte client (${eur(o.acompte)}) et la hausse des créances (${eur(o.dcr)}) sont des mouvements de <b>trésorerie ou de bilan</b>. Aucun n'est une charge ni un produit. À l'inverse, la dotation de ${eur(o.dot)} est une charge alors qu'aucun euro ne bouge. <b>Le compte de résultat ne parle pas d'argent qui circule : il parle de richesse créée ou détruite.</b></p>
@@ -129,10 +156,10 @@ const BIZCASES_N2 = [
  ]},
 
 {id:"n2tft", lvl:2, type:"build", ch:4, icon:"🌊",
- title:"Le mois est bénéficiaire et la caisse baisse",
+ title:"Ton résultat et ta caisse racontent deux histoires",
  concept:"Le tableau de flux de trésorerie · les trois flux", lesson:"b3",
  when:B=>B.level>=2 && B.month>=7 && B.seen.indexOf("n2cr")>=0,
- signal:"Le même mois que ton compte de résultat. Le résultat est positif. Regarde la banque.",
+ signal:"Le même mois que ton compte de résultat. Compare ce que tu as gagné et ce que la banque a vu passer.",
  setup:B=>{const o=n2ops(B); return `Tu as établi ton compte de résultat : <b>résultat net ${eur(o.rn)}</b>. Ton compte en banque, lui, ouvrait le mois à <b>${eur(o.treso0)}</b>.
    <br><br>${n2releve(B)}
    <br><br>Le tableau de flux range chaque mouvement dans <b>une seule</b> des trois cases : <b>exploitation</b> (ce que le métier produit), <b>investissement</b> (ce qu'on achète pour durer), <b>financement</b> (ce qu'on emprunte, rembourse ou distribue).
@@ -160,7 +187,7 @@ const BIZCASES_N2 = [
    trap:"Cette ligne est le contrôle du tableau : si elle ne tombe pas sur le solde réel de ton compte, une opération s'est perdue en route ou a été comptée deux fois."}
  ];},
  debrief:(B,r)=>{const o=n2ops(B); return `
-  <p><b>Le mois a créé ${eur(o.rn)} de richesse et ${o.dcash<0?"détruit "+eur(Math.abs(o.dcash))+" de trésorerie":"dégagé "+eur(o.dcash)+" de trésorerie"}.</b> Les deux affirmations sont exactes en même temps, et c'est là que la plupart des dirigeants décrochent. L'écart tient en trois lignes : la machine sort en entier (${eur(o.machine)}) alors qu'elle ne pèse que ${eur(o.dot)} au résultat, le BFR immobilise ${eur(o.dbfr)} de plus, et l'emprunt de ${eur(o.emprunt)} entre sans être un produit.</p>
+  <p><b>Le mois a ${o.rn>=0?"créé "+eur(o.rn)+" de richesse":"détruit "+eur(Math.abs(o.rn))+" de richesse"} et ${o.dcash<0?"détruit "+eur(Math.abs(o.dcash))+" de trésorerie":"dégagé "+eur(o.dcash)+" de trésorerie"}.</b> ${o.rn>=0!==o.dcash>=0?"Les deux affirmations sont exactes en même temps, et c'est là que la plupart des dirigeants décrochent.":"Les deux vont dans le même sens ce mois-ci — ce n'est pas toujours le cas, et c'est bien le problème."} L'écart tient en trois lignes : la machine sort en entier (${eur(o.machine)}) alors qu'elle ne pèse que ${eur(o.dot)} au résultat, le BFR immobilise ${eur(o.dbfr)} de plus, et l'emprunt de ${eur(o.emprunt)} entre sans être un produit.</p>
   <p><b>Ce que ce tableau permet que les deux autres ne permettent pas.</b> Le compte de résultat dit si ton métier est rentable. Le bilan dit à quoi ressemble ton patrimoine un jour donné. <b>Seul le tableau de flux dit d'où vient l'argent.</b> Un flux d'exploitation durablement négatif est une alerte vitale même avec un résultat positif ; un flux d'exploitation qui finance seul l'investissement est la signature d'une boîte qui tient debout toute seule.</p>
   <p><b>La question à se poser chaque mois.</b> Est-ce que mon exploitation finance mes investissements, ou est-ce que c'est la banque ? Ce mois-ci : ${eur(o.fluxExpl)} d'exploitation contre ${eur(o.machine)} d'investissement — ${o.fluxExpl>=o.machine?"le métier paie, la dette n'est qu'un confort.":"c'est la banque, et c'est tenable tant que ça reste ponctuel et que la machine produit ce que tu attends d'elle."}</p>
   <p>${r.bons===r.total?"<b>Six sur six.</b> Tu sais construire un tableau de flux à partir d'un relevé — ce que la majorité des candidats en entretien de M&A ne savent pas faire sans modèle sous les yeux." : r.bons>=4?"<b>La structure est acquise</b>, l'erreur est dans le rangement. Le test : chaque opération va dans UNE case et une seule ; si tu hésites, demande-toi si elle relève du métier, du long terme, ou de qui finance." : "<b>À refaire.</b> Retiens l'ordre : on part du résultat net, on remet les charges sans décaissement, on retire ce que le BFR immobilise. Puis l'investissement en entier. Puis le financement. Et le total doit retomber sur ton relevé bancaire."}</p>`;},
