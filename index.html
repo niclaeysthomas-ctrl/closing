@@ -151,6 +151,22 @@
   .exp{background:var(--bg3);border-radius:12px;padding:12px;font-size:13.5px;line-height:1.5;color:#cfd3d9;margin:4px 0 8px;border-left:3px solid var(--acc)}
   .prog{font-family:var(--mono);font-size:11px;letter-spacing:.4px;color:var(--dim);margin-bottom:10px}
 
+  .bld{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:4px 12px;margin:10px 0}
+  .bldr{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .bldr:last-child{border-bottom:none}
+  .bldr .lb{flex:1;font-size:13.5px;line-height:1.35}
+  .bldr .lb small{display:block;color:var(--dim);font-size:11.5px;margin-top:2px}
+  .bldr input{width:120px;flex:0 0 120px;background:var(--bg);border:1px solid var(--line);border-radius:8px;
+    color:var(--txt);padding:9px 10px;font-size:15px;font-weight:700;text-align:right;font-family:inherit}
+  .bldr input:focus{outline:none;border-color:var(--acc)}
+  .bldr.ok input{border-color:var(--ok);color:var(--ok)}
+  .bldr.ko input{border-color:var(--bad);color:var(--bad)}
+  .bldr .vd{flex:0 0 22px;text-align:center;font-size:16px}
+  .bldfix{font-size:12.5px;line-height:1.55;color:var(--dim);padding:0 0 10px 0}
+  .bldfix b{color:var(--txt)}
+  .bldfix .rg{color:var(--ok);font-weight:800}
+  .bldtot{display:flex;justify-content:space-between;align-items:center;padding:12px;border-radius:10px;
+    background:var(--bg2);border:1px solid var(--line);margin:10px 0;font-weight:800}
   textarea{width:100%;min-height:130px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;color:var(--txt);padding:12px;font-size:14px;font-family:inherit;line-height:1.5;resize:vertical}
   textarea:focus{outline:none;border-color:var(--acc)}
   .gridpt{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 13px;font-size:13.5px;line-height:1.55;color:#d5d8dd;margin-bottom:8px}
@@ -639,6 +655,20 @@ function bizDebtOf(B){
   return (B.loans||[]).reduce((t,l)=>
     t+Math.max(0, l.principalLeft!==undefined ? l.principalLeft : (l.amount||0)), 0);
 }
+/* ---------- EBITDA vs EBIT : la distinction que le niveau 2 enseigne ----------
+   Le moteur calcule ebitda = marge brute − charges fixes. Or la DOTATION AUX
+   AMORTISSEMENTS est poussée DANS les charges fixes (B.fc += … + dotM, cas
+   n1machine et n2levier). Donc le champ stocké h.ebitda est en réalité un
+   EBIT : dès qu'une machine est achetée, il est minoré de la dotation.
+   Conséquence concrète : le ratio dette nette / EBITDA du cas n2covenant
+   sortait TROP ÉLEVÉ, dans le niveau même qui apprend à le lire.
+   On ne touche pas au moteur (ses maths sont justes, et dot est déjà remis
+   au cash) : on corrige les LECTURES. Avant tout achat, dot = 0 et rien ne
+   bouge — le correctif ne mord que là où le chiffre était faux. */
+function ebM(h){ return h ? ((h.ebitda||0) + (h.dot||0)) : 0; }   /* EBITDA du mois, avant dotations */
+function ebitM(h){ return h ? (h.ebitda||0) : 0; }                /* EBIT du mois, après dotations */
+function eb12Of(B){ return (B&&B.hist ? B.hist.slice(-12) : []).reduce(function(t,h){return t+ebM(h);},0); }
+function fcCash(B){ return Math.max(0,(B.fc||0)-(B.amortM||0)); }  /* charges fixes réellement décaissées */
 function bizBalance(B){
   B=B||S.biz; if(!B) return null;
   const immo=Math.max(0,(B.capex||0)-(B.amort||0));
@@ -895,13 +925,13 @@ function vBoite(){
 function bizPreviewHtml(p){
   const B=S.biz, sec=bizSector();
   const el=bizElast(p), q=bizDemand(p), mUnit=p-B.mc;
-  const mb=q*mUnit, ebitda=mb-B.fc;
+  const mb=q*mUnit, ebitda=mb-fcCash(B), ebit=mb-B.fc;   /* EBITDA avant dotations · EBIT après */
   const pmort=mUnit>0?Math.ceil(B.fc/mUnit):Infinity;
   const pstar=(sec.choke+B.mc)/2;
   return `<div class="prow" style="grid-template-columns:repeat(3,1fr)">
     <div class="p"><small>Élasticité ici</small><b style="color:${Math.abs(el)<1?"var(--ok)":"var(--acc)"}">${el.toFixed(2)}</b></div>
     <div class="p"><small>Demande</small><b>${q}</b></div>
-    <div class="p ${ebitda>0?"hit":""}"><small>EBITDA/mois</small><b>${eur(ebitda)}</b></div>
+    <div class="p ${ebitda>0?"hit":""}"><small>EBITDA/mois</small><b>${eur(ebitda)}</b></div>${(B.amortM||0)>0?`<div class="p"><small>EBIT (après dotations)</small><b>${eur(ebit)}</b></div>`:""}
   </div>
   <div class="xptxt" style="margin-top:8px;line-height:1.5">
     ${Math.abs(el)<1
@@ -992,7 +1022,7 @@ function bizVerdict(){
   const caF=first12.reduce((t,h)=>t+h.ca,0);
   const rn12=last12.reduce((t,h)=>t+h.rn,0);
   const rnTot=H.reduce((t,h)=>t+h.rn,0);
-  const eb12=last12.reduce((t,h)=>t+h.ebitda,0);
+  const eb12=last12.reduce((t,h)=>t+ebM(h),0);   /* EBITDA, pas EBIT : le levier se lit avant dotations */
   const marge=ca12>0?rn12/ca12:0;
   const crois=caF>0?ca12/caF:1;
   const moisCash=B.fc>0?B.cash/B.fc:0;
@@ -1125,7 +1155,7 @@ function calcEval(raw){
 function calcVars(){
   const B=S.biz; if(!B) return [];
   const h=B.hist&&B.hist.length?B.hist[B.hist.length-1]:null;
-  const eb12=B.hist?B.hist.slice(-12).reduce((t,x)=>t+(x.ebitda||0),0):0;
+  const eb12=eb12Of(B);
   const stock=Math.round((B.stockU||0)*(B.mc||0));
   const out=[
     ["trésorerie", Math.round(B.cash||0)],
@@ -1134,7 +1164,7 @@ function calcVars(){
     ["marge unit.", Math.round(((B.price||0)-(B.mc||0))*100)/100],
     ["charges fixes", Math.round(B.fc||0)]
   ];
-  if(h) out.push(["CA du mois", Math.round(h.ca||0)], ["EBITDA du mois", Math.round(h.ebitda||0)]);
+  if(h){ out.push(["CA du mois", Math.round(h.ca||0)], ["EBITDA du mois", Math.round(ebM(h))]); if((h.dot||0)>0) out.push(["EBIT du mois (après dotations)", Math.round(ebitM(h))], ["Dotation du mois", Math.round(h.dot||0)]); }
   if(eb12) out.push(["EBITDA 12 mois", Math.round(eb12)]);
   if(B.ar) out.push(["créances", Math.round(B.ar)]);
   if(B.ap) out.push(["dettes fourn.", Math.round(B.ap)]);
@@ -1235,7 +1265,7 @@ const FORM_PRE={
   multiple:  B=>({mult:6, eb:Math.round(formEb12(B)), d:Math.round(B.debt||0), tr:Math.round(Math.max(0,B.cash))}),
 };
 function formCA(B){ return (B.hist&&B.hist.length) ? B.hist[B.hist.length-1].ca : 1; }
-function formEb12(B){ return B.hist ? B.hist.slice(-12).reduce((t,h)=>t+(h.ebitda||0),0) : 0; }
+function formEb12(B){ return eb12Of(B); }
 function formPre(id){
   const B=S.biz; if(!B||!FORM_PRE[id]) return toast("Pas de partie en cours.");
   try{ Object.assign(formVals(FORMULES.find(f=>f.id===id)), FORM_PRE[id](B)); }catch(e){ return toast("Chiffres indisponibles."); }
@@ -1355,6 +1385,7 @@ function bizOpenCase(){
   NEGOACTIVE=null;
   if(c.type==="loan") return bizOpenLoan(c);
   if(c.type==="nego") return bizOpenNego(c);
+  if(c.type==="build") return bizOpenBuild(c);
   openOv(ovTop(c.title)+`
     <div class="meta"><span class="tag">${c.icon} ${c.concept}</span>mois ${B.month}</div>
     <div class="crit" style="margin-bottom:12px"><b>Le signal était là :</b> ${c.signal}</div>
@@ -1406,6 +1437,107 @@ function bizTakeLoan(cid,k){
   B.answers.push({id:cid,k,arg,month:B.month,q:o.q,label:o.label});
   B.seen.push(cid); B.pending=null; addXP(12); save();
   bizDebrief(c,k,o.label,c.debrief(B,k));
+}
+
+/* ============================================================
+   LA CONSTRUCTION — « tu reçois les opérations, tu construis les
+   états, l'app corrige ».
+   C'est la promesse écrite du niveau 2 (aide:"partielle", notions
+   n°1 et n°2) et elle n'était implémentée nulle part : les dix cas
+   du niveau étaient des QCM où le setup SERVAIT les composants.
+   Ici il n'y a rien à cocher. Il y a des cases, et un corrigé
+   ligne par ligne qui dit le bon chiffre ET le raisonnement.
+   ============================================================ */
+let BUILDST=null;
+/* Il tape comme il parle : « 12 500 », « 12500 € », « 12.500 », « -1 200,50 ».
+   Le point sépare les milliers quand il est suivi d'exactement 3 chiffres
+   et qu'aucune virgule n'apparaît ; sinon c'est un séparateur décimal. */
+function bldNum(raw){
+  let t=String(raw==null?"":raw).replace(/[\s\u00a0\u202f€]/g,"").trim();
+  if(!t) return null;
+  const neg=/^[-−]/.test(t); t=t.replace(/^[-−+]/,"");
+  if(t.indexOf(",")>=0) t=t.replace(/\./g,"").replace(",",".");
+  else if(/^\d{1,3}(\.\d{3})+$/.test(t)) t=t.replace(/\./g,"");
+  const v=parseFloat(t);
+  if(!isFinite(v)) return null;
+  return neg?-v:v;
+}
+function bldTol(l){
+  if(l.tol!==undefined) return l.tol;
+  return Math.max(40, Math.abs(l.val)*0.02);   /* 2 %, plancher 40 € : on juge la méthode, pas l'arrondi */
+}
+function bizOpenBuild(c){
+  const B=S.biz;
+  NEGOACTIVE=null;
+  const lines=c.lines(B);
+  BUILDST={id:c.id, lines, done:false};
+  openOv(ovTop(c.title)+`
+    <div class="meta"><span class="tag">${c.icon} ${c.concept}</span>mois ${B.month}</div>
+    <div class="crit" style="margin-bottom:12px"><b>Le signal était là :</b> ${c.signal}</div>
+    <div class="story"><p>${c.setup(B)}</p></div>
+    <h2 class="sec">${c.tableTitle||"À toi de construire"}</h2>
+    <div class="xptxt" style="margin-bottom:8px">${c.intro||"Un montant par case, en euros. Les espaces, le € et les séparateurs de milliers sont acceptés. Une case vide compte comme fausse."}</div>
+    <div class="bld" id="bldT">
+      ${lines.map((l,i)=>`<div class="bldr" id="bldr${i}">
+        <div class="lb">${l.label}${l.hint?`<small>${l.hint}</small>`:""}</div>
+        <input id="bld${i}" inputmode="decimal" placeholder="${l.unit||"€"}"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();bldFocus(${i+1});}">
+        <div class="vd" id="bldv${i}"></div>
+      </div>`).join("")}
+    </div>
+    ${calcBlock()}
+    ${formBlock()}
+    <div class="coach">Aucune de ces lignes ne t'est donnée ailleurs dans l'app. Si tu bloques, <b>pose le calcul sur papier</b> : c'est la compétence, pas le résultat.</div>
+    <button class="btn" id="bldGo" onclick="bldCheck('${c.id}')">Corriger ma copie</button>
+    <div id="bldOut"></div>`);
+}
+function bldFocus(i){ const e=document.getElementById("bld"+i); if(e) e.focus(); }
+function bldCheck(cid){
+  const B=S.biz, c=bizCase(cid);
+  if(!BUILDST||BUILDST.done) return;
+  const lines=BUILDST.lines;
+  let bons=0; const detail=[];
+  lines.forEach((l,i)=>{
+    const brut=(document.getElementById("bld"+i)||{}).value||"";
+    const v=bldNum(brut);
+    const ok = v!==null && Math.abs(v-l.val)<=bldTol(l);
+    if(ok) bons++;
+    detail.push({k:l.k,label:l.label,saisi:v,val:l.val,ok});
+    const row=document.getElementById("bldr"+i);
+    if(row){ row.classList.add(ok?"ok":"ko"); }
+    const inp=document.getElementById("bld"+i); if(inp) inp.disabled=true;
+    const vd=document.getElementById("bldv"+i); if(vd) vd.textContent=ok?"✓":"✗";
+  });
+  BUILDST.done=true;
+  const go=document.getElementById("bldGo"); if(go) go.remove();
+  /* Le corrigé : pour CHAQUE ligne, le bon chiffre et le raisonnement.
+     Y compris sur les lignes justes — il a pu tomber juste par hasard. */
+  const corr=lines.map((l,i)=>{
+    const d=detail[i];
+    return `<div class="bldfix">${d.ok?"✓":"✗"} <b>${l.label}</b> — le bon chiffre est
+      <span class="rg">${l.unit==="j"?Math.round(l.val)+" j":l.unit==="×"?l.val.toFixed(2)+" ×":eur(l.val)}</span>${
+        d.saisi===null?" (tu n'as rien mis)":(!d.ok?` (tu as mis ${l.unit==="j"?Math.round(d.saisi)+" j":l.unit==="×"?d.saisi.toFixed(2)+" ×":eur(Math.round(d.saisi))})`:"")}
+      <br>${l.how}${l.trap?`<br><b style="color:var(--acc)">Le piège :</b> ${l.trap}`:""}</div>`;
+  }).join("");
+  const q = bons===lines.length?2 : bons>=lines.length*.75?1 : bons>=lines.length*.5?0 : bons>=lines.length*.25?-1 : -2;
+  document.getElementById("bldOut").innerHTML=`
+    <div class="bldtot"><span>Ta copie</span><span style="color:${bons===lines.length?"var(--ok)":bons>=lines.length*.5?"var(--txt)":"var(--bad)"}">${bons} / ${lines.length}</span></div>
+    ${corr}
+    <button class="btn" onclick="bldDone('${cid}')">Voir ce que ça t'apprend</button>`;
+  document.getElementById("bldOut").scrollIntoView({behavior:"smooth",block:"start"});
+  BUILDST.res={bons,total:lines.length,detail,q};
+}
+function bldDone(cid){
+  const B=S.biz, c=bizCase(cid), r=BUILDST?BUILDST.res:null;
+  if(!r) return;
+  const arg=r.detail.map(d=>`${d.label} : ${d.saisi===null?"—":Math.round(d.saisi)}${d.ok?" ✓":" ✗ (attendu "+Math.round(d.val)+")"}`).join("\n");
+  B.answers.push({id:cid,k:String(r.bons)+"/"+String(r.total),arg,month:B.month,q:r.q,label:r.bons+" / "+r.total+" lignes justes"});
+  if(c.apply) c.apply(B,r);
+  bizRebalance();
+  B.seen.push(cid); B.pending=null;
+  addXP(8+r.bons*3); save();
+  BUILDST=null;
+  bizDebrief(c, String(r.bons), r.bons+" / "+r.total+" lignes justes", c.debrief(B,r));
 }
 
 // ---------- LA NÉGOCIATION ----------
@@ -1486,7 +1618,7 @@ function bizExport(){
   t+=`Mois ${B.month}${B.alive?"":" — CESSATION DE PAIEMENTS"}${B.finished?" — PARTIE TERMINÉE":""}\n`;
   t+=`Prix : ${B.price} € / ${sec.unit} (coût de revient ${B.mc.toFixed(2)} €, charges fixes ${B.fc} €/mois)\n`;
   t+=`Élasticité à mon point de prix : ${bizElast(B.price).toFixed(2)}\n\n`;
-  t+=`DERNIER MOIS : CA ${h.ca} € · EBITDA ${h.ebitda} € · résultat net ${h.rn} €\n`;
+  t+=`DERNIER MOIS : CA ${h.ca} € · EBITDA ${Math.round(ebM(h))} €${(h.dot||0)>0?` · EBIT ${Math.round(ebitM(h))} € (dotation ${h.dot} €)`:""} · résultat net ${h.rn} €\n`;
   t+=`Trésorerie ${Math.round(B.cash)} € · BFR ${Math.round(B.bfr)} € (stock ${Math.round(B.stockU*B.mc)} + créances ${Math.round(B.ar)} − dettes fourn. ${Math.round(B.ap)})\n`;
   t+=`ΔBFR ${h.dbfr} € · Δtrésorerie ${h.dcash} € · DSO ${B.dso} j · DPO ${B.dpo} j · stock cible ${B.stockTarget} mois\n\n`;
   t+=`MES DÉCISIONS ET MES ARGUMENTAIRES :\n`;

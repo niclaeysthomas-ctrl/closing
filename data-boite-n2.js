@@ -7,7 +7,219 @@
 // on décide sur un chiffre que tu dois CONSTRUIRE. D'où des setups qui
 // livrent des composants bruts et jamais le ratio final.
 
+
+/* ============================================================
+   LES TROIS CAS « CONSTRUCTION » — ajoutés le 2026-09-21.
+   Le niveau 2 promettait noir sur blanc : « tu reçois les
+   opérations, tu construis les états, l'app corrige » (aide
+   partielle), et ses deux premières notions sont « construire
+   soi-même le compte de résultat et le bilan » et « le tableau
+   de flux ». Aucun des dix cas ne le faisait : tous servaient
+   les composants dans l'énoncé et demandaient de cocher A/B/C/D.
+   Ici il n'y a rien à cocher.
+
+   LES TROIS CAS SONT UN SEUL JEU DE COMPTES : même mois, mêmes
+   opérations, et le bilan de clôture DOIT tomber. D'où deux
+   contraintes qu'il a fallu construire, pas espérer :
+   · le bilan d'OUVERTURE est équilibré par construction — les
+     réserves sont la variable d'ajustement, jamais un chiffre
+     choisi au hasard (sinon l'écart d'ouverture se propage) ;
+   · l'acompte client encaissé a une contrepartie partout : il
+     est au passif au bilan, et il DIMINUE le BFR au tableau de
+     flux. Un montant qui n'apparaît qu'à un endroit déséquilibre
+     tout — c'est exactement la faute que le cas apprend à voir.
+   Tout est déterministe (aucun Math.random) et arrondi à la
+   centaine : son calcul à la main doit tomber sur le corrigé.
+   ============================================================ */
+function n2ops(B){
+  const h=(B.hist&&B.hist.length)?B.hist[B.hist.length-1]:null;
+  const c100=x=>Math.round(x/100)*100;
+  const ca=Math.max(14000, c100((h&&h.ca)||20000));
+  const achats=c100(ca*.46), salaires=c100(ca*.22), loyer=c100(ca*.05), autres=c100(ca*.04);
+  const dot=c100(ca*.03), interets=c100(ca*.012);
+  const machine=c100(ca*.90), remb=c100(ca*.05), emprunt=c100(ca*.60), acompte=c100(ca*.12);
+  const dcr=c100(ca*.20);              /* hausse des créances clients */
+  const dbfr=dcr-acompte;              /* BFR net : l'acompte est de l'argent du client chez toi */
+  /* compte de résultat — chaque ligne dérive des composantes ARRONDIES */
+  const mb=ca-achats;
+  const ebitda=mb-salaires-loyer-autres;
+  const ebit=ebitda-dot;
+  const rcai=ebit-interets;
+  const is=c100(Math.max(0,rcai)*.25);
+  const rn=rcai-is;
+  /* tableau de flux */
+  const fluxExpl=rn+dot-dbfr, fluxInv=-machine, fluxFin=emprunt-remb;
+  const dcash=fluxExpl+fluxInv+fluxFin;
+  /* bilan d'ouverture : les réserves ÉQUILIBRENT, elles ne sont pas choisies */
+  const im0=c100(machine*.4), st=c100(achats*1.2), cr=c100(ca*.90);
+  const treso0=c100(Math.min(ca*1.6, Math.max(ca*.8, (B&&B.cash)||ca*1.1)));
+  const cap=c100(ca*.50), fo=c100(achats*1.5);
+  const actif0=im0+st+cr+treso0;
+  let dette0=c100(ca*1.40);
+  let res0=actif0-cap-fo-dette0;
+  if(res0<c100(ca*.10)){ const manque=c100(ca*.10)-res0; dette0-=manque; res0+=manque; }
+  const treso1=treso0+dcash;
+  /* bilan de clôture */
+  const im1=im0+machine-dot, cr1=cr+dcr, res1=res0+rn, dette1=dette0+emprunt-remb;
+  const actif1=im1+st+cr1+treso1;
+  const passif1=cap+res1+fo+dette1+acompte;
+  return {ca,achats,salaires,loyer,autres,dot,interets,machine,remb,emprunt,acompte,dcr,dbfr,
+          mb,ebitda,ebit,rcai,is,rn,fluxExpl,fluxInv,fluxFin,dcash,
+          im0,st,cr,treso0,cap,fo,dette0,res0,actif0,
+          im1,cr1,res1,dette1,treso1,actif1,passif1};
+}
+function n2releve(B){
+  const o=n2ops(B);
+  return `<b>Le relevé du mois</b> — dans le désordre, comme il arrive :
+   <br>· ventes facturées aux clients : <b>${eur(o.ca)}</b>
+   <br>· achats de marchandises consommées : <b>${eur(o.achats)}</b>
+   <br>· salaires et charges : <b>${eur(o.salaires)}</b>
+   <br>· loyer : <b>${eur(o.loyer)}</b> · autres frais fixes : <b>${eur(o.autres)}</b>
+   <br>· <b>${eur(o.machine)}</b> payés pour une machine livrée ce mois-ci
+   <br>· dotation aux amortissements du mois : <b>${eur(o.dot)}</b>
+   <br>· <b>${eur(o.emprunt)}</b> débloqués par la banque
+   <br>· échéance d'emprunt payée : <b>${eur(o.remb+o.interets)}</b>, dont <b>${eur(o.interets)}</b> d'intérêts
+   <br>· <b>${eur(o.acompte)}</b> encaissés d'un client pour une commande à livrer le mois prochain
+   <br>· tes créances clients ont augmenté de <b>${eur(o.dcr)}</b> · stock et dettes fournisseurs inchangés
+   <br>· impôt sur les sociétés : <b>25 %</b> du résultat avant impôt, arrondi à la centaine`;
+}
 const BIZCASES_N2 = [
+{id:"n2cr", lvl:2, type:"build", ch:3, icon:"🧾",
+ title:"Construis ton compte de résultat",
+ concept:"Du relevé d'opérations aux soldes intermédiaires de gestion", lesson:"b1",
+ when:B=>B.level>=2 && B.month>=4 && B.hist.length>=3,
+ signal:"Ton comptable est en congés et ton banquier veut les chiffres du mois vendredi.",
+ setup:B=>`Personne ne va te servir le tableau cette fois. ${n2releve(B)}
+   <br><br><b>Cinq de ces lignes n'ont rien à faire dans un compte de résultat.</b> À toi de voir lesquelles — et de descendre la cascade jusqu'au résultat net.`,
+ tableTitle:"Le compte de résultat du mois",
+ intro:"Descends dans l'ordre : chaque ligne se déduit de la précédente. Un montant par case, en euros.",
+ lines:B=>{const o=n2ops(B); return [
+  {k:"ca",   label:"Chiffre d'affaires", hint:"ce que tu as vendu — pas ce que tu as encaissé", val:o.ca,
+   how:"Le CA, ce sont les ventes <b>facturées</b> du mois.",
+   trap:`Les ${eur(o.acompte)} d'acompte ne sont PAS du chiffre d'affaires : la commande n'est pas livrée. C'est une <b>dette envers le client</b> au passif, qui deviendra du CA le mois où tu livreras. Le CA suit la livraison, jamais l'encaissement.`},
+  {k:"mb",   label:"Marge brute", hint:"CA − achats consommés", val:o.mb,
+   how:`${eur(o.ca)} − ${eur(o.achats)} = <b>${eur(o.mb)}</b>, soit ${Math.round(o.mb/o.ca*100)} % du CA.`,
+   trap:"On retire les achats <b>consommés</b>, pas les achats payés. Ce qui dort en stock n'est pas encore une charge : il est à l'actif."},
+  {k:"ebitda",label:"EBITDA", hint:"marge brute − charges fixes décaissées", val:o.ebitda,
+   how:`${eur(o.mb)} − ${eur(o.salaires)} − ${eur(o.loyer)} − ${eur(o.autres)} = <b>${eur(o.ebitda)}</b>.`,
+   trap:`L'EBITDA est <b>avant</b> dotations : les ${eur(o.dot)} d'amortissement ne se retirent pas ici. C'est précisément ce qui en fait l'indicateur que regardent les banquiers — il ne dépend pas de la politique d'amortissement.`},
+  {k:"ebit", label:"Résultat d'exploitation (EBIT)", hint:"EBITDA − dotation aux amortissements", val:o.ebit,
+   how:`${eur(o.ebitda)} − ${eur(o.dot)} = <b>${eur(o.ebit)}</b>.`,
+   trap:`La dotation EST une charge, même si aucun euro ne sort du compte ce mois-ci. Et la machine à ${eur(o.machine)} n'apparaît NULLE PART au compte de résultat : on n'y passe que son usure, mois après mois.`},
+  {k:"rcai", label:"Résultat avant impôt", hint:"EBIT − charges financières", val:o.rcai,
+   how:`${eur(o.ebit)} − ${eur(o.interets)} d'intérêts = <b>${eur(o.rcai)}</b>.`,
+   trap:`Dans l'échéance de ${eur(o.remb+o.interets)}, seuls les ${eur(o.interets)} d'intérêts sont une charge. Les ${eur(o.remb)} de capital remboursé ne passent jamais par le résultat : ils éteignent une dette au passif. C'est le malentendu qui coûte le plus cher aux dirigeants.`},
+  {k:"is",   label:"Impôt sur les sociétés", hint:"25 % du résultat avant impôt", val:o.is,
+   how:`25 % × ${eur(o.rcai)} = <b>${eur(o.is)}</b>.`},
+  {k:"rn",   label:"Résultat net", hint:"le bas du tableau", val:o.rn,
+   how:`${eur(o.rcai)} − ${eur(o.is)} = <b>${eur(o.rn)}</b>.`,
+   trap:"Retiens ce chiffre : le cas suivant repart de lui, et tu verras que ce mois bénéficiaire fait baisser ta trésorerie."}
+ ];},
+ debrief:(B,r)=>{const o=n2ops(B); return `
+  <p><b>Les cinq intrus.</b> La machine (${eur(o.machine)}), l'emprunt débloqué (${eur(o.emprunt)}), le capital remboursé (${eur(o.remb)}), l'acompte client (${eur(o.acompte)}) et la hausse des créances (${eur(o.dcr)}) sont des mouvements de <b>trésorerie ou de bilan</b>. Aucun n'est une charge ni un produit. À l'inverse, la dotation de ${eur(o.dot)} est une charge alors qu'aucun euro ne bouge. <b>Le compte de résultat ne parle pas d'argent qui circule : il parle de richesse créée ou détruite.</b></p>
+  <p><b>Ce que ta copie dit de toi.</b> ${r.bons===r.total?"Sept sur sept. Tu as la cascade en tête et tu n'es tombé dans aucun des cinq pièges. C'est le niveau attendu d'un dirigeant qui lit ses propres comptes sans intermédiaire." : r.bons>=5?"Le squelette est là. Regarde la ou les lignes ratées : dans neuf cas sur dix, c'est un mouvement de trésorerie qu'on a fait entrer dans le résultat, ou une charge sans décaissement qu'on en a sortie." : "La cascade n'est pas encore automatique. Reprends-la dans l'ordre — CA, marge brute, EBITDA, EBIT, résultat avant impôt, impôt, résultat net — et à chaque ligne pose-toi une seule question : est-ce que ça crée ou détruit de la richesse ce mois-ci ? Si la réponse est non, ça n'a rien à faire là."}</p>
+  <p><b>Le chiffre à garder.</b> Résultat net <b>${eur(o.rn)}</b>, EBITDA <b>${eur(o.ebitda)}</b>. L'écart entre les deux, ce sont la dotation, les intérêts et l'impôt. Un banquier raisonne sur l'EBITDA, un actionnaire sur le résultat net, et ton compte en banque sur ni l'un ni l'autre : c'est l'objet du cas suivant.</p>`;},
+ grid:[
+  "Avoir écarté la machine payée : un investissement n'est pas une charge, seule sa dotation l'est.",
+  "Avoir écarté le capital remboursé et gardé les seuls intérêts.",
+  "Avoir écarté l'acompte : le CA suit la livraison, pas l'encaissement.",
+  "Avoir écarté l'emprunt débloqué : de l'argent qui entre n'est pas un produit.",
+  "Avoir gardé la dotation malgré l'absence de décaissement.",
+  "Avoir placé l'EBITDA AVANT la dotation, et l'EBIT après."
+ ]},
+
+{id:"n2tft", lvl:2, type:"build", ch:4, icon:"🌊",
+ title:"Le mois est bénéficiaire et la caisse baisse",
+ concept:"Le tableau de flux de trésorerie · les trois flux", lesson:"b3",
+ when:B=>B.level>=2 && B.month>=7 && B.seen.indexOf("n2cr")>=0,
+ signal:"Le même mois que ton compte de résultat. Le résultat est positif. Regarde la banque.",
+ setup:B=>{const o=n2ops(B); return `Tu as établi ton compte de résultat : <b>résultat net ${eur(o.rn)}</b>. Ton compte en banque, lui, ouvrait le mois à <b>${eur(o.treso0)}</b>.
+   <br><br>${n2releve(B)}
+   <br><br>Le tableau de flux range chaque mouvement dans <b>une seule</b> des trois cases : <b>exploitation</b> (ce que le métier produit), <b>investissement</b> (ce qu'on achète pour durer), <b>financement</b> (ce qu'on emprunte, rembourse ou distribue).
+   <br><br>Commence par le BFR, puis par l'exploitation : pars du résultat net, <b>remets ce qui n'est pas sorti</b>, <b>retire ce qui est immobilisé</b>.`;},
+ tableTitle:"Le tableau de flux du mois",
+ intro:"Les flux négatifs s'écrivent avec un signe moins. Un montant par case, en euros.",
+ lines:B=>{const o=n2ops(B); return [
+  {k:"dbfr", label:"Variation du besoin en fonds de roulement", hint:"hausse des créances − acompte encaissé", val:o.dbfr,
+   how:`${eur(o.dcr)} − ${eur(o.acompte)} = <b>${eur(o.dbfr)}</b>. Stock et fournisseurs n'ont pas bougé.`,
+   trap:`L'acompte <b>réduit</b> ton BFR : c'est l'argent de ton client qui finance ton cycle. Le BFR n'est pas « stock + créances », c'est <b>ce que ton cycle immobilise net de ce que les autres t'avancent</b> — fournisseurs et acomptes compris.`},
+  {k:"expl", label:"Flux de trésorerie d'exploitation", hint:"résultat net + dotation − variation du BFR", val:o.fluxExpl,
+   how:`${eur(o.rn)} + ${eur(o.dot)} − ${eur(o.dbfr)} = <b>${eur(o.fluxExpl)}</b>.`,
+   trap:`On <b>remet</b> la dotation parce qu'elle a réduit le résultat sans sortir un euro. On <b>retire</b> la hausse du BFR parce que cet argent existe — il dort chez tes clients. Les intérêts, eux, restent ici : ils sont déjà dans le résultat net et relèvent bien de l'exploitation.`},
+  {k:"inv",  label:"Flux d'investissement", hint:"négatif : de l'argent qui sort", val:o.fluxInv,
+   how:`La machine : <b>−${eur(o.machine)}</b>.`,
+   trap:"Elle sort ici <b>en entier et tout de suite</b>, alors qu'au compte de résultat elle n'apparaissait que par sa dotation. Même objet, deux tableaux, deux rythmes : c'est toute la différence entre charge et décaissement."},
+  {k:"fin",  label:"Flux de financement", hint:"emprunt débloqué − capital remboursé", val:o.fluxFin,
+   how:`+${eur(o.emprunt)} − ${eur(o.remb)} = <b>${eur(o.fluxFin)}</b>.`,
+   trap:`Le capital remboursé atterrit ICI, et nulle part ailleurs. Les intérêts, eux, sont restés en exploitation. <b>Une même échéance de ${eur(o.remb+o.interets)} se coupe donc en deux</b> et part dans deux cases différentes : c'est la manipulation que personne ne fait spontanément.`},
+  {k:"dcash",label:"Variation de trésorerie du mois", hint:"la somme des trois flux", val:o.dcash,
+   how:`${eur(o.fluxExpl)} − ${eur(o.machine)} + ${eur(o.fluxFin)} = <b>${eur(o.dcash)}</b>.`,
+   trap:o.dcash<0?"Négative, alors que le mois est bénéficiaire. Ce n'est pas une anomalie : c'est le cas le plus fréquent d'une entreprise qui investit et qui grandit en même temps.":"Positive ce mois-ci — vérifie toujours d'où elle vient : un emprunt n'est pas une performance."},
+  {k:"treso1",label:"Trésorerie à la fin du mois", hint:"ouverture + variation", val:o.treso1,
+   how:`${eur(o.treso0)} + (${eur(o.dcash)}) = <b>${eur(o.treso1)}</b>.`,
+   trap:"Cette ligne est le contrôle du tableau : si elle ne tombe pas sur le solde réel de ton compte, une opération s'est perdue en route ou a été comptée deux fois."}
+ ];},
+ debrief:(B,r)=>{const o=n2ops(B); return `
+  <p><b>Le mois a créé ${eur(o.rn)} de richesse et ${o.dcash<0?"détruit "+eur(Math.abs(o.dcash))+" de trésorerie":"dégagé "+eur(o.dcash)+" de trésorerie"}.</b> Les deux affirmations sont exactes en même temps, et c'est là que la plupart des dirigeants décrochent. L'écart tient en trois lignes : la machine sort en entier (${eur(o.machine)}) alors qu'elle ne pèse que ${eur(o.dot)} au résultat, le BFR immobilise ${eur(o.dbfr)} de plus, et l'emprunt de ${eur(o.emprunt)} entre sans être un produit.</p>
+  <p><b>Ce que ce tableau permet que les deux autres ne permettent pas.</b> Le compte de résultat dit si ton métier est rentable. Le bilan dit à quoi ressemble ton patrimoine un jour donné. <b>Seul le tableau de flux dit d'où vient l'argent.</b> Un flux d'exploitation durablement négatif est une alerte vitale même avec un résultat positif ; un flux d'exploitation qui finance seul l'investissement est la signature d'une boîte qui tient debout toute seule.</p>
+  <p><b>La question à se poser chaque mois.</b> Est-ce que mon exploitation finance mes investissements, ou est-ce que c'est la banque ? Ce mois-ci : ${eur(o.fluxExpl)} d'exploitation contre ${eur(o.machine)} d'investissement — ${o.fluxExpl>=o.machine?"le métier paie, la dette n'est qu'un confort.":"c'est la banque, et c'est tenable tant que ça reste ponctuel et que la machine produit ce que tu attends d'elle."}</p>
+  <p>${r.bons===r.total?"<b>Six sur six.</b> Tu sais construire un tableau de flux à partir d'un relevé — ce que la majorité des candidats en entretien de M&A ne savent pas faire sans modèle sous les yeux." : r.bons>=4?"<b>La structure est acquise</b>, l'erreur est dans le rangement. Le test : chaque opération va dans UNE case et une seule ; si tu hésites, demande-toi si elle relève du métier, du long terme, ou de qui finance." : "<b>À refaire.</b> Retiens l'ordre : on part du résultat net, on remet les charges sans décaissement, on retire ce que le BFR immobilise. Puis l'investissement en entier. Puis le financement. Et le total doit retomber sur ton relevé bancaire."}</p>`;},
+ grid:[
+  "Avoir calculé le BFR net : l'acompte du client le RÉDUIT.",
+  "Être parti du résultat net, pas du chiffre d'affaires.",
+  "Avoir remis la dotation aux amortissements (charge sans décaissement).",
+  "Avoir retiré la hausse du BFR : cet argent existe, il est immobilisé.",
+  "Avoir coupé l'échéance d'emprunt en deux : intérêts en exploitation, capital en financement.",
+  "Avoir sorti la machine en totalité en investissement, et pas par douzièmes.",
+  "Avoir vérifié que le total retombe sur la trésorerie de clôture."
+ ]},
+
+{id:"n2bilan", lvl:2, type:"build", ch:5, icon:"⚖️",
+ title:"Fais tomber ton bilan juste",
+ concept:"Le bilan de clôture · actif = passif, toujours", lesson:"b2",
+ when:B=>B.level>=2 && B.month>=10 && B.seen.indexOf("n2tft")>=0,
+ signal:"Toujours le même mois. Cette fois, on regarde ce que tu possèdes et à qui tu le dois.",
+ setup:B=>{const o=n2ops(B); return `<b>Ton bilan à l'ouverture du mois</b> — il tombe, vérifie-le si tu veux :
+   <br>· <b>ACTIF</b> — immobilisations nettes ${eur(o.im0)} · stock ${eur(o.st)} · créances clients ${eur(o.cr)} · trésorerie ${eur(o.treso0)}
+   <br>· <b>PASSIF</b> — capital ${eur(o.cap)} · réserves ${eur(o.res0)} · dettes fournisseurs ${eur(o.fo)} · emprunts ${eur(o.dette0)}
+   <br><br>${n2releve(B)}
+   <br><br>Tu as calculé aux deux cas précédents : <b>résultat net ${eur(o.rn)}</b> et <b>variation de trésorerie ${eur(o.dcash)}</b>.
+   <br><br>Six lignes à produire. Et le total du passif doit tomber exactement sur celui de l'actif — <b>une ligne du passif est celle que tout le monde oublie</b>.`;},
+ tableTitle:"Le bilan à la clôture",
+ intro:"Six lignes. La dernière doit égaler le total de l'actif — si ce n'est pas le cas, une écriture n'a qu'une seule jambe.",
+ lines:B=>{const o=n2ops(B); return [
+  {k:"immo", label:"Immobilisations nettes", hint:"ouverture + acquisition − dotation", val:o.im1,
+   how:`${eur(o.im0)} + ${eur(o.machine)} − ${eur(o.dot)} = <b>${eur(o.im1)}</b>.`,
+   trap:"La dotation ne « part » nulle part : elle transfère de la valeur de l'actif vers les charges. L'actif maigrit du montant exact passé en charge — c'est pour ça que le bilan reste équilibré sans qu'on touche au cash."},
+  {k:"creances", label:"Créances clients", hint:"ouverture + hausse du mois", val:o.cr1,
+   how:`${eur(o.cr)} + ${eur(o.dcr)} = <b>${eur(o.cr1)}</b>.`,
+   trap:"Une créance est un actif : c'est de l'argent qui t'appartient et que tu n'as pas. Toute la difficulté du BFR tient dans cette phrase."},
+  {k:"actif",label:"TOTAL DE L'ACTIF", hint:"immobilisations + stock + créances + trésorerie", val:o.actif1,
+   how:`${eur(o.im1)} + ${eur(o.st)} + ${eur(o.cr1)} + ${eur(o.treso1)} = <b>${eur(o.actif1)}</b>. La trésorerie de clôture vaut ${eur(o.treso0)} ${o.dcash<0?"−":"+"} ${eur(Math.abs(o.dcash))} = ${eur(o.treso1)}.`},
+  {k:"res",  label:"Réserves", hint:"la seule ligne du passif que le résultat touche", val:o.res1,
+   how:`${eur(o.res0)} + ${eur(o.rn)} = <b>${eur(o.res1)}</b>.`,
+   trap:"Le résultat net ne se pose nulle part ailleurs au bilan. Il ne va pas au capital : le capital, ce sont les apports des actionnaires, et il ne bouge que par une augmentation de capital."},
+  {k:"dette",label:"Emprunts", hint:"ouverture + déblocage − capital remboursé", val:o.dette1,
+   how:`${eur(o.dette0)} + ${eur(o.emprunt)} − ${eur(o.remb)} = <b>${eur(o.dette1)}</b>.`,
+   trap:`Seul le capital de ${eur(o.remb)} réduit la dette. Les intérêts, eux, sont déjà passés en charge : ils ne figurent pas ici.`},
+  {k:"passif",label:"TOTAL DU PASSIF", hint:"capital + réserves + fournisseurs + emprunts + … la ligne oubliée", val:o.passif1,
+   how:`${eur(o.cap)} + ${eur(o.res1)} + ${eur(o.fo)} + ${eur(o.dette1)} + ${eur(o.acompte)} d'acompte client = <b>${eur(o.passif1)}</b>.`,
+   trap:`<b>L'acompte de ${eur(o.acompte)} est la ligne oubliée</b> : encaissé mais pas gagné, c'est une dette envers le client. Sans elle, ton passif est plus léger que ton actif d'exactement ce montant — et le bilan refuse de tomber.`}
+ ];},
+ debrief:(B,r)=>{const o=n2ops(B); return `
+  <p><b>Un bilan qui ne tombe pas n'est pas « presque juste » : il est faux.</b> Chaque euro à l'actif vient de quelque part. La machine à ${eur(o.machine)} en est la démonstration : elle entre à l'actif, et en face il y a ${eur(o.emprunt)} d'emprunt au passif et le reste pris sur la trésorerie — qui est elle-même à l'actif. Rien ne se crée.</p>
+  <p><b>Les trois écritures qui coupent la copie en deux.</b> La dotation, qui fait maigrir l'actif sans toucher au cash. Le résultat net, qui ne se pose que sur les <b>réserves</b> — jamais sur le capital. Et l'acompte client, encaissé mais pas gagné, qui est une <b>dette</b> : neuf fois sur dix c'est lui qui manque, et l'écart vaut alors exactement ${eur(o.acompte)}.</p>
+  <p><b>Le réflexe à installer.</b> Quand ton bilan ne tombe pas, ne cherche pas une erreur de calcul : cherche une écriture à une seule jambe. Un mouvement qui a bougé l'actif sans rien bouger au passif, ou l'inverse. C'est toujours ça. ${r.bons===r.total?"Tu as trouvé les six, acompte compris — c'est le vrai test du cas." : "Reprends ligne à ligne et, pour chacune, demande-toi ce qui a bougé EN FACE."}</p>
+  <p><b>Et maintenant tu as les trois états du même mois.</b> Résultat net ${eur(o.rn)}, variation de trésorerie ${eur(o.dcash)}, total de bilan ${eur(o.actif1)}. Trois chiffres, trois questions différentes : suis-je rentable, est-ce que j'ai de l'argent, que possède l'entreprise et à qui. Aucun des trois ne répond à la place des deux autres — c'est tout le niveau 2.</p>`;},
+ grid:[
+  "Avoir fait maigrir l'actif immobilisé de la dotation.",
+  "Avoir augmenté les créances clients de la hausse du mois.",
+  "Avoir porté le résultat net aux réserves, et pas au capital.",
+  "Avoir réduit l'emprunt du seul capital remboursé, pas de l'échéance entière.",
+  "Avoir inscrit l'acompte client au passif : encaissé n'est pas gagné.",
+  "Avoir vérifié que le total du passif égale celui de l'actif."
+ ]},
+
 
 {id:"n2flux", lvl:2, type:"choice", ch:3, icon:"🌊", title:"Le mois où tout va bien et la caisse est vide",
  concept:"ΔCash = RN − ΔBFR − CAPEX · le flux contre le résultat", lesson:"b3",
@@ -45,7 +257,7 @@ const BIZCASES_N2 = [
  concept:"Covenants · dette nette / EBITDA · gearing", lesson:"a2",
  when:B=>B.level>=2 && B.month>=14 && B.hist.length>=12,
  signal:"Ta banque t'a proposé un rendez-vous « pour accompagner ta croissance ». Ce n'est jamais désintéressé.",
- setup:B=>{const eb12=B.hist.slice(-12).reduce((t,h)=>t+h.ebitda,0);
+ setup:B=>{const eb12=eb12Of(B);
   return `La banque te propose <b>250 000 €</b> sur 5 ans à 4,5 % pour financer ton développement.
    <br><br>Le contrat contient trois clauses que tu n'as jamais lues ailleurs :
    <br>· <b>dette nette / EBITDA ≤ 3,0</b>, testé chaque semestre
@@ -60,13 +272,13 @@ const BIZCASES_N2 = [
   {k:"D", label:"Tu prends la moitié du montant", term:"125 000 €, ratio deux fois plus confortable.", q:1}
  ],
  apply:(B,k)=>{
-   const eb12=B.hist.slice(-12).reduce((t,h)=>t+h.ebitda,0);
+   const eb12=eb12Of(B);
    if(k==="A"){ B.cash+=250000; B.loans.push(mkLoan(250000,.045,60,"Prêt de développement")); B.covenant={max:3,grace:0}; B.capacity*=1.5; }
    if(k==="B"){ B.cash+=250000; B.loans.push(mkLoan(250000,.048,60,"Prêt de développement")); B.covenant={max:3.5,grace:1}; B.capacity*=1.5; }
    if(k==="C"){ B.cash-=Math.min(B.cash*.6,120000); B.capacity*=1.2; B.noDebt=true; }
    if(k==="D"){ B.cash+=125000; B.loans.push(mkLoan(125000,.047,60,"Prêt de développement")); B.covenant={max:3,grace:0}; B.capacity*=1.25; }
  },
- debrief:(B,k)=>{const eb12=B.hist.slice(-12).reduce((t,h)=>t+h.ebitda,0);
+ debrief:(B,k)=>{const eb12=eb12Of(B);
   const ratio=eb12>0?((B.debt+250000-B.cash)/eb12).toFixed(2):"n/a";
   return `
   <p><b>Un covenant n'est pas une formalité : c'est une option gratuite que tu donnes à ton prêteur.</b> Tant que tu tiens le ratio, il ne se passe rien. Le jour où tu le franchis — et c'est toujours le jour où tu vas mal — la banque récupère le droit d'exiger le remboursement immédiat. Autrement dit : <b>ton financement disparaît précisément au moment où tu en as besoin.</b> C'est le mécanisme le plus contre-cyclique de la finance d'entreprise.</p>
@@ -84,7 +296,7 @@ const BIZCASES_N2 = [
  concept:"Coût du capital · dilution · pacte d'actionnaires", lesson:"cp4",
  when:B=>B.level>=2 && B.month>=20 && B.hist.length>=12,
  signal:"Un fonds régional t'a contacté après avoir vu tes comptes publiés. Ils ne t'ont pas trouvé par hasard.",
- setup:B=>{const eb12=B.hist.slice(-12).reduce((t,h)=>t+h.ebitda,0);
+ setup:B=>{const eb12=eb12Of(B);
   return `Pour passer à l'échelle il te faut <b>600 000 €</b>. Deux propositions sur la table.
    <br><br><b>La banque</b> : 600 000 € sur 7 ans à 5,2 %, garantie personnelle sur ta résidence, covenant à 3,0×.
    <br><br><b>Le fonds</b> : 600 000 € contre <b>30 % du capital</b>. Pas de remboursement, pas de garantie. Un siège au conseil, un droit de veto sur les investissements au-delà de 100 000 €, et une clause de sortie à 7 ans.
@@ -102,7 +314,7 @@ const BIZCASES_N2 = [
    if(k==="C"){ B.cash+=600000; B.capital+=600000; B.equityIn=(B.equityIn||0)+600000; B.dilution=.18; B.bsa=true; B.board=true; B.capacity*=1.8; }
    if(k==="D"){ B.cash+=300000; B.loans.push(mkLoan(300000,.052,84,"Prêt bancaire 7 ans")); B.capacity*=1.4; }
  },
- debrief:(B,k)=>{const eb12=B.hist.slice(-12).reduce((t,h)=>t+h.ebitda,0);
+ debrief:(B,k)=>{const eb12=eb12Of(B);
   return `
   <p><b>La dette a un prix affiché, les fonds propres ont un prix caché — et le caché est presque toujours le plus élevé.</b> 5,2 % l'an sur 7 ans, c'est environ 120 000 € d'intérêts au total : c'est écrit dans le contrat, tu peux le calculer aujourd'hui. 30 % du capital, c'est 30 % de <i>tout ce que la boîte vaudra un jour</i>. Si ton plan marche, c'est infiniment plus cher que la dette. <b>C'est pour ça qu'on dit que les fonds propres sont la ressource la plus chère : ils n'ont pas d'échéance, donc pas de fin.</b></p>
   <p><b>Le calcul qu'il fallait poser.</b> À 6× l'EBITDA, ta boîte vaut aujourd'hui environ <b>${eur(Math.round(eb12*6))}</b>. 30 %, c'est donc <b>${eur(Math.round(eb12*6*.3))}</b> de valeur cédée pour 600 000 € reçus — regarde bien ce rapport, il te dit si tu vends cher ou si tu brades. Et surtout : si tu triples l'EBITDA en sept ans, ces 30 % valent trois fois plus, alors que la dette, elle, aurait été remboursée et oubliée.</p>
@@ -222,11 +434,11 @@ const BIZCASES_N2 = [
  concept:"Levier opérationnel × levier financier", lesson:"a1",
  when:B=>B.level>=2 && B.month>=17 && B.hist.length>=12,
  signal:"Le commercial de l'équipementier et ton chargé d'affaires bancaire t'ont appelé la même semaine. Ce n'est jamais un hasard.",
- setup:B=>{const h=B.hist[B.hist.length-1]||{ca:0,ebitda:0};
+ setup:B=>{const h=B.hist[B.hist.length-1]||{ca:0,ebitda:0,dot:0};
   return `Deux propositions arrivent ensemble, et chacune est bonne prise séparément.
    <br><br><b>L'équipementier</b> : une ligne à <b>${eur(B.fc*6)}</b> qui ferait baisser ton coût unitaire de <b>18 %</b> — mais ajouterait <b>${eur(B.fc*.35)}</b> de charges fixes par mois.
    <br><br><b>La banque</b> : elle financerait l'opération à 100 %, sur 5 ans.
-   <br><br>Tes chiffres : charges fixes <b>${eur(B.fc)}</b>/mois · EBITDA du mois <b>${eur(h.ebitda)}</b> · marge unitaire <b>${eur(B.price-B.mc)}</b>.
+   <br><br>Tes chiffres : charges fixes <b>${eur(B.fc)}</b>/mois · EBITDA du mois <b>${eur(ebM(h))}</b> · marge unitaire <b>${eur(B.price-B.mc)}</b>.
    <br><br>Avant de choisir : que deviendrait ton point mort si tu prends les deux ?`;},
  options:[
   {k:"A", label:"Les deux : la ligne, financée par la dette", term:"Tu maximises. Coût unitaire en baisse, aucune sortie de cash.", q:-2},

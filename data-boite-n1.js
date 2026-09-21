@@ -77,7 +77,7 @@ const BIZCASES_N1 = [
  when:B=>B.month>=7 && !B.loans.length,
  signal:"Ton conseiller t'a appelé deux fois ce mois-ci. Une banque ne t'appelle jamais par amitié.",
  setup:B=>`Ta banque te propose de financer ton développement. Tu peux prendre le montant que tu veux, sur la durée que tu veux — dans les limites qu'elle t'accorde.
-   <br><br>Ta trésorerie aujourd'hui : <b>${eur(B.cash)}</b>. Tes charges fixes : <b>${eur(B.fc)}</b> par mois. Ton EBITDA du dernier mois : <b>${eur(B.hist.length?B.hist[B.hist.length-1].ebitda:0)}</b>.
+   <br><br>Ta trésorerie aujourd'hui : <b>${eur(B.cash)}</b>. Tes charges fixes : <b>${eur(B.fc)}</b> par mois. Ton EBITDA du dernier mois : <b>${eur(ebM(B.hist[B.hist.length-1]))}</b>.
    <br><br>Elle demande une <b>caution personnelle</b> : si la boîte tombe, c'est toi qui rembourses.`,
  offers:[
   {k:"N", amount:0, months:0, rate:0, label:"Tu ne prends rien", q:0},
@@ -340,7 +340,7 @@ const BIZCASES_N1 = [
  signal:"Tu passes tes soirées sur des tâches qu'une machine ferait en une heure.",
  setup:B=>`Une machine à <b>${eur(B.fc*4)}</b> diviserait ton temps de production par deux et baisserait ton coût de revient d'environ <b>15 %</b>.
    <br><br>Un atelier voisin propose de faire le même travail en sous-traitance, sans investissement, mais ton coût de revient <b>monte</b> de 12 %.
-   <br><br>Ta trésorerie : <b>${eur(B.cash)}</b> · ton EBITDA mensuel : <b>${eur(B.hist.length?B.hist[B.hist.length-1].ebitda:0)}</b>.`,
+   <br><br>Ta trésorerie : <b>${eur(B.cash)}</b> · ton EBITDA mensuel : <b>${eur(ebM(B.hist[B.hist.length-1]))}</b>.`,
  options:[
   {k:"A", label:"Tu achètes la machine comptant", term:"Tu sors le cash d'un coup.", q:0},
   {k:"B", label:"Tu la finances en crédit-bail sur 4 ans", term:"Un loyer mensuel, pas de sortie de cash immédiate.", q:2},
@@ -404,7 +404,7 @@ const BIZCASES_N1 = [
  when:B=>B.month>=30 && B.hist.length>24,
  signal:"Un groupe régional a racheté deux ateliers comme le tien en dix-huit mois. Tu étais sur leur liste.",
  setup:B=>{
-   const eb=B.hist.slice(-12).reduce((t,h)=>t+h.ebitda,0);
+   const eb=eb12Of(B);
    return `Un groupe te propose de racheter ta boîte.
    <br><br>Ton EBITDA des douze derniers mois : <b>${eur(eb)}</b>. Leur offre : <b>${eur(Math.max(0,eb*3.5))}</b>, soit <b>3,5×</b>.
    <br><br>Ils veulent que tu restes trois ans, avec <b>30 % du prix en earn-out</b> conditionné aux résultats.
@@ -417,7 +417,7 @@ const BIZCASES_N1 = [
   {k:"D", label:"Tu mets en concurrence : tu appelles deux autres acquéreurs", term:"Tu retardes, tu crées de la tension.", q:2}
  ],
  apply:(B,k)=>{
-   const eb=B.hist.slice(-12).reduce((t,h)=>t+h.ebitda,0);
+   const eb=eb12Of(B);
    if(k==="A"){ B.offerTaken=Math.max(0,eb*3.5); }
    if(k==="C"){ B.offerTaken=Math.max(0,eb*3.35); B.negotiated=true; }
    if(k==="D"){ B.offerTaken=Math.max(0,eb*4.1); B.negotiated=true; }
