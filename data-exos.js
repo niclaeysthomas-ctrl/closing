@@ -25,7 +25,7 @@
 
 /* Virgule française : un prix unitaire s'interpole brut dans le corrigé
    (${p}, ${cv}, ${m}) et sortait « 4.35 » au milieu d'une phrase en
-   français. Les montants passent par eur() et les taux par toFixed, qui
+   français. Les montants passent par eurX() et les taux par toFixed, qui
    commutent déjà ; ce sont les prix unitaires qui manquaient. */
 function vf(x){ return String(Math.round(x*100)/100).replace(".",","); }
 
@@ -44,10 +44,10 @@ const EXOS = [
    donnees:[["Chiffre d'affaires",ca,"€"],["Coût des ventes",cv,"€"]],
    questions:[
     {q:"Quelle est la marge brute ?", val:mb, unit:"€",
-     calcul:`${eur(ca)} − ${eur(cv)} = <b>${eur(mb)}</b>`,
+     calcul:`${eurX(ca)} − ${eurX(cv)} = <b>${eurX(mb)}</b>`,
      cle:"La marge brute ne se devine pas : c'est une soustraction. Tout le reste du compte de résultat part de là."},
     {q:"Quel est le taux de marge brute, en % ?", val:mb/ca*100, unit:"%", tol:.3,
-     calcul:`${eur(mb)} ÷ ${eur(ca)} = <b>${(mb/ca*100).toFixed(1).replace(".",",")} %</b>`,
+     calcul:`${eurX(mb)} ÷ ${eurX(ca)} = <b>${(mb/ca*100).toFixed(1).replace(".",",")} %</b>`,
      cle:"Sur 100 € vendus, il t'en reste "+(mb/ca*100).toFixed(0).replace(".",",")+" € pour payer TOUT le reste : salaires, loyer, impôts, et toi."}
    ]};}},
 
@@ -72,16 +72,16 @@ const EXOS = [
             ["Dotation aux amortissements",dot,"€"],["Intérêts d'emprunt",int,"€"]],
    questions:[
     {q:"Quel est l'EBITDA ?", val:ebitda, unit:"€",
-     calcul:`${eur(mb)} − ${eur(fixes)} = <b>${eur(ebitda)}</b>`,
+     calcul:`${eurX(mb)} − ${eurX(fixes)} = <b>${eurX(ebitda)}</b>`,
      cle:"L'EBITDA est AVANT dotations. C'est pour ça qu'un banquier le préfère : il ne dépend pas de la politique d'amortissement, donc il se compare d'une boîte à l'autre."},
     {q:"Quel est l'EBIT (résultat d'exploitation) ?", val:ebit, unit:"€",
-     calcul:`${eur(ebitda)} − ${eur(dot)} = <b>${eur(ebit)}</b>`,
+     calcul:`${eurX(ebitda)} − ${eurX(dot)} = <b>${eurX(ebit)}</b>`,
      cle:"La dotation EST une charge, même si aucun euro ne bouge ce mois-ci. La différence EBITDA − EBIT, c'est exactement l'usure de ton outil."},
     {q:"Quel est le résultat net ?", val:rn, unit:"€",
-     calcul:`EBIT ${eur(ebit)} − intérêts ${eur(int)} = ${eur(rcai)} · impôt 25 % = ${eur(is)} · reste <b>${eur(rn)}</b>`,
+     calcul:`EBIT ${eurX(ebit)} − intérêts ${eurX(int)} = ${eurX(rcai)} · impôt 25 % = ${eurX(is)} · reste <b>${eurX(rn)}</b>`,
      cle:"Trois étages séparent l'EBITDA du résultat net : l'usure, la banque, l'État. Confondre les deux, c'est confondre ce que le métier produit et ce qui te revient."},
     {q:"Quelle est la marge nette, en % ?", val:rn/ca*100, unit:"%", tol:.3,
-     calcul:`${eur(rn)} ÷ ${eur(ca)} = <b>${(rn/ca*100).toFixed(1).replace(".",",")} %</b>`,
+     calcul:`${eurX(rn)} ÷ ${eurX(ca)} = <b>${(rn/ca*100).toFixed(1).replace(".",",")} %</b>`,
      cle:"Une marge nette de 5 % veut dire qu'une baisse de 5 % du CA, à charges fixes constantes, efface tout le résultat. C'est pour ça que ce chiffre fait peur quand on le regarde vraiment."}
    ]};}},
 
@@ -105,7 +105,7 @@ const EXOS = [
      calcul:`${vf(p)} € − ${vf(cv)} € = <b>${vf(m)} €</b>`,
      cle:"Chaque unité vendue dépose "+vf(m)+" € dans le pot qui doit remplir les charges fixes. Rien d'autre ne les remplit."},
     {q:"Combien d'unités faut-il vendre pour atteindre le point mort ?", val:pm, unit:"", tol:1,
-     calcul:`${eur(fx)} ÷ ${vf(m)} € = <b>${pm} unités</b>`,
+     calcul:`${eurX(fx)} ÷ ${vf(m)} € = <b>${pm} unités</b>`,
      cle:"En dessous, tu perds de l'argent chaque mois quoi que tu fasses. Un dirigeant qui ne connaît pas ce nombre pilote sans compteur."},
     {q:"Quelle est la marge de sécurité, en % des ventes ?", val:(vendu-pm)/vendu*100, unit:"%", tol:.5,
      calcul:`(${vendu} − ${pm}) ÷ ${vendu} = <b>${((vendu-pm)/vendu*100).toFixed(1).replace(".",",")} %</b>`,
@@ -131,13 +131,13 @@ const EXOS = [
             ["Stock",stock,"€"],["Créances clients",cr,"€"],["Dettes fournisseurs",fo,"€"]],
    questions:[
     {q:"Quel est le BFR ?", val:bfr, unit:"€",
-     calcul:`${eur(stock)} + ${eur(cr)} − ${eur(fo)} = <b>${eur(bfr)}</b>`,
+     calcul:`${eurX(stock)} + ${eurX(cr)} − ${eurX(fo)} = <b>${eurX(bfr)}</b>`,
      cle:"Cette somme dort dans ta machine en permanence. Elle grandit avec ton chiffre d'affaires : c'est pour ça que la croissance dévore du cash."},
     {q:"Combien de jours de chiffre d'affaires cela représente-t-il ?", val:bfr/caA*365, unit:"j", tol:1.5,
-     calcul:`${eur(bfr)} ÷ ${eur(caA)} × 365 = <b>${Math.round(bfr/caA*365)} jours</b>`,
+     calcul:`${eurX(bfr)} ÷ ${eurX(caA)} × 365 = <b>${Math.round(bfr/caA*365)} jours</b>`,
      cle:"C'est le chiffre qui se compare. Un BFR de 60 jours veut dire que deux mois de ton chiffre d'affaires sont immobilisés en permanence, quoi qu'il arrive."},
     {q:"Quel est le DSO (délai de paiement de tes clients), en jours ?", val:cr/caA*365, unit:"j", tol:1.5,
-     calcul:`${eur(cr)} ÷ ${eur(caA)} × 365 = <b>${Math.round(cr/caA*365)} jours</b>`,
+     calcul:`${eurX(cr)} ÷ ${eurX(caA)} × 365 = <b>${Math.round(cr/caA*365)} jours</b>`,
      cle:"Chaque jour de DSO gagné rend du cash immédiatement, sans emprunter, sans diluer. C'est le gisement le moins cher qui existe — et le plus souvent ignoré."}
    ]};}},
 
@@ -159,10 +159,10 @@ const EXOS = [
             ["Emprunt débloqué",emprunt,"€"],["Capital d'emprunt remboursé",remb,"€"]],
    questions:[
     {q:"Quel est le flux de trésorerie d'exploitation ?", val:fe, unit:"€",
-     calcul:`${eur(rn)} + ${eur(dot)} − ${eur(dbfr)} = <b>${eur(fe)}</b>`,
+     calcul:`${eurX(rn)} + ${eurX(dot)} − ${eurX(dbfr)} = <b>${eurX(fe)}</b>`,
      cle:"C'est le seul chiffre qui dit si ton MÉTIER produit du cash. Durablement négatif, c'est mortel — même avec un résultat positif."},
     {q:"Quelle est la variation de trésorerie de l'année ?", val:dcash, unit:"€",
-     calcul:`${eur(fe)} − ${eur(capex)} + ${eur(emprunt)} − ${eur(remb)} = <b>${eur(dcash)}</b>`,
+     calcul:`${eurX(fe)} − ${eurX(capex)} + ${eurX(emprunt)} − ${eurX(remb)} = <b>${eurX(dcash)}</b>`,
      cle:"Trois flux, trois questions : le métier produit-il ? est-ce que j'investis ? qui finance ? Une trésorerie qui monte grâce à un emprunt n'est pas une performance."}
    ]};}},
 
@@ -185,13 +185,13 @@ const EXOS = [
             ["EBITDA",ebitda,"€"],["Dotations",dot,"€"],["Intérêts payés",int,"€"]],
    questions:[
     {q:"Quelle est la dette nette ?", val:dn, unit:"€",
-     calcul:`${eur(dettes)} − ${eur(tresorerie)} = <b>${eur(dn)}</b>`,
+     calcul:`${eurX(dettes)} − ${eurX(tresorerie)} = <b>${eurX(dn)}</b>`,
      cle:"On raisonne toujours en dette NETTE : 1 M€ de dette avec 900 k€ en banque, ce n'est pas 1 M€ de problème."},
     {q:"Quel est le levier (dette nette / EBITDA) ?", val:dn/ebitda, unit:"×", tol:.06,
-     calcul:`${eur(dn)} ÷ ${eur(ebitda)} = <b>${(dn/ebitda).toFixed(2).replace(".",",")}×</b>`,
+     calcul:`${eurX(dn)} ÷ ${eurX(ebitda)} = <b>${(dn/ebitda).toFixed(2).replace(".",",")}×</b>`,
      cle:(dn/ebitda)>3.5?"Au-dessus de 3,5× : à ce niveau, une banque ne prête plus et un covenant saute.":"En dessous de 3,5× : la structure tient, il reste de la place pour emprunter."},
     {q:"Quelle est la couverture des intérêts (EBIT / intérêts) ?", val:ebit/int, unit:"×", tol:.1,
-     calcul:`${eur(ebit)} ÷ ${eur(int)} = <b>${(ebit/int).toFixed(1).replace(".",",")}×</b>`,
+     calcul:`${eurX(ebit)} ÷ ${eurX(int)} = <b>${(ebit/int).toFixed(1).replace(".",",")}×</b>`,
      cle:"Ce ratio dit si tu peux PAYER ta dette cette année. Le levier dit si tu peux la REMBOURSER un jour. Les deux, pas l'un ou l'autre."}
    ]};}},
 
@@ -213,16 +213,16 @@ const EXOS = [
             ["BFR",bfr,"€"],["Capitaux propres",cp,"€"],["Résultat net",rn,"€"]],
    questions:[
     {q:"Quels sont les capitaux engagés ?", val:ce, unit:"€",
-     calcul:`${eur(immo)} + ${eur(bfr)} = <b>${eur(ce)}</b>`,
+     calcul:`${eurX(immo)} + ${eurX(bfr)} = <b>${eurX(ce)}</b>`,
      cle:"On oublie presque toujours le BFR dans les capitaux engagés. C'est pourtant de l'argent immobilisé aussi sûrement qu'une machine."},
     {q:"Quel est le ROCE, en % ?", val:nopat/ce*100, unit:"%", tol:.4,
-     calcul:`EBIT après impôt ${eur(nopat)} ÷ ${eur(ce)} = <b>${(nopat/ce*100).toFixed(1).replace(".",",")} %</b>`,
+     calcul:`EBIT après impôt ${eurX(nopat)} ÷ ${eurX(ce)} = <b>${(nopat/ce*100).toFixed(1).replace(".",",")} %</b>`,
      cle:"Le ROCE se compare au coût du capital. S'il est en dessous, l'entreprise détruit de la valeur en grandissant — et c'est contre-intuitif au point que beaucoup ne le voient jamais."},
     {q:"Quel est le ROE, en % ?", val:rn/cp*100, unit:"%", tol:.4,
-     calcul:`${eur(rn)} ÷ ${eur(cp)} = <b>${(rn/cp*100).toFixed(1).replace(".",",")} %</b>`,
+     calcul:`${eurX(rn)} ÷ ${eurX(cp)} = <b>${(rn/cp*100).toFixed(1).replace(".",",")} %</b>`,
      cle:"Un ROE élevé peut venir d'une belle performance… ou simplement de beaucoup de dette. C'est exactement le sujet du dernier palier."},
     {q:"Quelle est la rotation des capitaux engagés (CA / capitaux engagés) ?", val:ca/ce, unit:"×", tol:.06,
-     calcul:`${eur(ca)} ÷ ${eur(ce)} = <b>${(ca/ce).toFixed(2).replace(".",",")}×</b>`,
+     calcul:`${eurX(ca)} ÷ ${eurX(ce)} = <b>${(ca/ce).toFixed(2).replace(".",",")}×</b>`,
      cle:"Un hypermarché a une marge minuscule et une rotation énorme ; un joaillier l'inverse. Même ROCE possible, deux métiers opposés."}
    ]};}},
 
@@ -243,10 +243,10 @@ const EXOS = [
             ["Flux annuel perpétuel d'un autre projet",fx,"€"]],
    questions:[
     {q:`Quelle est la valeur actuelle du flux reçu dans ${n} ans ?`, val:va, unit:"€", tol:Math.max(300,va*.015),
-     calcul:`${eur(f)} ÷ (1 + ${(t*100).toFixed(0).replace(".",",")} %)<sup>${n}</sup> = ${eur(f)} ÷ ${Math.pow(1+t,n).toFixed(3).replace(".",",")} = <b>${eur(va)}</b>`,
+     calcul:`${eurX(f)} ÷ (1 + ${(t*100).toFixed(0).replace(".",",")} %)<sup>${n}</sup> = ${eurX(f)} ÷ ${Math.pow(1+t,n).toFixed(3).replace(".",",")} = <b>${eurX(va)}</b>`,
      cle:"Le temps coûte cher : "+Math.round((1-va/f)*100)+" % de la valeur a disparu en "+n+" ans, sans qu'il n'arrive rien."},
     {q:"Quelle est la valeur de la rente perpétuelle ?", val:perp, unit:"€", tol:Math.max(500,perp*.015),
-     calcul:`${eur(fx)} ÷ ${(t*100).toFixed(0).replace(".",",")} % = <b>${eur(perp)}</b>`,
+     calcul:`${eurX(fx)} ÷ ${(t*100).toFixed(0).replace(".",",")} % = <b>${eurX(perp)}</b>`,
      cle:"Diviser par le taux, c'est multiplier par "+(1/t).toFixed(1).replace(".",",")+". C'est le calcul qui fixe la valeur terminale dans toute valorisation — et il est d'une sensibilité redoutable au taux."}
    ]};}},
 
@@ -268,13 +268,13 @@ const EXOS = [
             ["Trésorerie",tres,"€"],["Résultat net",rn,"€"]],
    questions:[
     {q:"Quelle est la valeur d'entreprise ?", val:ve, unit:"€", tol:Math.max(500,ve*.01),
-     calcul:`${mult.toFixed(1).replace(".",",")} × ${eur(ebitda)} = <b>${eur(ve)}</b>`,
+     calcul:`${mult.toFixed(1).replace(".",",")} × ${eurX(ebitda)} = <b>${eurX(ve)}</b>`,
      cle:"Le multiple s'applique à l'EBITDA et donne une VALEUR D'ENTREPRISE. Jamais un prix d'actions. C'est là que tout se joue."},
     {q:"Combien paies-tu pour les titres (le prix aux actionnaires) ?", val:titres, unit:"€", tol:Math.max(500,Math.abs(titres)*.01),
-     calcul:`${eur(ve)} − (${eur(dettes)} − ${eur(tres)}) = ${eur(ve)} − ${eur(dn)} = <b>${eur(titres)}</b>`,
-     cle:"Tu reprends la dette avec la boîte : elle se déduit du chèque. Payer la VE comme si c'était le prix des titres, c'est surpayer de "+eur(dn)+" — et ça arrive tous les jours."},
+     calcul:`${eurX(ve)} − (${eurX(dettes)} − ${eurX(tres)}) = ${eurX(ve)} − ${eurX(dn)} = <b>${eurX(titres)}</b>`,
+     cle:"Tu reprends la dette avec la boîte : elle se déduit du chèque. Payer la VE comme si c'était le prix des titres, c'est surpayer de "+eurX(dn)+" — et ça arrive tous les jours."},
     {q:"Quel est le PER (capitalisation / résultat net) ?", val:titres/rn, unit:"×", tol:.3,
-     calcul:`${eur(titres)} ÷ ${eur(rn)} = <b>${(titres/rn).toFixed(1).replace(".",",")}×</b>`,
+     calcul:`${eurX(titres)} ÷ ${eurX(rn)} = <b>${(titres/rn).toFixed(1).replace(".",",")}×</b>`,
      cle:"Le PER porte sur le résultat NET, donc après intérêts : il dépend de la structure financière. Le VE/EBITDA, non. Deux outils, deux usages."}
    ]};}},
 
@@ -299,13 +299,13 @@ const EXOS = [
             ["Remboursements de dette",remb,"€"],["Nouveaux emprunts",nouv,"€"]],
    questions:[
     {q:"Quel est le NOPAT (EBIT après impôt) ?", val:nopat, unit:"€", tol:Math.max(200,nopat*.01),
-     calcul:`${eur(ebit)} × (1 − 25 %) = <b>${eur(nopat)}</b>`,
+     calcul:`${eurX(ebit)} × (1 − 25 %) = <b>${eurX(nopat)}</b>`,
      cle:"On imagine l'entreprise SANS dette. L'économie d'impôt liée aux intérêts n'est pas oubliée : elle sera dans le coût du capital, au palier suivant."},
     {q:"Quel est le FCFF ?", val:fcff, unit:"€", tol:Math.max(400,Math.abs(fcff)*.01),
-     calcul:`${eur(nopat)} + ${eur(dot)} − ${eur(dbfr)} − ${eur(capex)} = <b>${eur(fcff)}</b>`,
+     calcul:`${eurX(nopat)} + ${eurX(dot)} − ${eurX(dbfr)} − ${eurX(capex)} = <b>${eurX(fcff)}</b>`,
      cle:"C'est LE flux des valorisations. Quatre termes, pas un de plus : on remet ce qui n'est pas sorti, on retire ce que le cycle et l'outil immobilisent."},
     {q:"Quel est le FCFE (ce qui revient aux actionnaires) ?", val:fcfe, unit:"€", tol:Math.max(400,Math.abs(fcfe)*.01),
-     calcul:`${eur(fcff)} − intérêts après impôt ${eur(Math.round(int*(1-tx)))} − ${eur(remb)} + ${eur(nouv)} = <b>${eur(fcfe)}</b>`,
+     calcul:`${eurX(fcff)} − intérêts après impôt ${eurX(Math.round(int*(1-tx)))} − ${eurX(remb)} + ${eurX(nouv)} = <b>${eurX(fcfe)}</b>`,
      cle:"Les intérêts sont retirés APRÈS impôt, parce qu'ils sont déductibles : ils te coûtent réellement 75 % de leur montant affiché."}
    ]};}},
 
@@ -330,7 +330,7 @@ const EXOS = [
      calcul:`${(td*100).toFixed(1).replace(".",",")} % × (1 − 25 %) = <b>${(kd*100).toFixed(2).replace(".",",")} %</b>`,
      cle:"C'est le bouclier fiscal : l'État paie un quart de tes intérêts. C'est la seule raison sérieuse pour laquelle la dette est moins chère que les fonds propres."},
     {q:"Quelle est la part des fonds propres dans le financement, en % ?", val:cp/v*100, unit:"%", tol:.4,
-     calcul:`${eur(cp)} ÷ (${eur(cp)} + ${eur(d)}) = <b>${(cp/v*100).toFixed(1).replace(".",",")} %</b>`,
+     calcul:`${eurX(cp)} ÷ (${eurX(cp)} + ${eurX(d)}) = <b>${(cp/v*100).toFixed(1).replace(".",",")} %</b>`,
      cle:"Les pondérations se prennent en valeurs de MARCHÉ, pas comptables. C'est l'erreur la plus fréquente dans un WACC d'étudiant."},
     {q:"Quel est le WACC, en % ?", val:wacc*100, unit:"%", tol:.15,
      calcul:`${(kcp*100).toFixed(1).replace(".",",")} % × ${(cp/v*100).toFixed(1).replace(".",",")} % + ${(kd*100).toFixed(2).replace(".",",")} % × ${(d/v*100).toFixed(1).replace(".",",")} % = <b>${(wacc*100).toFixed(2).replace(".",",")} %</b>`,

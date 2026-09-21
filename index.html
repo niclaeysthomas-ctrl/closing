@@ -2165,10 +2165,25 @@ function exoTol(q){
   if(q.unit==="€") return Math.max(100, Math.abs(q.val)*.01);
   return .05;
 }
+/* ⚠️ LES EXOS N'ABRÈGENT PAS LES MONTANTS.
+   Bug remonté le 2026-09-21 : l'énoncé affichait « 267,0 k€ » et
+   « 128,0 k€ », il a répondu 139 — calcul juste — et l'app a compté
+   faux parce qu'elle attendait 139 000. On lit en milliers, on répond
+   en euros : c'est l'app qui piégeait, pas lui.
+   Dans un exercice de calcul, ce qui est LU doit être ce avec quoi on
+   CALCULE. Les montants sont donc écrits en toutes lettres, avec des
+   espaces de milliers, dans l'énoncé, dans les corrigés et dans la
+   réponse attendue. eur() garde son abrégé partout ailleurs. */
+function eurX(n){
+  n=Math.round(n);
+  const neg=n<0; n=Math.abs(n);
+  return (neg?"−":"")+String(n).replace(/\B(?=(\d{3})+(?!\d))/g," ")+" €";
+}
 function vfEuro(v){ return String(Math.round(v*100)/100).replace(".",",")+" €"; }
+
 function exoFmt(v,u){
   if(u==="€u") return vfEuro(v);     /* prix unitaire : on garde les centimes */
-  if(u==="€") return eur(v);
+  if(u==="€") return eurX(v);   /* jamais de k€ dans un exercice : lu = calculé */
   if(u==="%") return (Math.round(v*100)/100).toFixed(2).replace(".",",")+" %";
   if(u==="×") return (Math.round(v*100)/100).toFixed(2).replace(".",",")+" ×";
   if(u==="j") return Math.round(v)+" j";
@@ -2251,8 +2266,14 @@ function exoCheck(){
   const inp=document.getElementById("exoIn"); if(inp) inp.disabled=true;
   const go=document.getElementById("exoGo"); if(go) go.remove();
   const dernier = EXS.e===EXS.ex.length-1 && EXS.q===EXS.ex[EXS.e].questions.length-1;
+  /* Le cas « bon calcul, mauvaise unité » : on ne le confond pas avec une
+     erreur de raisonnement, on le NOMME. En finance l'ordre de grandeur
+     compte, donc ça reste faux — mais il doit savoir que le geste était bon. */
+  const unite = !ok && v!==null && it.unit==="€" && Math.abs(v*1000-it.val)<=Math.max(exoTol(it),Math.abs(it.val)*.01);
   document.getElementById("exoOut").innerHTML=`
-    <div class="expl ${ok?"ok":"no"}">${ok?"✅ Juste.":"❌ La réponse est <b>"+exoFmt(it.val,it.unit)+"</b>"+(v===null?" (tu n'as rien écrit).":".")}</div>
+    <div class="expl ${ok?"ok":"no"}">${ok?"✅ Juste."
+      : unite?"❌ <b>Ton calcul est juste</b> — c'est l'unité. Tu as répondu en milliers ; la réponse attendue est <b>"+exoFmt(it.val,it.unit)+"</b>. En finance, l'ordre de grandeur fait partie de la réponse."
+      : "❌ La réponse est <b>"+exoFmt(it.val,it.unit)+"</b>"+(v===null?" (tu n'as rien écrit).":".")}</div>
     <div class="bldfix" style="padding:10px 0"><b>Le calcul :</b> ${it.calcul}</div>
     <div class="crit" style="margin:8px 0"><b>Ce qu'il faut retenir :</b> ${it.cle}</div>
     <button class="btn" onclick="exoNext()">${dernier?"Voir le résultat":"Question suivante"}</button>`;
