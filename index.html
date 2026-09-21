@@ -1793,7 +1793,88 @@ function sigBlock(c){
   if(B && B.level>=2) return "";
   return `<div class="crit" style="margin-bottom:12px"><b>Le signal était là :</b> ${c.signal}</div>`;
 }
+/* ================================================================
+   LA PORTE CHIFFRÉE — ajoutée le 2026-09-21.
+   Le niveau 2 promet : « on ne décide plus sur un chiffre qu'on te
+   donne, on décide sur un chiffre que tu dois CONSTRUIRE ». Ses dix
+   QCM servaient pourtant les composants dans l'énoncé et demandaient
+   de cocher A/B/C/D — on pouvait trancher au flair.
+   Désormais, certains cas EXIGENT le chiffre avant d'ouvrir les
+   options. Ce n'est pas une punition : c'est le pont entre LES EXOS
+   (où il a appris à poser le calcul) et sa boîte (où il faut le poser
+   sur SES chiffres à lui). Chaque porte renvoie au palier qui
+   l'enseigne, et il peut toujours demander le chiffre — ça se voit
+   dans le débriefing, ça ne bloque personne.
+   ================================================================ */
+let PORTE=null;
+function gateVal(c,B){ try{ return c.gate.val(B); }catch(e){ return null; } }
+function gateTol(c,v){ const t=c.gate.tol||.08; return Math.max(c.gate.plancher||1, Math.abs(v)*t); }
+function gateFmt(v,u){
+  if(u==="j") return Math.round(v)+" jours";
+  if(u==="×") return (Math.round(v*100)/100).toFixed(2).replace(".",",")+" ×";
+  if(u==="%") return (Math.round(v*10)/10).toFixed(1).replace(".",",")+" %";
+  if(u==="€") return eurX(v);
+  /* unité vide = un nombre nu (des unités à vendre, un effectif) : surtout
+     pas un « € » par défaut, c'est ce que faisait la 1re version. */
+  return String(Math.round(v*100)/100).replace(".",",");
+}
+/* Une seule source de vérité, utilisée par le bloc ET par le masquage des
+   options : sans ça, une porte effacée (chiffre incalculable) laissait les
+   options cachées pour toujours — le cas devenait injouable. */
+function gateUtile(c,B){
+  if(!c || !c.gate) return false;
+  const v=gateVal(c,B);
+  return v!==null && isFinite(v) && Math.abs(v)<1e12;
+}
+function gateFermee(c,B){ return gateUtile(c,B) && !(PORTE&&PORTE.id===c.id&&PORTE.ouvert); }
+function gateBlock(c,B){
+  if(!gateUtile(c,B)) return "";
+  const g=c.gate, pal=g.pal?exoPal(g.pal):null;
+  if(PORTE && PORTE.id===c.id && PORTE.ouvert){
+    const v=gateVal(c,B);
+    return `<div class="card" style="border-color:${PORTE.juste?"var(--ok)":"var(--acc)"}">
+      <div class="lab" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:${PORTE.juste?"var(--ok)":"var(--acc)"};font-weight:800">
+        ${PORTE.juste?"✓ Le chiffre est posé":PORTE.montre?"Le chiffre t'a été donné":"✗ Pas tout à fait"}</div>
+      <div class="story" style="margin-top:6px"><p><b>${esc(g.ask)}</b><br>
+        ${PORTE.juste?`Tu as trouvé <b>${gateFmt(PORTE.saisi,g.unit)}</b>.`:`La réponse est <b>${gateFmt(v,g.unit)}</b>${PORTE.saisi!==null&&!PORTE.montre?` — tu avais mis ${gateFmt(PORTE.saisi,g.unit)}.`:"."}`}
+        <br><span style="color:var(--dim)">${g.how}</span></p>
+        <p>${g.why}</p></div>
+      ${pal?`<div class="xptxt">C'est le <b>palier ${pal.n} des exos</b> — ${esc(pal.titre)}. <span style="text-decoration:underline;cursor:pointer" onclick="exoPalRoom(${pal.n})">y retourner</span>.</div>`:""}
+    </div>`;
+  }
+  return `<div class="card" style="border-color:var(--acc)">
+    <div class="lab" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--acc);font-weight:800">🔒 Pose le chiffre d'abord</div>
+    <div class="story" style="margin-top:6px"><p><b>${esc(g.ask)}</b><br>
+      <span style="color:var(--dim)">Les options s'affichent quand tu l'as posé. Ce niveau ne te sert plus les chiffres : il te les fait construire.</span></p></div>
+    <div class="bldr" style="border:none;padding:10px 0">
+      <div class="lb" style="flex:0 0 auto;color:var(--dim);font-size:12px">Ta réponse</div>
+      <input id="porteIn" inputmode="decimal" placeholder="${g.unit||"€"}"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();porteCheck('${c.id}');}">
+      <div style="flex:0 0 26px;color:var(--dim);font-weight:800">${g.unit||""}</div>
+    </div>
+    <button class="btn" onclick="porteCheck('${c.id}')">Vérifier</button>
+    <div style="text-align:center;margin-top:8px"><span style="cursor:pointer;font-size:12px;color:var(--dim);text-decoration:underline"
+      onclick="porteMontre('${c.id}')">je ne trouve pas — donne-moi le chiffre</span></div>
+    ${pal?`<div class="xptxt" style="margin-top:8px">Si tu sèches : c'est le <b>palier ${pal.n} des exos</b>, ${esc(pal.titre)}.</div>`:""}
+  </div>`;
+}
+function porteCheck(cid){
+  const B=S.biz, c=bizCase(cid); if(!c||!c.gate) return;
+  const v=bldNum((document.getElementById("porteIn")||{}).value||"");
+  const vrai=gateVal(c,B);
+  const juste = v!==null && vrai!==null && Math.abs(v-vrai)<=gateTol(c,vrai);
+  PORTE={id:cid, ouvert:true, juste, saisi:v, montre:false};
+  if(juste) addXP(6);
+  bizOpenCase();
+  if(juste) toast("✓ <b>Le chiffre est juste.</b> +6 XP — maintenant tu décides en connaissance de cause.");
+}
+function porteMontre(cid){
+  const B=S.biz, c=bizCase(cid); if(!c||!c.gate) return;
+  PORTE={id:cid, ouvert:true, juste:false, saisi:null, montre:true};
+  bizOpenCase();
+}
 function bizOpenCase(){
+
   const B=S.biz, c=bizCase(B.pending);
   NEGOACTIVE=null;
   if(c.type==="loan") return bizOpenLoan(c);
@@ -1803,15 +1884,19 @@ function bizOpenCase(){
     <div class="meta"><span class="tag">${c.icon} ${c.concept}</span>mois ${B.month}</div>
     ${sigBlock(c)}
     <div class="story"><p>${c.setup(B)}</p></div>
+    ${gateBlock(c,B)}
+    ${gateFermee(c,B) ? "" : `
     <h2 class="sec">Tes options</h2>
-    ${c.options.map(o=>`<div class="pt"><b>${o.k}. ${labOf(o,B)}</b><br>${termOf(o,B)}</div>`).join("")}
+    ${c.options.map(o=>`<div class="pt"><b>${o.k}. ${labOf(o,B)}</b><br>${termOf(o,B)}</div>`).join("")}`}
+    ${gateFermee(c,B) ? "" : `
     <div class="coach">Aucune conséquence chiffrée ne t'est donnée. <b>C'est à toi de les estimer</b> — c'est exactement le travail. Dis quel choix, pourquoi, et ce que tu penses que ça va coûter.</div>
     ${bizArgBlock("Je choisis… parce que… J'estime que ça va me coûter environ…")}
     <p class="sub" style="margin:14px 0 4px">Puis tranche — c'est définitif :</p>
     <div class="selfrow">
       ${c.options.map(o=>`<button class="btn m bzOpt" disabled onclick="bizDecide('${c.id}','${o.k}')">${o.k}</button>`).join("")}
-    </div>`);
-  bzArgSync();
+    </div>`}`);
+  if(!gateFermee(c,B)) bzArgSync();
+  else { const i=document.getElementById("porteIn"); if(i) setTimeout(()=>i.focus(),150); }
 }
 
 // ---------- LE PRÊT ----------
@@ -2002,6 +2087,7 @@ function bizNegoGo(cid){
 }
 function bizDecide(cid,k){
   const B=S.biz, c=bizCase(cid);
+  const porte = (c.gate && PORTE && PORTE.id===cid) ? (PORTE.montre?"donné":PORTE.juste?"juste":"raté") : null;
   const arg=(document.getElementById("bzArg").value||"").trim();
   const opt=c.options.find(o=>o.k===k);
   B.answers.push({id:cid,k,arg,month:B.month,q:opt.q,label:labOf(opt,B)});
@@ -2009,13 +2095,19 @@ function bizDecide(cid,k){
   bizRebalance();     /* un cas peut sortir du cash sans actif en face : c'est une charge */
   B.seen.push(cid); B.pending=null;
   addXP(12); save();
-  bizDebrief(c,k,labOf(opt,B),c.debrief(B,k));
+  PORTE=null;
+  bizDebrief(c,k,labOf(opt,B),c.debrief(B,k),porte);
 }
-function bizDebrief(c,k,label,body){
+function bizDebrief(c,k,label,body,porte){
+
   const arg=(S.biz.answers[S.biz.answers.length-1]||{}).arg||"";
   openOv(ovTop("Débriefing")+`
     <div class="meta"><span class="tag">${c.concept}</span>Ton choix : <b>${esc(label)}</b></div>
     <div class="story">${body}</div>
+    ${porte?`<div class="crit" style="margin:12px 0;border-color:${porte==="juste"?"var(--ok)":"var(--acc)"}">${
+      porte==="juste"?"✓ <b>Tu avais posé le chiffre avant de décider.</b> C'est la seule façon d'avoir une opinion plutôt qu'une intuition."
+      :porte==="donné"?"<b>Tu as demandé le chiffre.</b> Aucun problème pour cette fois — mais le calcul est au programme des exos, et tant qu'il n'est pas automatique il te coûtera une décision de temps en temps."
+      :"✗ <b>Ton chiffre était faux avant de décider.</b> Regarde si ta décision tenait quand même : parfois oui, et c'est de la chance."}</div>`:""}
     ${(S.biz.level>=2&&c.signal)?`<div class="crit" style="margin:12px 0"><b>Le signal que tu n'as pas eu :</b> ${c.signal}<br><span class="xptxt">À ce niveau, l'app ne te prévient plus avant. Il était dans tes chiffres — c'est là qu'il faut le chercher.</span></div>`:""}
     ${(()=>{const k=serieActuelle(S.biz);
       return k>=2?`<div class="crit" style="margin:12px 0;border-color:#453a20"><b>🔥 ${k} décisions au maximum d'affilée.</b> ${k>=6?"Six de suite : c'est le plafond, et presque personne ne l'atteint.":k>=3?"Encore "+(6-k)+" et tu décroches « Six de suite ».":"Encore "+(3-k)+" et tu décroches « Trois de suite »."}</div>`:"";})()}

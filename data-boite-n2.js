@@ -274,6 +274,10 @@ const BIZCASES_N2 = [
  concept:"ΔCash = RN − ΔBFR − CAPEX · le flux contre le résultat", lesson:"b3",
  when:B=>B.level>=2 && B.month>=9 && B.b2b && B.cash < B.fc*2,
  signal:"Ton résultat mensuel est en hausse depuis quatre mois. Ta trésorerie, elle, baisse depuis trois.",
+ gate:{ask:"Avant de choisir : combien ton cycle immobilise-t-il ? Calcule ton BFR.", unit:"€", pal:4, tol:.08, plancher:150,
+   val:B=>Math.round(B.stockU*B.mc + B.ar - B.ap),
+   how:"BFR = stock + créances clients − dettes fournisseurs.",
+   why:"C'est l'argent que ta machine immobilise en permanence, et il grandit avec ton chiffre d'affaires. Tant que sa hausse mensuelle dépasse ton résultat, tu gagnes de l'argent et tu en perds : aucune des quatre options ne se juge sans ce chiffre."},
  setup:B=>`Ton expert-comptable t'annonce un <b>résultat net positif</b> sur le trimestre. Ton banquier, lui, t'appelle parce que ton compte est passé sous le seuil d'alerte.
    <br><br>Les deux ont raison. Tes chiffres : trésorerie <b>${eur(B.cash)}</b> · créances clients <b>${eur(B.ar)}</b> · stock <b>${eur(Math.round(B.stockU*B.mc))}</b> · dettes fournisseurs <b>${eur(B.ap)}</b>.
    <br><br>Tu tournes à <b>${eur(B.hist.length?B.hist[B.hist.length-1].ca:0)}</b> de CA mensuel et tu grandis d'environ <b>8 % par mois</b>.
@@ -306,6 +310,10 @@ const BIZCASES_N2 = [
  concept:"Covenants · dette nette / EBITDA · gearing", lesson:"a2",
  when:B=>B.level>=2 && B.month>=14 && B.hist.length>=12,
  signal:"Ta banque t'a proposé un rendez-vous « pour accompagner ta croissance ». Ce n'est jamais désintéressé.",
+ gate:{ask:"Avant de lire les clauses : quel est ton levier ACTUEL, dette nette / EBITDA ?", unit:"×", pal:6, tol:.10, plancher:.06,
+   val:B=>{const eb=eb12Of(B); if(!(eb>0)) return null; return (bizDebtOf(B)-Math.max(0,B.cash))/eb;},
+   how:"Levier = (dettes financières − trésorerie) ÷ EBITDA des 12 derniers mois.",
+   why:"Le covenant est fixé à 3,0×. Savoir où tu es AVANT de signer, c'est savoir combien d'air il te reste — et si une baisse d'EBITDA de 30 % te ferait franchir la limite."},
  setup:B=>{const eb12=eb12Of(B);
   return `La banque te propose <b>${eur(sc(B,250000))}</b> sur 5 ans à 4,5 % pour financer ton développement.
    <br><br>Le contrat contient trois clauses que tu n'as jamais lues ailleurs :
@@ -345,6 +353,10 @@ const BIZCASES_N2 = [
  concept:"Coût du capital · dilution · pacte d'actionnaires", lesson:"cp4",
  when:B=>B.level>=2 && B.month>=20 && B.hist.length>=12,
  signal:"Un fonds régional t'a contacté après avoir vu tes comptes publiés. Ils ne t'ont pas trouvé par hasard.",
+ gate:{ask:"Le prêt bancaire est à 5,2 % l'an. Combien te coûte-t-il RÉELLEMENT, en % après impôt ?", unit:"%", pal:11, tol:.15, plancher:.12,
+   val:B=>5.2*.75,
+   how:"Coût de la dette après impôt = taux × (1 − taux d'impôt) = 5,2 % × 0,75.",
+   why:"Les intérêts sont déductibles : l'État paie un quart de ta facture. C'est la seule raison sérieuse pour laquelle la dette est moins chère que les fonds propres — et c'est à ce chiffre-là qu'il faut comparer ce que te coûteraient 30 % du capital, qui eux n'ont pas d'échéance, donc pas de fin."},
  setup:B=>{const eb12=eb12Of(B);
   return `Pour passer à l'échelle il te faut <b>${eur(sc(B,600000))}</b>. Deux propositions sur la table.
    <br><br><b>La banque</b> : ${eur(sc(B,600000))} sur 7 ans à 5,2 %, garantie personnelle sur ta résidence, covenant à 3,0×.
@@ -380,6 +392,10 @@ const BIZCASES_N2 = [
  concept:"Multiples de comparables · dette nette · valeur d'entreprise", lesson:"v3",
  when:B=>B.level>=2 && B.month>=24 && B.hist.length>=12,
  signal:"Le dirigeant du concurrent a 61 ans et ses deux enfants ont choisi d'autres métiers.",
+ gate:{ask:"Avant de répondre au vendeur : à 6× l'EBITDA, combien vaut le PRIX DES TITRES ?", unit:"€", pal:9, tol:.06, plancher:500,
+   val:B=>sc(B,1800000)-sc(B,420000)+sc(B,60000),
+   how:"Prix des titres = valeur d'entreprise (6 × EBITDA) − dette nette (dette − trésorerie).",
+   why:"Le vendeur t'a annoncé sa valeur d'ENTREPRISE en te laissant croire que c'était son prix. Tu reprends sa dette avec la boîte : elle se déduit du chèque. C'est l'erreur la plus coûteuse de tout ce cas, et la plus discrète."},
  setup:B=>`Ton concurrent direct est à vendre. Le vendeur annonce <b>« ${eur(sc(B,1800000))}, c'est le prix »</b>.
    <br><br>Ce qu'il te montre : CA <b>${eur(sc(B,2400000))}</b> · EBITDA <b>${eur(sc(B,300000))}</b> · résultat net <b>${eur(sc(B,140000))}</b>.
    <br><br>Ce qu'il te donne quand tu insistes : dette bancaire <b>${eur(sc(B,420000))}</b> · trésorerie <b>${eur(sc(B,60000))}</b> · un litige prud'homal en cours, provisionné à <b>0 €</b>.
@@ -446,6 +462,10 @@ const BIZCASES_N2 = [
  concept:"BFR normatif · financement de la croissance", lesson:"b4",
  when:B=>B.level>=2 && B.month>=12 && B.hist.length>=6 && B.growth>1.02,
  signal:"Ton expert-comptable t'a demandé un prévisionnel. Personne ne demande ça pour le plaisir.",
+ gate:{ask:"Combien de JOURS de chiffre d'affaires ton BFR immobilise-t-il aujourd'hui ?", unit:"j", pal:4, tol:.12, plancher:1.5,
+   val:B=>{const h=B.hist[B.hist.length-1]; if(!h||!(h.ca>0)) return null; return (B.stockU*B.mc+B.ar-B.ap)/h.ca*30;},
+   how:"BFR en jours = BFR ÷ chiffre d'affaires du mois × 30.",
+   why:"C'est le seul chiffre qui se compare et qui se PROJETTE : si tu immobilises 45 jours de CA et que ton CA double, ton BFR double aussi. La facture de la croissance se lit là, un an à l'avance."},
  setup:B=>{const h=B.hist[B.hist.length-1]||{ca:0};
   const bfr=Math.round(B.stockU*B.mc+B.ar-B.ap), j=h.ca>0?Math.round(bfr/h.ca*30):0;
   return `Ton banquier veut savoir de combien tu auras besoin dans douze mois. Tu n'en as aucune idée, et lui non plus — mais lui sait le calculer.
@@ -483,6 +503,10 @@ const BIZCASES_N2 = [
  concept:"Levier opérationnel × levier financier", lesson:"a1",
  when:B=>B.level>=2 && B.month>=17 && B.hist.length>=12,
  signal:"Le commercial de l'équipementier et ton chargé d'affaires bancaire t'ont appelé la même semaine. Ce n'est jamais un hasard.",
+ gate:{ask:"Combien d'unités dois-tu vendre chaque mois juste pour ne rien gagner ?", unit:"", pal:3, tol:.06, plancher:2,
+   val:B=>{const m=B.price-B.mc; if(!(m>0)) return null; return B.fc/m;},
+   how:"Point mort = charges fixes ÷ marge sur coût variable unitaire (prix − coût de revient).",
+   why:"Un investissement fait exactement deux choses : il baisse ton coût unitaire et il MONTE ton point mort. Savoir où il est avant de signer, c'est savoir ce que tu t'engages à vendre tous les mois, quoi qu'il arrive."},
  setup:B=>{const h=B.hist[B.hist.length-1]||{ca:0,ebitda:0,dot:0};
   return `Deux propositions arrivent ensemble, et chacune est bonne prise séparément.
    <br><br><b>L'équipementier</b> : une ligne à <b>${eur(B.fc*6)}</b> qui ferait baisser ton coût unitaire de <b>18 %</b> — mais ajouterait <b>${eur(B.fc*.35)}</b> de charges fixes par mois.
@@ -519,6 +543,10 @@ const BIZCASES_N2 = [
  concept:"Charge vs décaissement · provision · dotation", lesson:"b3",
  when:B=>B.level>=2 && B.month>=22 && B.ar>0,
  signal:"Ton comptable a passé une écriture que tu n'as pas demandée, et ton résultat a baissé sans que ton compte bouge.",
+ gate:{ask:"Quel a été ton EBITDA du dernier mois ?", unit:"€", pal:2, tol:.05, plancher:120,
+   val:B=>{const h=B.hist[B.hist.length-1]; return h?ebM(h):null;},
+   how:"EBITDA = marge brute − charges fixes décaissées. AVANT dotations.",
+   why:"Toute la question de ce cas tient dans l'écart entre cet EBITDA et ton résultat net : ce qui les sépare, ce sont des charges qui ne sortent pas de ta poche. Si tu ne sais pas lequel des deux tu es en train de regarder, tu ne peux pas juger l'option."},
  setup:B=>`Clôture de l'exercice. Deux écritures te sont proposées, et aucune des deux ne fait bouger ton compte en banque.
    <br><br><b>1. La dotation aux amortissements</b> sur ton matériel : une charge annuelle qui étale le prix payé sur la durée de vie.
    <br><br><b>2. Une provision</b> sur une créance de <b>${eur(Math.round(B.ar*.3))}</b> dont le client ne répond plus depuis quatre mois.
@@ -553,6 +581,10 @@ const BIZCASES_N2 = [
  concept:"Risque de concentration · pouvoir de négociation", lesson:"a1",
  when:B=>B.level>=2 && B.month>=26 && B.b2b && B.b2bShare>=.4,
  signal:"Leur acheteur a changé. Le nouveau t'a demandé ta structure de coûts « pour mieux travailler ensemble ».",
+ gate:{ask:"Ce client pèse 40 % de ton chiffre. Combien de CA mensuel représente-t-il ?", unit:"€", pal:1, tol:.06, plancher:150,
+   val:B=>{const h=B.hist[B.hist.length-1]; return h&&h.ca?Math.round(h.ca*.40):null;},
+   how:"40 % × chiffre d'affaires du mois.",
+   why:"Un pourcentage ne fait peur à personne ; un montant, si. C'est cette somme-là qui disparaît du jour au lendemain s'il part — et tes charges fixes, elles, resteront exactement les mêmes le mois suivant."},
  setup:B=>{const h=B.hist[B.hist.length-1]||{ca:0};
   return `Ta chaîne d'épiceries pèse désormais <b>${Math.round((B.b2bShare||0)*100)} %</b> de ton chiffre d'affaires — environ <b>${eur(Math.round(h.ca*(B.b2bShare||0)))}</b> par mois.
    <br><br>Ils te demandent <b>−7 % sur tes tarifs</b> pour l'année prochaine, « comme tous leurs fournisseurs ». Et ils rappellent, sans insister, qu'ils référencent deux torréfacteurs concurrents.
@@ -586,6 +618,10 @@ const BIZCASES_N2 = [
  concept:"Structuration du prix · earn-out · crédit-vendeur", lesson:"j6",
  when:B=>B.level>=2 && B.acquired && B.month>=32,
  signal:"Le vendeur a accepté ton prix sans discuter le montant, mais il insiste beaucoup sur le calendrier de paiement.",
+ gate:{ask:"Prix arrêté et financement bancaire maximum connus : combien dois-tu trouver ailleurs ?", unit:"€", pal:9, tol:.06, plancher:500,
+   val:B=>sc(B,1440000)-sc(B,900000),
+   how:"Solde à financer = prix des titres − ce que la banque accepte de prêter.",
+   why:"Ce trou-là se bouche avec ta trésorerie, un earn-out, un crédit-vendeur — ou il ne se bouche pas. Les quatre options ne sont que quatre façons de le remplir : tant que tu ne l'as pas chiffré, tu choisis une histoire, pas un montage."},
  setup:B=>`Prix arrêté : <b>${eur(sc(B,1440000))}</b>. Reste à décider comment tu le paies — et c'est là que tout se joue.
    <br><br>Tu as <b>${eur(B.cash)}</b> en banque. La banque financerait jusqu'à ${eur(sc(B,900000))} sur 7 ans.
    <br><br>Le vendeur reste dirigeant un an, puis part. Il affirme que l'EBITDA de ${eur(sc(B,300000))} tient tout seul ; tu penses qu'une partie dépend de lui.
