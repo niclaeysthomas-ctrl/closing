@@ -1518,7 +1518,38 @@ function calcEval(raw){
   }catch(err){ return {err:"Expression incomplète."}; }
 }
 /* Les chiffres vivants de la boîte. Chacun devient une pastille à toucher. */
+/* Raccourcit un énoncé en étiquette de puce : « Quelle est la marge brute ? »
+   devient « marge brute ». Les questions suivent toutes le même moule. */
+function exoLab(txt){
+  let t=String(txt||"").replace(/\s*\?\s*$/,"").replace(/,\s*en\s*%.*$/i,"").replace(/\s*\([^)]*\)/g,"").trim();
+  /* ⚠️ « Quelles? » ne matche PAS « Quel » (c'est « Quelle » + s facultatif) :
+     la 1re version laissait « ✓ Quel est l'EBITDA » sur la puce.
+     Et « les » doit passer AVANT « le » : une alternation est ordonnée, sinon
+     « les capitaux engagés » devenait « s capitaux engagés ». */
+  t=t.replace(/^Quel(?:le)?s?\s+(?:est|sont|vaut|valent)\s+/i,"")
+     .replace(/^Combien\s+(?:d['’]|de\s+|des\s+)?\s*/i,"")
+     .replace(/^(?:les|le|la|l['’]|des|du|de\s+la)\s*/i,"")
+     .replace(/\s+faut-il\s+.*$/i,"")
+     .trim();
+  return t.length>24 ? t.slice(0,23)+"…" : t;
+}
 function calcVars(){
+  /* ⚠️ DANS UN EXERCICE, LA CALCULATRICE PROPOSE LES CHIFFRES DE L'EXERCICE.
+     Remonté le 2026-09-21 : sur un exercice de marge nette, les puces
+     offraient « trésorerie · 83 795 », « prix · 270 », « EBITDA 12 mois ·
+     139 714 » — la boîte de sa partie en cours, sans aucun rapport avec
+     l'énoncé. Une suggestion hors sujet n'est pas neutre : elle invite à
+     insérer le mauvais nombre.
+     On sert donc les données de l'énoncé, PLUS les résultats qu'il vient
+     d'établir dans le même exercice (la cascade se construit dessus :
+     l'EBITDA se calcule à partir de la marge brute trouvée deux questions
+     plus tôt). Hors exercice, rien ne change. */
+  if(typeof EXS!=="undefined" && EXS && EXS.ex && EXS.ex[EXS.e]){
+    const cur=EXS.ex[EXS.e];
+    const out=(cur.donnees||[]).map(d=>[d[0], d[1]]);
+    (EXS.acquis||[]).forEach(a=>out.push(["✓ "+a.lab, a.val]));
+    return out;
+  }
   const B=S.biz; if(!B) return [];
   const h=B.hist&&B.hist.length?B.hist[B.hist.length-1]:null;
   const eb12=eb12Of(B);
@@ -2229,7 +2260,7 @@ function exoStart(n){
   const R=exoRng(), ex=[];
   for(let i=0;i<EXO_SERIE;i++){ try{ ex.push(p.gen(R)); }catch(e){} }
   if(!ex.length) return toast("Impossible de générer la série.");
-  EXS={n, p, ex, e:0, q:0, bons:0, total:ex.reduce((t,x)=>t+x.questions.length,0), answered:false, rates:[]};
+  EXS={n, p, ex, e:0, q:0, bons:0, total:ex.reduce((t,x)=>t+x.questions.length,0), answered:false, rates:[], acquis:[]};
   exoDraw();
 }
 function exoDraw(){
@@ -2270,6 +2301,11 @@ function exoCheck(){
      erreur de raisonnement, on le NOMME. En finance l'ordre de grandeur
      compte, donc ça reste faux — mais il doit savoir que le geste était bon. */
   const unite = !ok && v!==null && it.unit==="€" && Math.abs(v*1000-it.val)<=Math.max(exoTol(it),Math.abs(it.val)*.01);
+  /* Le résultat entre dans les suggestions de la calculatrice — la BONNE
+     valeur, même s'il s'est trompé : la question suivante s'appuie dessus,
+     et le faire repartir d'un chiffre faux en enchaînerait une deuxième. */
+  if(!EXS.acquis) EXS.acquis=[];
+  EXS.acquis.push({lab:exoLab(it.q), val:Math.round(it.val*1000)/1000});
   document.getElementById("exoOut").innerHTML=`
     <div class="expl ${ok?"ok":"no"}">${ok?"✅ Juste."
       : unite?"❌ <b>Ton calcul est juste</b> — c'est l'unité. Tu as répondu en milliers ; la réponse attendue est <b>"+exoFmt(it.val,it.unit)+"</b>. En finance, l'ordre de grandeur fait partie de la réponse."
@@ -2284,7 +2320,7 @@ function exoNext(){
   const cur=EXS.ex[EXS.e];
   EXS.answered=false;
   if(EXS.q<cur.questions.length-1){ EXS.q++; return exoDraw(); }
-  if(EXS.e<EXS.ex.length-1){ EXS.e++; EXS.q=0; return exoDraw(); }
+  if(EXS.e<EXS.ex.length-1){ EXS.e++; EXS.q=0; EXS.acquis=[]; return exoDraw(); }
   exoFin();
 }
 function exoFin(){
