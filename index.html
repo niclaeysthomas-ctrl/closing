@@ -319,6 +319,7 @@
 <script src="data-formules.js"></script>
 <script src="data-boite-marche.js"></script>
 <script src="data-boite-jalons.js"></script>
+<script src="data-exos.js"></script>
 <script src="data-boite-n2.js"></script>
 <script src="data-boite-n3.js"></script>
 <script src="data-deals-tech.js"></script>
@@ -327,7 +328,7 @@
 // ================= ÉTAT =================
 const RANKS=[["Stagiaire",0],["Analyst",150],["Associate",400],["VP",800],["Director",1400],["Managing Director",2200],["Rainmaker",3200]];
 const KEY="closing_v1";
-const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[],mclass:[],eco:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{},journal:[],biz:null,cimetiere:[],bizDone:[],bizRec:{},pal:{}};
+const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[],mclass:[],eco:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{},journal:[],biz:null,cimetiere:[],bizDone:[],bizRec:{},exos:{cur:1,p:{}},pal:{}};
 let S=load();
 function load(){
   let s={};
@@ -343,7 +344,8 @@ function load(){
   o.cimetiere=s.cimetiere||[];
   o.pal=s.pal||{};
   o.bizDone=s.bizDone||[];
-  o.bizRec=s.bizRec||{};   /* les records par niveau — il n'y avait rien à battre */
+  o.bizRec=s.bizRec||{};
+  o.exos=s.exos||{cur:1,p:{}}; if(!o.exos.p) o.exos.p={}; if(!o.exos.cur) o.exos.cur=1;   /* les records par niveau — il n'y avait rien à battre */
   if(o.biz){ o.biz.loans=o.biz.loans||[]; o.biz.level=o.biz.level||1;
     o.biz.horizon=o.biz.horizon||36; o.biz.capacity=o.biz.capacity||1; }
   return o;
@@ -2132,9 +2134,174 @@ function vDeals(){
   </div>`).join("");
 }
 
+/* ================================================================
+   LES EXOS — l'échelle des calculs.
+   Sa demande, mot pour mot : « je me suis rendu compte que je n'ai
+   pas les bases […] tu me donnes les infos et je dois calculer
+   d'abord marge nette EBITDA etc… puis le niveau progresse FCFF […]
+   les bêtas […] mais ça tout à la fin, fais d'abord toujours
+   toujours toujours commencer par fixer des bases solides. »
+   D'où : douze paliers, VERROUILLÉS les uns derrière les autres. Le
+   palier 1 est une soustraction. Les bêtas sont au 12 et ne sont pas
+   atteignables avant d'avoir validé les onze autres.
+   Les chiffres sont tirés à chaque série : on ne mémorise pas une
+   réponse, on apprend un geste. ================================= */
+const EXO_SERIE=3;        /* exercices par séance (chacun porte 2 à 4 questions) */
+const EXO_SEUIL=.80;      /* pour valider un palier et ouvrir le suivant */
+function exosSt(){ if(!S.exos) S.exos={cur:1,p:{}}; if(!S.exos.p) S.exos.p={}; if(!S.exos.cur) S.exos.cur=1; return S.exos; }
+function exoPal(n){ return EXOS.find(p=>p.n===n); }
+function exoEtat(n){ const st=exosSt(); return st.p[n]||{best:0,done:0,valide:false}; }
+function exoOuvert(n){ return n===1 || exoEtat(n-1).valide; }
+function exoRng(){
+  /* Générateur simple : on veut du hasard à chaque série, pas de la
+     reproductibilité — l'intérêt est justement que les chiffres changent. */
+  return { ent:(a,b)=>a+Math.floor(Math.random()*(b-a+1)) };
+}
+function exoTol(q){
+  if(q.tol!==undefined) return q.tol;
+  if(q.unit==="%") return .2;
+  if(q.unit==="×") return .05;
+  if(q.unit==="j") return 1;
+  if(q.unit==="€") return Math.max(100, Math.abs(q.val)*.01);
+  return .05;
+}
+function vfEuro(v){ return String(Math.round(v*100)/100).replace(".",",")+" €"; }
+function exoFmt(v,u){
+  if(u==="€u") return vfEuro(v);     /* prix unitaire : on garde les centimes */
+  if(u==="€") return eur(v);
+  if(u==="%") return (Math.round(v*100)/100).toFixed(2).replace(".",",")+" %";
+  if(u==="×") return (Math.round(v*100)/100).toFixed(2).replace(".",",")+" ×";
+  if(u==="j") return Math.round(v)+" j";
+  return String(Math.round(v*1000)/1000).replace(".",",");
+}
+
+/* ---------- l'échelle ---------- */
+function exosRoom(){
+  const st=exosSt();
+  const lignes=EXOS.map(p=>{
+    const e=exoEtat(p.n), ouvert=exoOuvert(p.n);
+    const pc=e.best?Math.round(e.best*100):0;
+    return `<div class="mod${e.valide?" gold":""}" ${ouvert?`onclick="exoPalRoom(${p.n})"`:``} style="${ouvert?"":"opacity:.45"}">
+      <div class="ico">${ouvert?p.ic:"🔒"}</div>
+      <div class="t"><b>${p.n}. ${esc(p.titre)}</b><small>${esc(p.sujet)}${e.done?` · meilleur score ${pc} %`:""}</small></div>
+      <div class="pc">${e.valide?"✓":ouvert?"›":""}</div>
+    </div>`;}).join("");
+  const faits=EXOS.filter(p=>exoEtat(p.n).valide).length;
+  openOv(ovTop("🧮 Les exos")+`
+    <p class="sub">Je te donne les chiffres, tu calcules. Douze paliers, et <b>chacun ouvre le suivant</b> : on ne saute pas une marche. Le premier est une soustraction, le dernier désendette un bêta.</p>
+    <div class="crit" style="margin:10px 0"><b>${faits}/12 paliers validés.</b> ${faits===0?"Commence par le 1. Même si tu crois le savoir — surtout si tu crois le savoir.":faits<12?"Le palier "+(faits+1)+" t'attend.":"Les douze sont tombés. Reprends-en un au hasard de temps en temps : ça se reperd."}</div>
+    ${lignes}
+    <div class="xptxt" style="margin-top:10px">Les chiffres changent à chaque série. Tu ne peux pas retenir une réponse — seulement apprendre le geste.</div>`);
+}
+
+/* ---------- la règle, avant de calculer ---------- */
+function exoPalRoom(n){
+  const p=exoPal(n), e=exoEtat(n);
+  if(!p||!exoOuvert(n)) return;
+  openOv(ovTop(p.ic+" "+p.titre)+`
+    <div class="meta"><span class="tag">Palier ${n} / 12</span>${esc(p.sujet)}</div>
+    <div class="card"><div class="lab" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--acc);font-weight:800;margin-bottom:8px">La règle</div>
+      <div class="story"><p>${p.rappel}</p></div></div>
+    ${e.done?`<div class="xptxt" style="margin:10px 0">Déjà travaillé ${e.done} fois · meilleur score <b>${Math.round(e.best*100)} %</b>${e.valide?" · <b style=\"color:var(--ok)\">validé</b>":""}</div>`:""}
+    <button class="btn" onclick="exoStart(${n})">${e.done?"Refaire une série":"Commencer — "+EXO_SERIE+" exercices"}</button>
+    <button class="btn ghost" onclick="exosRoom()">‹ L'échelle</button>`);
+}
+
+/* ---------- la séance ---------- */
+let EXS=null;
+function exoStart(n){
+  const p=exoPal(n); if(!p) return;
+  const R=exoRng(), ex=[];
+  for(let i=0;i<EXO_SERIE;i++){ try{ ex.push(p.gen(R)); }catch(e){} }
+  if(!ex.length) return toast("Impossible de générer la série.");
+  EXS={n, p, ex, e:0, q:0, bons:0, total:ex.reduce((t,x)=>t+x.questions.length,0), answered:false, rates:[]};
+  exoDraw();
+}
+function exoDraw(){
+  if(!EXS) return;
+  const {p,ex,e,q}=EXS, cur=ex[e], it=cur.questions[q];
+  const faits=ex.slice(0,e).reduce((t,x)=>t+x.questions.length,0)+q;
+  const don=cur.donnees.map(d=>`<div class="bldr" style="border-bottom:1px solid var(--line)">
+      <div class="lb">${esc(d[0])}</div>
+      <div style="font-weight:800;font-size:15px;white-space:nowrap">${exoFmt(d[1],d[2])}</div></div>`).join("");
+  openOv(ovTop(p.ic+" "+p.titre)+`
+    <div class="meta"><span class="tag">Palier ${p.n} · exercice ${e+1}/${ex.length}</span>question ${faits+1} / ${EXS.total}</div>
+    ${cur.contexte?`<div class="xptxt" style="margin-bottom:8px">${cur.contexte}</div>`:""}
+    <div class="bld">${don}</div>
+    <div class="card"><h2 style="font-size:17px;line-height:1.4">${esc(it.q)}</h2></div>
+    <div class="bldr" style="border:none;padding:12px 0">
+      <div class="lb" style="flex:0 0 auto;color:var(--dim);font-size:12px">Ta réponse</div>
+      <input id="exoIn" inputmode="decimal" placeholder="${it.unit||"nombre"}"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();exoCheck();}">
+      <div style="flex:0 0 26px;color:var(--dim);font-weight:800">${it.unit||""}</div>
+    </div>
+    ${calcBlock()}
+    <button class="btn" id="exoGo" onclick="exoCheck()">Vérifier</button>
+    <div id="exoOut"></div>
+    <button class="btn ghost mt" onclick="exoQuit()">Arrêter la série</button>`);
+  setTimeout(()=>{ const i=document.getElementById("exoIn"); if(i) i.focus(); },120);
+}
+function exoCheck(){
+  if(!EXS||EXS.answered) return;
+  const it=EXS.ex[EXS.e].questions[EXS.q];
+  const v=bldNum((document.getElementById("exoIn")||{}).value||"");
+  const ok = v!==null && Math.abs(v-it.val)<=exoTol(it);
+  EXS.answered=true;
+  if(ok) EXS.bons++; else EXS.rates.push(it);
+  const inp=document.getElementById("exoIn"); if(inp) inp.disabled=true;
+  const go=document.getElementById("exoGo"); if(go) go.remove();
+  const dernier = EXS.e===EXS.ex.length-1 && EXS.q===EXS.ex[EXS.e].questions.length-1;
+  document.getElementById("exoOut").innerHTML=`
+    <div class="expl ${ok?"ok":"no"}">${ok?"✅ Juste.":"❌ La réponse est <b>"+exoFmt(it.val,it.unit)+"</b>"+(v===null?" (tu n'as rien écrit).":".")}</div>
+    <div class="bldfix" style="padding:10px 0"><b>Le calcul :</b> ${it.calcul}</div>
+    <div class="crit" style="margin:8px 0"><b>Ce qu'il faut retenir :</b> ${it.cle}</div>
+    <button class="btn" onclick="exoNext()">${dernier?"Voir le résultat":"Question suivante"}</button>`;
+  document.getElementById("exoOut").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function exoNext(){
+  if(!EXS) return;
+  const cur=EXS.ex[EXS.e];
+  EXS.answered=false;
+  if(EXS.q<cur.questions.length-1){ EXS.q++; return exoDraw(); }
+  if(EXS.e<EXS.ex.length-1){ EXS.e++; EXS.q=0; return exoDraw(); }
+  exoFin();
+}
+function exoFin(){
+  const {n,p,bons,total,rates}=EXS;
+  const part=total?bons/total:0, valide=part>=EXO_SEUIL;
+  const st=exosSt(), e=exoEtat(n);
+  const avantValide=e.valide;
+  st.p[n]={best:Math.max(e.best||0,part), done:(e.done||0)+1, valide:e.valide||valide};
+  if(valide && !avantValide && n<12) st.cur=Math.max(st.cur,n+1);
+  addXP(6+bons*3+(valide&&!avantValide?25:0));
+  save();
+  const suivant=exoPal(n+1);
+  openOv(ovTop("Résultat")+`
+    <div class="card" style="text-align:center;border-color:${valide?"var(--ok)":"var(--line)"}">
+      <div style="font-size:42px">${part===1?"👑":valide?"✅":"🔁"}</div>
+      <h2 style="font-size:26px;margin-top:6px">${bons} / ${total}</h2>
+      <div class="sub mt">${part===1?"Sans une faute. Le palier est à toi."
+        :valide?"Palier validé — il fallait 80 %."
+        :"Il faut <b>80 %</b> pour valider. Tu y es presque, et refaire une série te donnera d'autres chiffres."}</div>
+    </div>
+    ${rates.length?`<div class="card"><div class="lab" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--bad);font-weight:800;margin-bottom:8px">Ce qui a manqué</div>
+      ${rates.map(r=>`<div class="bldfix" style="padding:8px 0"><b>${esc(r.q)}</b><br>${r.cle}</div>`).join("")}</div>`:""}
+    ${valide&&!avantValide&&suivant?`<div class="crit" style="margin:10px 0">🔓 <b>Palier ${suivant.n} ouvert : ${esc(suivant.titre)}.</b> ${esc(suivant.sujet)}.</div>`:""}
+    <button class="btn" onclick="exoStart(${n})">Refaire une série</button>
+    ${valide&&suivant?`<button class="btn" onclick="exoPalRoom(${suivant.n})">Passer au palier ${suivant.n}</button>`:""}
+    <button class="btn ghost" onclick="exosRoom()">‹ L'échelle</button>`);
+  EXS=null;
+}
+function exoQuit(){ EXS=null; exosRoom(); }
+function exosFaits(){ return EXOS.filter(p=>exoEtat(p.n).valide).length; }
+
 function vAcad(){
   const cd=cardsDue().length, cm=cardsMastered();
   return `<h1 class="page">Académie</h1><div class="sub">${S.done.lessons.length}/${LESSONS.length} leçons. Du bilan au SPA — le juridique n'est pas en option.</div>
+  <div class="mod gold" onclick="exosRoom()" style="border-color:#453a20">
+    <div class="ico">🧮</div><div class="t"><b>Les exos — les calculs, depuis le début</b><small>${exosFaits()}/12 paliers validés. Je te donne les chiffres, tu calcules : marge, EBITDA, BFR, point mort… jusqu'au FCFF, au WACC et aux bêtas. Chacun ouvre le suivant.</small></div>
+    <div class="pc">${exosFaits()||"›"}</div>
+  </div>
   <div class="mod gold" onclick="openCardIntro()">
     <div class="ico">🃏</div><div class="t"><b>Flashcards — révision espacée</b><small>${cd?cd+" carte"+(cd>1?"s":"")+" due"+(cd>1?"s":"")+" · ":""}${cm} maîtrisée${cm>1?"s":""} sur ${FLASHCARDS.length}. Vocabulaire, multiples, réalité du métier.</small></div>
     <div class="pc">${cd?cd:"›"}</div>
