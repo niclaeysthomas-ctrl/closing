@@ -40,6 +40,28 @@
    Le bilan tombe quel que soit le tirage — c'est structurel, pas une
    propriété des ratios : chaque montant a deux jambes et les réserves
    d'ouverture équilibrent. Vérifié sur 400 tirages. */
+/* ================================================================
+   L'ÉCHELLE — correctif du 2026-09-21.
+   Quatre cas du niveau 2 (n2covenant, n2dilution, n2valo, n2earnout)
+   appliquaient des montants EN DUR, écrits pour une cible dont
+   l'EBITDA vaut 300 000 €. Or sa boîte de niveau 2 fait 14 à 40 k€
+   de CA MENSUEL : une dette d'acquisition de 1 140 000 € y représente
+   plus de dix ans de chiffre d'affaires. Mesuré sur 25 parties :
+   jouer les cas en prenant les MEILLEURES options tuait 14 fois sur
+   25, alors qu'ignorer tous les cas ne tuait jamais. Le jeu punissait
+   l'engagement — l'exact contraire de ce qu'on veut.
+   On garde chaque phrase et chaque ratio (le multiple, la dette nette,
+   la prime, la dilution) ; seuls les zéros bougent. sc() met un
+   montant de référence à son échelle et l'arrondit proprement. */
+function n2f(B){
+  const eb=Math.max(18000, (typeof eb12Of==="function"?eb12Of(B):0));
+  return Math.max(.035, Math.min(1, eb*1.15/300000));
+}
+function sc(B,x){
+  const v=x*n2f(B);
+  const p = Math.abs(v)>=100000?5000 : Math.abs(v)>=10000?1000 : Math.abs(v)>=1000?100 : 10;
+  return Math.round(v/p)*p;
+}
 function n2rnd(B,k){
   let h=((B&&B.seed)||123456789)>>>0;
   for(let i=0;i<k.length;i++) h=Math.imul(h^k.charCodeAt(i),2654435761)>>>0;
@@ -285,7 +307,7 @@ const BIZCASES_N2 = [
  when:B=>B.level>=2 && B.month>=14 && B.hist.length>=12,
  signal:"Ta banque t'a proposé un rendez-vous « pour accompagner ta croissance ». Ce n'est jamais désintéressé.",
  setup:B=>{const eb12=eb12Of(B);
-  return `La banque te propose <b>250 000 €</b> sur 5 ans à 4,5 % pour financer ton développement.
+  return `La banque te propose <b>${eur(sc(B,250000))}</b> sur 5 ans à 4,5 % pour financer ton développement.
    <br><br>Le contrat contient trois clauses que tu n'as jamais lues ailleurs :
    <br>· <b>dette nette / EBITDA ≤ 3,0</b>, testé chaque semestre
    <br>· <b>distribution de dividendes interdite</b> tant que le ratio dépasse 2,5
@@ -296,14 +318,14 @@ const BIZCASES_N2 = [
   {k:"A", label:"Tu signes : le taux est bon", term:"4,5 %, c'est moins cher que tout le reste.", q:0},
   {k:"B", label:"Tu négocies le covenant à 3,5 et un trimestre de grâce", term:"Tu paies 0,3 % de plus pour de l'air.", q:2},
   {k:"C", label:"Tu refuses et tu finances sur ta trésorerie", term:"Tu grandis moins vite, tu ne dois rien à personne.", q:0},
-  {k:"D", label:"Tu prends la moitié du montant", term:"125 000 €, ratio deux fois plus confortable.", q:1}
+  {k:"D", label:"Tu prends la moitié du montant", term:B=>`${eur(sc(B,125000))}, ratio deux fois plus confortable.`, q:1}
  ],
  apply:(B,k)=>{
    const eb12=eb12Of(B);
-   if(k==="A"){ B.cash+=250000; B.loans.push(mkLoan(250000,.045,60,"Prêt de développement")); B.covenant={max:3,grace:0}; B.capacity*=1.5; }
-   if(k==="B"){ B.cash+=250000; B.loans.push(mkLoan(250000,.048,60,"Prêt de développement")); B.covenant={max:3.5,grace:1}; B.capacity*=1.5; }
-   if(k==="C"){ B.cash-=Math.min(B.cash*.6,120000); B.capacity*=1.2; B.noDebt=true; }
-   if(k==="D"){ B.cash+=125000; B.loans.push(mkLoan(125000,.047,60,"Prêt de développement")); B.covenant={max:3,grace:0}; B.capacity*=1.25; }
+   if(k==="A"){ B.cash+=sc(B,250000); B.loans.push(mkLoan(sc(B,250000),.045,60,"Prêt de développement")); B.covenant={max:3,grace:0}; B.capacity*=1.5; }
+   if(k==="B"){ B.cash+=sc(B,250000); B.loans.push(mkLoan(sc(B,250000),.048,60,"Prêt de développement")); B.covenant={max:3.5,grace:1}; B.capacity*=1.5; }
+   if(k==="C"){ B.cash-=Math.min(B.cash*.6,sc(B,120000)); B.capacity*=1.2; B.noDebt=true; }
+   if(k==="D"){ B.cash+=sc(B,125000); B.loans.push(mkLoan(sc(B,125000),.047,60,"Prêt de développement")); B.covenant={max:3,grace:0}; B.capacity*=1.25; }
  },
  debrief:(B,k)=>{const eb12=eb12Of(B);
   const ratio=eb12>0?((B.debt+250000-B.cash)/eb12).toFixed(2):"n/a";
@@ -324,22 +346,22 @@ const BIZCASES_N2 = [
  when:B=>B.level>=2 && B.month>=20 && B.hist.length>=12,
  signal:"Un fonds régional t'a contacté après avoir vu tes comptes publiés. Ils ne t'ont pas trouvé par hasard.",
  setup:B=>{const eb12=eb12Of(B);
-  return `Pour passer à l'échelle il te faut <b>600 000 €</b>. Deux propositions sur la table.
-   <br><br><b>La banque</b> : 600 000 € sur 7 ans à 5,2 %, garantie personnelle sur ta résidence, covenant à 3,0×.
-   <br><br><b>Le fonds</b> : 600 000 € contre <b>30 % du capital</b>. Pas de remboursement, pas de garantie. Un siège au conseil, un droit de veto sur les investissements au-delà de 100 000 €, et une clause de sortie à 7 ans.
+  return `Pour passer à l'échelle il te faut <b>${eur(sc(B,600000))}</b>. Deux propositions sur la table.
+   <br><br><b>La banque</b> : ${eur(sc(B,600000))} sur 7 ans à 5,2 %, garantie personnelle sur ta résidence, covenant à 3,0×.
+   <br><br><b>Le fonds</b> : ${eur(sc(B,600000))} contre <b>30 % du capital</b>. Pas de remboursement, pas de garantie. Un siège au conseil, un droit de veto sur les investissements au-delà de ${eur(sc(B,100000))}, et une clause de sortie à 7 ans.
    <br><br>Ton EBITDA des 12 derniers mois : <b>${eur(eb12)}</b>. Les boîtes de ton secteur se négocient autour de <b>6× l'EBITDA</b>.
    <br><br>Avant de choisir : que vaut ta boîte aujourd'hui, et que vaudront 30 % dans sept ans si le plan marche ?`;},
  options:[
   {k:"A", label:"La dette bancaire", term:"Tu rembourses, tu gardes 100 % du capital, tu engages ton patrimoine.", q:1},
   {k:"B", label:"Le fonds à 30 %", term:"Pas de dette, pas de garantie, un associé au conseil.", q:0},
   {k:"C", label:"Tu négocies le fonds à 18 % avec un BSA de rattrapage", term:"Moins de dilution tout de suite, un complément si le plan n'est pas tenu.", q:2},
-  {k:"D", label:"Tu montes 300 000 € de dette et tu lèves le reste plus tard", term:"Tu fais la moitié du chemin et tu te redonnes le choix.", q:1}
+  {k:"D", label:B=>`Tu montes ${eur(sc(B,300000))} de dette et tu lèves le reste plus tard`, term:"Tu fais la moitié du chemin et tu te redonnes le choix.", q:1}
  ],
  apply:(B,k)=>{
-   if(k==="A"){ B.cash+=600000; B.loans.push(mkLoan(600000,.052,84,"Prêt bancaire 7 ans")); B.covenant={max:3,grace:0}; B.cautionPerso=true; B.capacity*=1.8; }
-   if(k==="B"){ B.cash+=600000; B.capital+=600000; B.equityIn=(B.equityIn||0)+600000; B.dilution=.30; B.board=true; B.capacity*=1.8; }
-   if(k==="C"){ B.cash+=600000; B.capital+=600000; B.equityIn=(B.equityIn||0)+600000; B.dilution=.18; B.bsa=true; B.board=true; B.capacity*=1.8; }
-   if(k==="D"){ B.cash+=300000; B.loans.push(mkLoan(300000,.052,84,"Prêt bancaire 7 ans")); B.capacity*=1.4; }
+   if(k==="A"){ B.cash+=sc(B,600000); B.loans.push(mkLoan(sc(B,600000),.052,84,"Prêt bancaire 7 ans")); B.covenant={max:3,grace:0}; B.cautionPerso=true; B.capacity*=1.8; }
+   if(k==="B"){ B.cash+=sc(B,600000); B.capital+=sc(B,600000); B.equityIn=(B.equityIn||0)+sc(B,600000); B.dilution=.30; B.board=true; B.capacity*=1.8; }
+   if(k==="C"){ B.cash+=sc(B,600000); B.capital+=sc(B,600000); B.equityIn=(B.equityIn||0)+sc(B,600000); B.dilution=.18; B.bsa=true; B.board=true; B.capacity*=1.8; }
+   if(k==="D"){ B.cash+=sc(B,300000); B.loans.push(mkLoan(sc(B,300000),.052,84,"Prêt bancaire 7 ans")); B.capacity*=1.4; }
  },
  debrief:(B,k)=>{const eb12=eb12Of(B);
   return `
@@ -358,26 +380,26 @@ const BIZCASES_N2 = [
  concept:"Multiples de comparables · dette nette · valeur d'entreprise", lesson:"v3",
  when:B=>B.level>=2 && B.month>=24 && B.hist.length>=12,
  signal:"Le dirigeant du concurrent a 61 ans et ses deux enfants ont choisi d'autres métiers.",
- setup:B=>`Ton concurrent direct est à vendre. Le vendeur annonce <b>« 1,8 million, c'est le prix »</b>.
-   <br><br>Ce qu'il te montre : CA <b>2 400 000 €</b> · EBITDA <b>300 000 €</b> · résultat net <b>140 000 €</b>.
-   <br><br>Ce qu'il te donne quand tu insistes : dette bancaire <b>420 000 €</b> · trésorerie <b>60 000 €</b> · un litige prud'homal en cours, provisionné à <b>0 €</b>.
+ setup:B=>`Ton concurrent direct est à vendre. Le vendeur annonce <b>« ${eur(sc(B,1800000))}, c'est le prix »</b>.
+   <br><br>Ce qu'il te montre : CA <b>${eur(sc(B,2400000))}</b> · EBITDA <b>${eur(sc(B,300000))}</b> · résultat net <b>${eur(sc(B,140000))}</b>.
+   <br><br>Ce qu'il te donne quand tu insistes : dette bancaire <b>${eur(sc(B,420000))}</b> · trésorerie <b>${eur(sc(B,60000))}</b> · un litige prud'homal en cours, provisionné à <b>0 €</b>.
    <br><br>Dans le secteur, les transactions récentes se font entre <b>5× et 7× l'EBITDA</b>.
    <br><br>Avant de répondre : à quoi s'applique le multiple — au prix des actions, ou à autre chose ?`,
  options:[
-  {k:"A", label:"Tu offres 1,5 M€ : 5× l'EBITDA", term:"Tu ancres bas sur le bas de la fourchette.", q:0},
-  {k:"B", label:"Tu offres 1,44 M€ pour les titres", term:"6× l'EBITDA en valeur d'entreprise, moins la dette nette.", q:2},
-  {k:"C", label:"Tu acceptes 1,8 M€ : c'est dans la fourchette", term:"6× l'EBITDA, le vendeur a fait son calcul.", q:-1},
-  {k:"D", label:"Tu offres 1,3 M€ avec 300 k€ d'earn-out", term:"Tu paies moins tout de suite, le solde si l'EBITDA tient.", q:2}
+  {k:"A", label:B=>`Tu offres ${eur(sc(B,1500000))} : 5× l'EBITDA`, term:"Tu ancres bas sur le bas de la fourchette.", q:0},
+  {k:"B", label:B=>`Tu offres ${eur(sc(B,1800000)-sc(B,420000)+sc(B,60000))} pour les titres`, term:"6× l'EBITDA en valeur d'entreprise, moins la dette nette.", q:2},
+  {k:"C", label:B=>`Tu acceptes ${eur(sc(B,1800000))} : c'est dans la fourchette`, term:"6× l'EBITDA, le vendeur a fait son calcul.", q:-1},
+  {k:"D", label:B=>`Tu offres ${eur(sc(B,1300000))} avec ${eur(sc(B,300000))} d'earn-out`, term:"Tu paies moins tout de suite, le solde si l'EBITDA tient.", q:2}
  ],
  apply:(B,k)=>{
    if(k==="A"){ B.offerRejected=true; B.rep=Math.max(.7,B.rep-.03); }
-   if(k==="B"){ B.acquired=true; B.cash-=Math.min(B.cash,300000); B.loans.push(mkLoan(1140000,.05,84,"Dette d'acquisition")); B.demandMult*=1.75; B.fc+=14000; B.goodwill=(B.goodwill||0)+600000; }
-   if(k==="C"){ B.acquired=true; B.cash-=Math.min(B.cash,400000); B.loans.push(mkLoan(1400000,.05,84,"Dette d'acquisition")); B.demandMult*=1.75; B.fc+=14000; B.goodwill=(B.goodwill||0)+950000; B.overpaid=true; }
-   if(k==="D"){ B.acquired=true; B.cash-=Math.min(B.cash,250000); B.loans.push(mkLoan(1050000,.05,84,"Dette d'acquisition")); B.earnout=300000; B.demandMult*=1.7; B.fc+=14000; B.goodwill=(B.goodwill||0)+520000; }
+   if(k==="B"){ B.acquired=true; B.cash-=Math.min(B.cash,sc(B,300000)); B.loans.push(mkLoan(sc(B,1140000),.05,84,"Dette d'acquisition")); B.demandMult*=1.75; B.fc+=sc(B,14000); B.goodwill=(B.goodwill||0)+sc(B,600000); }
+   if(k==="C"){ B.acquired=true; B.cash-=Math.min(B.cash,sc(B,400000)); B.loans.push(mkLoan(sc(B,1400000),.05,84,"Dette d'acquisition")); B.demandMult*=1.75; B.fc+=sc(B,14000); B.goodwill=(B.goodwill||0)+sc(B,950000); B.overpaid=true; }
+   if(k==="D"){ B.acquired=true; B.cash-=Math.min(B.cash,sc(B,250000)); B.loans.push(mkLoan(sc(B,1050000),.05,84,"Dette d'acquisition")); B.earnout=sc(B,300000); B.demandMult*=1.7; B.fc+=sc(B,14000); B.goodwill=(B.goodwill||0)+sc(B,520000); }
  },
  debrief:(B,k)=>`
-  <p><b>Le piège est dans la première ligne de l'annonce, et presque tout le monde tombe dedans.</b> Un multiple d'EBITDA donne une <b>valeur d'entreprise</b> — la valeur de l'outil, indépendamment de qui l'a financé. Le prix que tu paies pour les <i>actions</i>, lui, vaut : valeur d'entreprise − dette nette. Ici : 6 × 300 000 = 1 800 000 € de VE, moins (420 000 − 60 000) = 360 000 € de dette nette, soit <b>1 440 000 € pour les titres</b>. Le vendeur t'a annoncé sa VE en te laissant croire que c'était son prix. Ce n'est pas de la malhonnêteté, c'est du métier.</p>
-  <p><b>Accepter 1,8 M€, c'est donc payer 7,2× l'EBITDA sans l'avoir décidé</b> — le haut de la fourchette du secteur, pour une boîte dont tu ne sais encore rien. C'est l'erreur la plus coûteuse de tout ce cas, et c'est aussi la plus discrète : tu es resté « dans la fourchette », sauf que tu n'étais pas dans la bonne unité.</p>
+  <p><b>Le piège est dans la première ligne de l'annonce, et presque tout le monde tombe dedans.</b> Un multiple d'EBITDA donne une <b>valeur d'entreprise</b> — la valeur de l'outil, indépendamment de qui l'a financé. Le prix que tu paies pour les <i>actions</i>, lui, vaut : valeur d'entreprise − dette nette. Ici : 6 × ${eur(sc(B,300000))} = ${eur(sc(B,1800000))} de VE, moins (${eur(sc(B,420000))} − ${eur(sc(B,60000))}) = ${eur(sc(B,420000)-sc(B,60000))} de dette nette, soit <b>${eur(sc(B,1800000)-sc(B,420000)+sc(B,60000))} pour les titres</b>. Le vendeur t'a annoncé sa VE en te laissant croire que c'était son prix. Ce n'est pas de la malhonnêteté, c'est du métier.</p>
+  <p><b>Accepter ${eur(sc(B,1800000))}, c'est donc payer 7,2× l'EBITDA sans l'avoir décidé</b> — le haut de la fourchette du secteur, pour une boîte dont tu ne sais encore rien. C'est l'erreur la plus coûteuse de tout ce cas, et c'est aussi la plus discrète : tu es resté « dans la fourchette », sauf que tu n'étais pas dans la bonne unité.</p>
   <p><b>Le litige prud'homal provisionné à zéro est un second prix caché.</b> Un passif non provisionné ne disparaît pas parce qu'on ne l'a pas écrit : il t'attend après le closing. Deux outils, et il faut les deux : une <b>garantie d'actif et de passif</b> (le vendeur paie si le passé remonte) et un <b>séquestre</b> sur une partie du prix pour que la garantie ne soit pas qu'une signature. Une garantie sans séquestre vaut la solvabilité du vendeur au moment du sinistre — c'est-à-dire souvent rien.</p>
   <p><b>D est excellent pour une raison qu'on sous-estime : l'earn-out déplace le désaccord.</b> Tu penses que l'EBITDA de 300 000 € doit beaucoup au dirigeant lui-même ; lui pense que la boîte tourne toute seule. Personne ne peut trancher aujourd'hui. L'earn-out dit : <i>prouve-le, et je paie</i>. <b>Attention quand même</b> — c'est la clause la plus procédurière du M&A : il faut définir l'EBITDA au mot près, qui produit les comptes, et ce que l'acheteur s'interdit de faire pendant la période.</p>`,
  grid:[
@@ -402,10 +424,10 @@ const BIZCASES_N2 = [
   {k:"D", label:"Tu fusionnes et tu attaches le chef d'atelier avec un intéressement", term:"Tu vas vite, mais tu paies pour garder l'homme-clé.", q:1}
  ],
  apply:(B,k)=>{
-   if(k==="A"){ B.fc-=7500; B.demandMult*=.72; B.rep=Math.max(.5,B.rep-.12); B.keyManLost=true; }
+   if(k==="A"){ B.fc-=sc(B,7500); B.demandMult*=.72; B.rep=Math.max(.5,B.rep-.12); B.keyManLost=true; }
    if(k==="B"){ B.fc-=0; B.synergiesLate=true; }
-   if(k==="C"){ B.fc-=3200; B.mc*=.94; B.demandMult*=.97; }
-   if(k==="D"){ B.fc-=5200; B.fc+=1400; B.demandMult*=.93; B.keyMan=true; }
+   if(k==="C"){ B.fc-=sc(B,3200); B.mc*=.94; B.demandMult*=.97; }
+   if(k==="D"){ B.fc-=sc(B,5200); B.fc+=sc(B,1400); B.demandMult*=.93; B.keyMan=true; }
  },
  debrief:(B,k)=>`
   <p><b>La moitié des acquisitions détruisent de la valeur, et presque jamais à cause du prix payé.</b> Elles meurent après, dans les six mois qui suivent le closing. Le prix, tu l'as négocié pendant des semaines avec des avocats ; l'intégration, tu l'improvises un lundi matin avec des gens qui ont peur. Le déséquilibre d'attention est total, et il est exactement inversé par rapport aux enjeux.</p>
@@ -438,7 +460,7 @@ const BIZCASES_N2 = [
  ],
  apply:(B,k)=>{
    const bfr=B.stockU*B.mc+B.ar-B.ap;
-   if(k==="A"){ B.ligneTreso=Math.round(bfr*.6); B.loans.push(mkLoan(Math.max(5000,Math.round(bfr*.6)),.055,24,"Ligne de trésorerie")); B.cash+=Math.max(5000,Math.round(bfr*.6)); }
+   if(k==="A"){ B.ligneTreso=Math.round(bfr*.6); B.loans.push(mkLoan(Math.max(sc(B,5000),Math.round(bfr*.6)),.055,24,"Ligne de trésorerie")); B.cash+=Math.max(sc(B,5000),Math.round(bfr*.6)); }
    if(k==="B"){ B.bfrBlind=true; }
    if(k==="C"){ B.dso=Math.max(15,B.dso-12); B.stockTarget=Math.max(.5,B.stockTarget-.3); B.acompte=Math.max(B.acompte||0,.2); }
    if(k==="D"){ B.growth=Math.min(B.growth,1.02); }
@@ -564,9 +586,9 @@ const BIZCASES_N2 = [
  concept:"Structuration du prix · earn-out · crédit-vendeur", lesson:"j6",
  when:B=>B.level>=2 && B.acquired && B.month>=32,
  signal:"Le vendeur a accepté ton prix sans discuter le montant, mais il insiste beaucoup sur le calendrier de paiement.",
- setup:B=>`Prix arrêté : <b>1 440 000 €</b>. Reste à décider comment tu le paies — et c'est là que tout se joue.
-   <br><br>Tu as <b>${eur(B.cash)}</b> en banque. La banque financerait jusqu'à 900 000 € sur 7 ans.
-   <br><br>Le vendeur reste dirigeant un an, puis part. Il affirme que l'EBITDA de 300 000 € tient tout seul ; tu penses qu'une partie dépend de lui.
+ setup:B=>`Prix arrêté : <b>${eur(sc(B,1440000))}</b>. Reste à décider comment tu le paies — et c'est là que tout se joue.
+   <br><br>Tu as <b>${eur(B.cash)}</b> en banque. La banque financerait jusqu'à ${eur(sc(B,900000))} sur 7 ans.
+   <br><br>Le vendeur reste dirigeant un an, puis part. Il affirme que l'EBITDA de ${eur(sc(B,300000))} tient tout seul ; tu penses qu'une partie dépend de lui.
    <br><br>Personne ne peut trancher ce désaccord aujourd'hui. C'est exactement ce que la structure du prix sert à régler.`,
  options:[
   {k:"A", label:"Tout comptant, dette bancaire maximale", term:"Le vendeur est payé, l'affaire est close, tu portes tout le risque.", q:-1},
@@ -575,10 +597,10 @@ const BIZCASES_N2 = [
   {k:"D", label:"50 % comptant, 25 % earn-out, 25 % crédit-vendeur", term:"Tu combines les deux mécanismes.", q:2}
  ],
  apply:(B,k)=>{
-   if(k==="A"){ B.cash-=Math.min(B.cash,540000); B.loans.push(mkLoan(900000,.05,84,"Dette d'acquisition")); B.goodwill=(B.goodwill||0)+1440000; B.risqueVendeur=true; }
-   if(k==="B"){ B.cash-=Math.min(B.cash,264000); B.loans.push(mkLoan(600000,.05,84,"Dette d'acquisition")); B.earnout=576000; B.goodwill=(B.goodwill||0)+864000; }
-   if(k==="C"){ B.cash-=Math.min(B.cash,308000); B.loans.push(mkLoan(700000,.05,84,"Dette d'acquisition")); B.loans.push(mkLoan(432000,.04,36,"Crédit-vendeur")); B.goodwill=(B.goodwill||0)+1440000; }
-   if(k==="D"){ B.cash-=Math.min(B.cash,220000); B.loans.push(mkLoan(500000,.05,84,"Dette d'acquisition")); B.loans.push(mkLoan(360000,.04,36,"Crédit-vendeur")); B.earnout=360000; B.goodwill=(B.goodwill||0)+1080000; }
+   if(k==="A"){ B.cash-=Math.min(B.cash,sc(B,540000)); B.loans.push(mkLoan(sc(B,900000),.05,84,"Dette d'acquisition")); B.goodwill=(B.goodwill||0)+sc(B,1440000); B.risqueVendeur=true; }
+   if(k==="B"){ B.cash-=Math.min(B.cash,sc(B,264000)); B.loans.push(mkLoan(sc(B,600000),.05,84,"Dette d'acquisition")); B.earnout=sc(B,576000); B.goodwill=(B.goodwill||0)+sc(B,864000); }
+   if(k==="C"){ B.cash-=Math.min(B.cash,sc(B,308000)); B.loans.push(mkLoan(sc(B,700000),.05,84,"Dette d'acquisition")); B.loans.push(mkLoan(sc(B,432000),.04,36,"Crédit-vendeur")); B.goodwill=(B.goodwill||0)+sc(B,1440000); }
+   if(k==="D"){ B.cash-=Math.min(B.cash,sc(B,220000)); B.loans.push(mkLoan(sc(B,500000),.05,84,"Dette d'acquisition")); B.loans.push(mkLoan(sc(B,360000),.04,36,"Crédit-vendeur")); B.earnout=sc(B,360000); B.goodwill=(B.goodwill||0)+sc(B,1080000); }
  },
  debrief:(B,k)=>`
   <p><b>Quand deux parties ne s'accordent pas sur une valeur, on ne coupe pas la poire en deux : on structure.</b> Tu penses que l'EBITDA dépend du dirigeant, il affirme le contraire. Aucun des deux ne peut le prouver aujourd'hui — mais dans deux ans, les chiffres trancheront tout seuls. <b>L'earn-out dit : prouve-le, et je paie.</b> Il ne règle pas le désaccord, il le reporte à la date où il devient vérifiable.</p>

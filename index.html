@@ -318,6 +318,7 @@
 <script src="data-boite-n1.js"></script>
 <script src="data-formules.js"></script>
 <script src="data-boite-marche.js"></script>
+<script src="data-boite-jalons.js"></script>
 <script src="data-boite-n2.js"></script>
 <script src="data-boite-n3.js"></script>
 <script src="data-deals-tech.js"></script>
@@ -326,7 +327,7 @@
 // ================= ÉTAT =================
 const RANKS=[["Stagiaire",0],["Analyst",150],["Associate",400],["VP",800],["Director",1400],["Managing Director",2200],["Rainmaker",3200]];
 const KEY="closing_v1";
-const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[],mclass:[],eco:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{},journal:[],biz:null,cimetiere:[],bizDone:[],pal:{}};
+const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[],mclass:[],eco:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{},journal:[],biz:null,cimetiere:[],bizDone:[],bizRec:{},pal:{}};
 let S=load();
 function load(){
   let s={};
@@ -342,6 +343,7 @@ function load(){
   o.cimetiere=s.cimetiere||[];
   o.pal=s.pal||{};
   o.bizDone=s.bizDone||[];
+  o.bizRec=s.bizRec||{};   /* les records par niveau — il n'y avait rien à battre */
   if(o.biz){ o.biz.loans=o.biz.loans||[]; o.biz.level=o.biz.level||1;
     o.biz.horizon=o.biz.horizon||36; o.biz.capacity=o.biz.capacity||1; }
   return o;
@@ -609,7 +611,7 @@ function bizNew(sectorId,name,level){
     hist:[], seen:[], pending:null, answers:[],
     rupturesTot:0, lastRupture:0, lastSold:0, lastPurch:0,
     elast:0, est60:0, bfr:stock0-ap0,
-    mkt:mktInit(), seed:Math.floor(Math.random()*1e9)
+    mkt:mktInit(), seed:Math.floor(Math.random()*1e9), jx:jxInit(), jalons:[]
   };
   save();
 }
@@ -812,7 +814,12 @@ function bizBalance(B){
    un impayé). Économiquement, du cash parti sans actif en face EST une charge :
    on passe donc l'écart par le résultat. L'identité redevient vraie, et elle
    le reste. */
+/* Garde-fou : un cas pouvait retirer plus de charges fixes qu'il n'y en a
+   (n2concentration faisait B.fc -= 7500 sur une base de 3 500). Des charges
+   fixes négatives s'ajoutent à l'EBITDA : de l'argent gratuit, à vie. */
+function fcGuard(B){ B=B||S.biz; if(B && B.fc<200) B.fc=200; }
 function bizRebalance(){
+  fcGuard();
   if(S.biz) S.biz.debt=bizDebtOf(S.biz);   /* on synchronise AVANT de juger l'écart */
   const b=bizBalance(); if(!b) return 0;
   if(Math.abs(b.ecart)>0.5){ S.biz.reserves+=b.ecart; return b.ecart; }
@@ -921,6 +928,7 @@ function bizTurn(){
   // Fin de parcours : on ne joue pas à l'infini, on rend des comptes.
   if(B.month>=B.horizon){ B.finished=true; save(); return; }
 
+  jxTurn(B);      /* les compteurs de jalons, puis les déblocages */
   bizFireCase();
   save();
 }
@@ -933,6 +941,83 @@ function caseDelay(B,id){
   for(let i=0;i<id.length;i++) h=Math.imul(h^id.charCodeAt(i),2654435761)>>>0;
   h^=h>>>15; h=Math.imul(h,2246822507)>>>0;
   return (h>>>0)%6;
+}
+/* ================================================================
+   LES JALONS — la boucle courte qui manquait.
+   Une partie de niveau 2 dure 48 tours et la note n'arrivait qu'au
+   dernier : aucun objectif intermédiaire, rien à battre, aucune
+   trace de ce qu'on avait réussi. B.jx tient les compteurs, jxTurn
+   les met à jour chaque mois, jalonCheck débloque.
+   Un jalon décroché ne se reperd jamais. */
+function jxInit(){ return {maxMoisCash:0, moisMarge10:0, moisCashOk:0, moisCovenantOK:0,
+  moisBienPrice:0, crisesTenues:0, reprixRapides:0, chocsEncaisses:0, maxSerie:0,
+  etatsParfaits:0, croissanceMax:1, aEteDecouvert:false, hausseEnBoom:false,
+  etatParfait:false, enCrise:false, crisePropre:true, dernierRegime:"normal",
+  moisChangeRegime:-9, chocEnCours:null, prevPrice:null, noteFinale:0}; }
+function jx(B){ B=B||S.biz; if(!B) return jxInit(); if(!B.jx) B.jx=jxInit(); return B.jx; }
+/* La série de décisions se LIT dans B.answers : pas besoin de la tenir à
+   jour dans les quatre endroits qui enregistrent une réponse. */
+function serieActuelle(B){
+  const a=(B.answers||[]).filter(x=>x.q!==undefined);
+  let k=0; for(let i=a.length-1;i>=0;i--){ if(a[i].q>=2) k++; else break; }
+  return k;
+}
+function serieMax(B){
+  const a=(B.answers||[]).filter(x=>x.q!==undefined);
+  let k=0,m=0; a.forEach(x=>{ if(x.q>=2){ k++; m=Math.max(m,k); } else k=0; });
+  return m;
+}
+function jxTurn(B){
+  const J=jx(B), h=B.hist[B.hist.length-1], m=mkt(B);
+  if(!h) return;
+  if(B.cash<0) J.aEteDecouvert=true;
+  if(B.fc>0) J.maxMoisCash=Math.max(J.maxMoisCash, B.cash/B.fc);
+  /* marge nette et flux d'exploitation, en mois CONSÉCUTIFS */
+  J.moisMarge10 = (h.ca>0 && h.rn/h.ca>.10) ? J.moisMarge10+1 : 0;
+  J.moisCashOk  = ((h.rn+(h.dot||0)-h.dbfr)>0) ? J.moisCashOk+1 : 0;
+  /* covenant : il faut de la dette ET douze mois d'EBITDA derrière soi */
+  const eb12=eb12Of(B);
+  J.moisCovenantOK = (B.hist.length>=12 && (B.debt||0)>0 && eb12>0 && (B.debt/eb12)<2.5)
+    ? J.moisCovenantOK+1 : 0;
+  /* le prix, tenu près de l'optimum */
+  const pstar=(curveChoke(B)+B.mc)/2;
+  J.moisBienPrice = (pstar>0 && Math.abs(B.price-pstar)/pstar<.08) ? J.moisBienPrice+1 : 0;
+  /* traversée de crise : propre si on n'a jamais été à découvert dedans */
+  if(m.regime==="crise"){ if(!J.enCrise){ J.enCrise=true; J.crisePropre=true; } if(B.cash<0) J.crisePropre=false; }
+  else if(J.enCrise){ J.enCrise=false; if(J.crisePropre) J.crisesTenues++; }
+  /* changement de régime : on note le mois, pour juger la réactivité du prix */
+  if(m.regime!==J.dernierRegime){ J.dernierRegime=m.regime; J.moisChangeRegime=B.month; }
+  /* un coup dur : on photographie la trésorerie, on regarde si elle revient */
+  const coup=(m.news||[]).some(x=>x.k==="choc");
+  if(coup && !J.chocEnCours) J.chocEnCours={cash:B.cash, mois:B.month};
+  if(J.chocEnCours){
+    if(B.month-J.chocEnCours.mois>6) J.chocEnCours=null;
+    else if(B.month>J.chocEnCours.mois && B.cash>=J.chocEnCours.cash){ J.chocsEncaisses++; J.chocEnCours=null; }
+  }
+  /* croissance : meilleur rapport 12 derniers mois / 12 premiers atteint */
+  if(B.hist.length>=13){
+    const d=B.hist.slice(-12).reduce((t,x)=>t+x.ca,0), p=B.hist.slice(0,12).reduce((t,x)=>t+x.ca,0);
+    if(p>0) J.croissanceMax=Math.max(J.croissanceMax, d/p);
+  }
+  J.maxSerie=Math.max(J.maxSerie, serieMax(B));
+  if(B.finished){ const V=bizVerdict(); J.noteFinale=V.tot; }
+  jalonCheck(B);
+}
+function jalonsDe(B){ return (typeof JALONS!=="undefined"?JALONS:[]).filter(j=>(j.lvl||1)<=B.level); }
+function jalonCheck(B){
+  B=B||S.biz; if(!B) return;
+  if(!B.jalons) B.jalons=[];
+  jx(B);
+  jalonsDe(B).forEach(j=>{
+    if(B.jalons.includes(j.id)) return;
+    let ok=false; try{ ok=!!j.ok(B); }catch(e){}
+    if(ok){
+      B.jalons.push(j.id);
+      addXP(j.xp);
+      setTimeout(()=>toast(j.ic+" <b>"+j.nom+"</b> — jalon décroché, +"+j.xp+" XP"),300);
+    }
+  });
+  save();
 }
 function bizFireCase(){
   const B=S.biz;
@@ -986,6 +1071,58 @@ function bizSetLvl(n){ BZLVL=n; render(); toast("Niveau "+n+" — "+esc(niveau(n
    mois, et l'élasticité MESURÉE à son prix actuel. Jamais les
    multiplicateurs : un patron lit la presse et ses propres ventes, pas les
    paramètres de la simulation. */
+/* La note provisoire : exactement les cinq axes du verdict final, mais
+   affichés DÈS LE PREMIER MOIS. Sans ça il jouait 48 tours à l'aveugle.
+   On la marque « provisoire » et on neutralise l'axe Survie tant que la
+   partie court — il vaut 20 points d'office, ce qui gonflerait la note
+   d'un joueur au bord du dépôt de bilan. */
+function bizLiveScore(B){
+  const V=bizVerdict();
+  const ax=V.ax.filter(a=>a.k!=="Survie");
+  const obtenus=ax.reduce((t,a)=>t+a.pts,0), max=ax.reduce((t,a)=>t+a.max,0);
+  const sur100=max>0?Math.round(obtenus/max*100):0;
+  const note=sur100>=88?"A":sur100>=76?"B":sur100>=62?"C":sur100>=48?"D":sur100>=32?"E":"F";
+  return {ax,obtenus,max,sur100,note};
+}
+function scorePanel(B){
+  if(!B.hist.length) return "";
+  const L=bizLiveScore(B);
+  const col=L.sur100>=76?"#1fc584":L.sur100>=48?"#d6b25e":"#f4506a";
+  const barres=L.ax.map(a=>{
+    const p=a.max>0?Math.round(a.pts/a.max*100):0;
+    return `<div style="margin:7px 0">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--dim)">
+        <span>${a.k}</span><span style="font-weight:800;color:var(--txt)">${a.pts}/${a.max}</span></div>
+      <div style="height:6px;background:var(--bg2);border-radius:4px;overflow:hidden;margin-top:3px">
+        <div style="height:100%;width:${p}%;background:${p>=75?"#1fc584":p>=45?"#d6b25e":"#f4506a"}"></div></div>
+    </div>`;}).join("");
+  const rec=(S.bizRec||{})[B.level];
+  return `<div class="card" style="border-color:${col}55">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:38px;font-weight:800;color:${col};line-height:1">${L.note}</div>
+      <div style="flex:1">
+        <div class="lab" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:${col};font-weight:800">Ta note, en direct</div>
+        <div class="sub" style="margin-top:2px">${L.sur100}/100 · <b>provisoire</b>, hors survie${rec?` · ton record au niveau ${B.level} : <b>${rec.note} ${rec.tot}/100</b>`:""}</div>
+      </div>
+    </div>
+    <div style="margin-top:10px">${barres}</div>
+    <div class="xptxt" style="margin-top:6px">La survie n'est pas comptée tant que la partie court : elle vaut 20 points, et elle ne se gagne qu'en arrivant au bout.</div>
+  </div>`;
+}
+function jalonsPanel(B){
+  const tous=jalonsDe(B), pris=(B.jalons||[]);
+  if(!tous.length) return "";
+  const faits=tous.filter(j=>pris.includes(j.id));
+  const restants=tous.filter(j=>!pris.includes(j.id));
+  const lignes=restants.slice(0,4).map(j=>
+    `<div class="pt" style="margin:6px 0;opacity:.75"><b>${j.ic} ${j.nom}</b><br><span class="sub">${j.quoi}</span> <span class="xptxt">+${j.xp} XP</span></div>`).join("");
+  return `<div class="card">
+    <div class="lab" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--acc);font-weight:800">
+      🎖️ Les jalons · ${faits.length}/${tous.length}</div>
+    ${faits.length?`<div class="sub" style="margin-top:6px">${faits.map(j=>j.ic+" "+esc(j.nom)).join(" · ")}</div>`:`<div class="sub" style="margin-top:6px">Aucun encore. Ils se décrochent en jouant, pas en cliquant.</div>`}
+    ${restants.length?`<div style="margin-top:10px"><div class="xptxt" style="margin-bottom:4px">À portée :</div>${lignes}</div>`:`<div class="xptxt" style="margin-top:10px">Tous décrochés. Il n'en reste plus un seul à ce niveau.</div>`}
+  </div>`;
+}
 function mktPanel(B){
   const m=mkt(B), R=mktReg(B), el=bizElast(B.price), ch=curveChoke(B);
   const news=(m.news||[]).map(x=>`<div class="pt" style="margin:6px 0">${x.t}</div>`).join("");
@@ -1034,6 +1171,7 @@ function vBoite(){
     <div class="t"><b>${bizCase(B.pending).title}</b><small>Une décision t'attend. Le mois ne passe pas sans elle.</small></div>
     <div class="st">›</div></div>`:""}
 
+  ${scorePanel(B)}
   ${mktPanel(B)}
 
   <div class="hero">
@@ -1108,6 +1246,8 @@ function vBoite(){
     </div>
   </div>
 
+  ${jalonsPanel(B)}
+
   ${B.hist.length>1?`<h2 class="sec">Résultat vs trésorerie</h2>${bizChart()}`:""}
 
   <button class="btn ghost" onclick="formRoom()">📐 Les formules — les 14 calculs qui décident</button>
@@ -1142,7 +1282,15 @@ function bizPreview(){
 function bizSetPrice(){
   const v=parseFloat(document.getElementById("bzPrice").value);
   if(!v||v<=0) return toast("Un prix, un vrai.");
-  S.biz.price=v; save(); render(); toast("Prix fixé à "+eur(v)+".");
+  const J=jx(S.biz), avant=S.biz.price, m=mkt(S.biz);
+  S.biz.price=v;
+  /* Deux jalons se jouent ICI : monter son prix pendant une expansion, et
+     réagir vite à un changement de régime. On les mesure au geste, pas au
+     résultat — c'est la décision qu'on récompense. */
+  if(v>avant && m.regime==="boom") J.hausseEnBoom=true;
+  if(v!==avant && S.biz.month-J.moisChangeRegime<=2) J.reprixRapides=(J.reprixRapides||0)+1;
+  jalonCheck(S.biz);
+  save(); render(); toast("Prix fixé à "+eur(v)+".");
 }
 function bizSetStock(t){ S.biz.stockTarget=t; save(); render(); }
 
@@ -1253,8 +1401,15 @@ function vBoiteVerdict(){
   const B=S.biz, V=bizVerdict();
   const rates=B.answers.filter(a=>a.q!==undefined && a.q<=0);
   const bons=B.answers.filter(a=>a.q!==undefined && a.q>=2);
+  const REC=bizRec(B.level), JAL=(B.jalons||[]), TOUS=jalonsDe(B);
   return `<h1 class="page">${B.emoji} ${esc(B.name)} — le verdict</h1>
   <div class="sub">${B.horizon} mois. ${niveau(B.level).emoji} Niveau ${B.level} — ${niveau(B.level).nom}.</div>
+  ${REC?`<div class="crit" style="margin:10px 0;border-color:#453a20">🏆 <b>Ton record à ce niveau :</b> ${REC.note} ${REC.tot}/100 · ${REC.jalons} jalon(s) · plus longue série ${REC.serie}. ${V.tot>REC.tot?"<b>Tu viens de le battre.</b>":V.tot===REC.tot?"Tu l'égales.":"Il te manque <b>"+(REC.tot-V.tot)+" points</b> pour le battre."}</div>`:""}
+  <div class="card">
+    <div class="lab" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--acc);font-weight:800">🎖️ Jalons décrochés · ${JAL.length}/${TOUS.length}</div>
+    ${JAL.length?`<div class="sub" style="margin-top:6px">${TOUS.filter(j=>JAL.includes(j.id)).map(j=>j.ic+" "+esc(j.nom)).join(" · ")}</div>`:`<div class="sub" style="margin-top:6px">Aucun. Ils se décrochent en pilotant, pas en survivant.</div>`}
+    ${TOUS.length>JAL.length?`<div class="xptxt" style="margin-top:8px">Ratés cette fois : ${TOUS.filter(j=>!JAL.includes(j.id)).map(j=>esc(j.nom)).join(" · ")}.</div>`:""}
+  </div>
 
   <div class="hero">
     <div class="lab">Note globale</div>
@@ -1288,13 +1443,29 @@ function vBoiteVerdict(){
   <button class="btn" onclick="bizExport()">📋 Envoyer toute la partie à Claude</button>
   <button class="btn ghost" onclick="bizArchive()">Archiver et remonter une boîte</button>`;
 }
+/* LES RECORDS, par niveau. Il n'y avait rien à battre : une partie finie
+   ne laissait qu'une ligne au cimetière. Maintenant chaque partie
+   terminée dépose une trace, et la suivante a une barre devant elle. */
+function bizRec(lvl){ return (S.bizRec||{})[lvl]||null; }
+function bizPoseRecord(B){
+  const V=bizVerdict();
+  if(!S.bizRec) S.bizRec={};
+  const a=S.bizRec[B.level], neuf={tot:V.tot, note:V.note, mois:B.month,
+    jalons:(B.jalons||[]).length, serie:serieMax(B), date:today(), nom:B.name, vivant:B.alive};
+  let bat=false;
+  if(!a || neuf.tot>a.tot){ S.bizRec[B.level]=neuf; bat=!!a; }
+  save();
+  return {record:S.bizRec[B.level], bat, actuel:neuf, ancien:a};
+}
 function bizArchive(){
   const B=S.biz, V=bizVerdict();
+  const R=bizPoseRecord(B);
   S.bizDone=S.bizDone||[];
   if(B.alive && !S.bizDone.includes(B.level)) S.bizDone.push(B.level);
   S.cimetiere.push({name:B.name,emoji:B.emoji,months:B.month,
     peakCA:Math.max(0,...B.hist.map(h=>h.ca)),cause:"terminé — note "+V.note});
   S.biz=null; save(); render();
+  if(R.bat) setTimeout(()=>toast("🏆 <b>Nouveau record au niveau "+B.level+"</b> — "+R.actuel.note+" "+R.actuel.tot+"/100, tu bats "+R.ancien.note+" "+R.ancien.tot+"."),900);
   toast(B.alive&&B.level<3?"🔓 <b>Niveau "+(B.level+1)+" débloqué.</b>":"Partie archivée.");
 }
 
@@ -1578,6 +1749,12 @@ function bizArgBlock(ph){
    là : … » juste avant l'énoncé. Au niveau 1 on garde l'aide ; à partir
    du 2 le signal disparaît de l'écran de décision et revient AU
    DÉBRIEFING, là où il devient une leçon au lieu d'un cadeau. */
+/* Un libellé d'option peut porter un montant — « Tu offres 1,5 M€ ». Tant
+   qu'il était une chaîne figée, il ne pouvait pas suivre l'échelle de sa
+   boîte, et l'option annonçait un prix que l'apply ne pratiquait pas.
+   Il accepte donc maintenant une fonction de B, comme setup et debrief. */
+function labOf(o,B){ B=B||S.biz; return typeof o.label==="function"?o.label(B):o.label; }
+function termOf(o,B){ B=B||S.biz; return typeof o.term==="function"?o.term(B):o.term; }
 function sigBlock(c){
   const B=S.biz;
   if(B && B.level>=2) return "";
@@ -1594,7 +1771,7 @@ function bizOpenCase(){
     ${sigBlock(c)}
     <div class="story"><p>${c.setup(B)}</p></div>
     <h2 class="sec">Tes options</h2>
-    ${c.options.map(o=>`<div class="pt"><b>${o.k}. ${o.label}</b><br>${o.term}</div>`).join("")}
+    ${c.options.map(o=>`<div class="pt"><b>${o.k}. ${labOf(o,B)}</b><br>${termOf(o,B)}</div>`).join("")}
     <div class="coach">Aucune conséquence chiffrée ne t'est donnée. <b>C'est à toi de les estimer</b> — c'est exactement le travail. Dis quel choix, pourquoi, et ce que tu penses que ça va coûter.</div>
     ${bizArgBlock("Je choisis… parce que… J'estime que ça va me coûter environ…")}
     <p class="sub" style="margin:14px 0 4px">Puis tranche — c'est définitif :</p>
@@ -1738,7 +1915,10 @@ function bldDone(cid){
   if(c.apply) c.apply(B,r);
   bizRebalance();
   B.seen.push(cid); B.pending=null;
-  addXP(8+r.bons*3); save();
+  addXP(8+r.bons*3);
+  if(r.bons===r.total){ const J=jx(B); J.etatParfait=true; J.etatsParfaits=(J.etatsParfaits||0)+1; }
+  jalonCheck(B);
+  save();
   BUILDST=null;
   bizDebrief(c, String(r.bons), r.bons+" / "+r.total+" lignes justes", c.debrief(B,r));
 }
@@ -1791,12 +1971,12 @@ function bizDecide(cid,k){
   const B=S.biz, c=bizCase(cid);
   const arg=(document.getElementById("bzArg").value||"").trim();
   const opt=c.options.find(o=>o.k===k);
-  B.answers.push({id:cid,k,arg,month:B.month,q:opt.q,label:opt.label});
+  B.answers.push({id:cid,k,arg,month:B.month,q:opt.q,label:labOf(opt,B)});
   c.apply(B,k);
   bizRebalance();     /* un cas peut sortir du cash sans actif en face : c'est une charge */
   B.seen.push(cid); B.pending=null;
   addXP(12); save();
-  bizDebrief(c,k,opt.label,c.debrief(B,k));
+  bizDebrief(c,k,labOf(opt,B),c.debrief(B,k));
 }
 function bizDebrief(c,k,label,body){
   const arg=(S.biz.answers[S.biz.answers.length-1]||{}).arg||"";
@@ -1804,6 +1984,8 @@ function bizDebrief(c,k,label,body){
     <div class="meta"><span class="tag">${c.concept}</span>Ton choix : <b>${esc(label)}</b></div>
     <div class="story">${body}</div>
     ${(S.biz.level>=2&&c.signal)?`<div class="crit" style="margin:12px 0"><b>Le signal que tu n'as pas eu :</b> ${c.signal}<br><span class="xptxt">À ce niveau, l'app ne te prévient plus avant. Il était dans tes chiffres — c'est là qu'il faut le chercher.</span></div>`:""}
+    ${(()=>{const k=serieActuelle(S.biz);
+      return k>=2?`<div class="crit" style="margin:12px 0;border-color:#453a20"><b>🔥 ${k} décisions au maximum d'affilée.</b> ${k>=6?"Six de suite : c'est le plafond, et presque personne ne l'atteint.":k>=3?"Encore "+(6-k)+" et tu décroches « Six de suite ».":"Encore "+(3-k)+" et tu décroches « Trois de suite »."}</div>`:"";})()}
     <h2 class="sec">Ce qu'il fallait avoir regardé</h2>
     ${c.grid.map(g=>`<div class="gridpt">${g}</div>`).join("")}
     <div class="coach">Relis ce que tu as écrit. Combien de ces points y étaient <b>vraiment</b>, chiffrés ?</div>
