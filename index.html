@@ -2173,13 +2173,50 @@ let view="jour";
 function nav(v){ view=v; document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v)); render(); window.scrollTo(0,0); }
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>nav(b.dataset.v));
 
+/* ================================================================
+   LE COACH, MIS À JOUR LE 2026-09-22.
+   Il ne connaissait que quatre choses — le deal, la leçon, le
+   sparring, les flashcards — et ignorait tout de ce qui a été
+   construit depuis : LES EXOS (le module demandé parce qu'il disait
+   ne pas avoir les bases), LA REPRISE, et une décision en attente
+   dans LA BOÎTE, qui BLOQUE le mois tant qu'elle n'est pas prise.
+   On pouvait donc « valider sa journée » avec quatre paliers à
+   reprendre et une décision gelée depuis une semaine.
+   ⚠️ Ce qui VALIDE la journée n'est pas touché : c'est son streak,
+   et on ne déplace pas la barre sous les pieds de quelqu'un. On
+   ajoute ce que le coach SIGNALE, et on route vers lui.
+   L'ordre est délibéré : ce qui bloque, puis les bases, puis ce qui
+   se perd, puis le menu. ================================== */
+function coachPriorites(){
+  const p=[];
+  const B=S.biz;
+  if(B && B.alive && !B.finished && B.pending){
+    const c=(typeof bizCase==="function")?bizCase(B.pending):null;
+    p.push({k:"biz", t:"🏭 <b>Une décision t'attend dans "+esc(B.name)+"</b>"+(c?" — "+esc(c.title):"")+". Le mois ne passe pas sans elle."});
+  }
+  const faits=(typeof exosFaits==="function")?exosFaits():0;
+  const dus=(typeof exoDus==="function")?exoDus():[];
+  if(dus.length) p.push({k:"reprise", t:"🔁 <b>"+dus.length+" palier"+(dus.length>1?"s":"")+" de calcul à reprendre.</b> Ce qu'on ne révise pas, on l'a juste loué."});
+  else if(faits<3) p.push({k:"exos", t:"🧮 <b>Les bases avant tout le reste.</b> Tu as "+faits+"/12 paliers validés. Le premier est une soustraction — il te prendra trois minutes, et tout le reste de l'app s'appuie dessus."});
+  return p;
+}
 function coachLine(){
   const m=S.menu, nRev=dueRevs().length;
+  const P=coachPriorites();
+  /* Ce qui bloque le mois passe avant tout, même une journée validée. */
+  const bloquant=P.find(x=>x.k==="biz");
+  if(bloquant) return bloquant.t;
   if(m.validated){
-    if(nRev>0) return "Journée validée — mais il te reste <b>"+nRev+" révision"+(nRev>1?"s":"")+"</b> en retard ci-dessous. Ce qu'on ne révise pas, on l'a juste loué.";
-    return "Journée validée, révisions à jour. C'est le niveau attendu, pas un exploit. <b>Reviens demain.</b>";
+    const restes=[];
+    if(nRev>0) restes.push("<b>"+nRev+" révision"+(nRev>1?"s":"")+"</b> en retard");
+    P.filter(x=>x.k!=="biz").forEach(x=>restes.push(x.k==="reprise"
+      ? "<b>"+exoDus().length+" palier"+(exoDus().length>1?"s":"")+"</b> de calcul à reprendre"
+      : "tes <b>paliers de calcul</b> à ouvrir"));
+    if(restes.length) return "Journée validée — mais il te reste "+restes.join(" et ")+" ci-dessous. Ce qu'on ne révise pas, on l'a juste loué.";
+    return "Journée validée, révisions à jour, calculs repris. C'est le niveau attendu, pas un exploit. <b>Reviens demain.</b>";
   }
   if(dispStreak()===0) return "Streak à <b>zéro</b>. En M&A, la régularité n'est pas une qualité, c'est le ticket d'entrée. Trente minutes. Maintenant.";
+  if(P.length) return P[0].t;
   const left=[!m.dDeal&&"le deal",!m.dLesson&&"la leçon",!m.dSpar&&"le sparring",!m.dCards&&"les flashcards"].filter(Boolean);
   if(left.length===4) return "Rien de fait aujourd'hui. Le deal du jour t'attend — <b>on lit d'abord, on brille ensuite</b>.";
   return "Il te reste <b>"+left.join(" et ")+"</b>. On ne laisse pas un menu à moitié terminé — c'est exactement le flou qu'on chasse.";
@@ -2220,6 +2257,19 @@ function vJour(){
   const exoHtml=dusExo.length?`<div class="act rev" onclick="exoReprise()">
     <div class="ico">🔁</div><div class="t"><b>Reprise des calculs — ${dusExo.length} palier${dusExo.length>1?"s":""}</b><small>${dusExo.slice(0,5).map(nn=>{const p=exoPal(nn);return p?p.ic+" "+esc(p.titre):"";}).filter(Boolean).join(" · ")}${dusExo.length>5?" …":""}</small></div>
     <div class="st">›</div></div>`:"";
+  /* La décision en attente BLOQUE le mois : elle mérite sa tuile en tête,
+     pas seulement un onglet où il faut penser à aller. */
+  const bz=S.biz;
+  const bizHtml=(bz && bz.alive && !bz.finished && bz.pending)?(()=>{
+    const c=bizCase(bz.pending);
+    return `<div class="act rev" onclick="nav('boite');setTimeout(bizOpenCase,150)">
+      <div class="ico">${c?c.icon:"🏭"}</div><div class="t"><b>${esc(bz.name)} — une décision t'attend</b><small>${c?esc(c.title):""} · mois ${bz.month}/${bz.horizon}. Le mois ne passe pas sans elle.</small></div>
+      <div class="st">›</div></div>`;})():"";
+  /* Et tant que les bases ne sont pas posées, elles passent devant le reste. */
+  const exoFaits=(typeof exosFaits==="function")?exosFaits():0;
+  const basesHtml=(!dusExo.length && exoFaits<3)?`<div class="act" onclick="exosRoom()">
+    <div class="ico">🧮</div><div class="t"><b>Les exos — pose tes bases</b><small>${exoFaits}/12 paliers validés. Marge, EBITDA, BFR, point mort… puis le FCFF et les bêtas. Chacun ouvre le suivant.</small></div>
+    <div class="st">›</div></div>`:"";
   const nMiss=S.miss.length;
   const missHtml=nMiss?`<div class="act rev" onclick="startRattrapage()">
     <div class="ico">🩹</div><div class="t"><b>Rattrapage — ${nMiss} question${nMiss>1?"s":""} ratée${nMiss>1?"s":""}</b><small>tes erreurs t'attendent. Elles ne partiront pas seules.</small></div>
@@ -2234,7 +2284,9 @@ function vJour(){
     <div class="xptxt">${nr?`${nr[1]-S.xp} XP avant le grade ${nr[0]}`:"Grade maximal. Reste au sommet."}</div>
   </div>
   <div class="coach">${coachLine()}</div>
+  ${bizHtml}
   ${exoHtml}
+  ${basesHtml}
   ${readHtml}
   <div class="act ${m.dLesson?"done":""}" onclick="openLesson('${les.id}')">
     <div class="ico">🎓</div><div class="t"><b>Leçon — ${les.title}</b><small>${MODULES.find(x=>x.id===les.module).name} · cours + quiz (~10 min)</small></div>
