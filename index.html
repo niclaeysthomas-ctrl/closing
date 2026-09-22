@@ -1900,7 +1900,12 @@ function bizOpenCase(){
 }
 
 // ---------- LE PRÊT ----------
+/* Le montant d'une offre de prêt peut dépendre de la boîte — une dette
+   d'acquisition vaut un pourcentage du prix négocié, pas une somme écrite
+   à l'avance. Même logique que labOf pour les libellés d'options. */
+function offAmount(o,B){ B=B||S.biz; return typeof o.amountOf==="function" ? Math.max(0,Math.round(o.amountOf(B))) : (o.amount||0); }
 function bizOpenLoan(c){
+
   const B=S.biz;
   NEGOACTIVE=null;
   openOv(ovTop(c.title)+`
@@ -1909,12 +1914,16 @@ function bizOpenLoan(c){
     <div class="story"><p>${c.setup(B)}</p></div>
     <h2 class="sec">Ce que la banque met sur la table</h2>
     ${c.offers.map(o=>{
-      if(!o.amount) return `<div class="pt"><b>${o.k}. ${o.label}</b></div>`;
-      const pay=loanPayment(o.amount,o.rate,o.months);
+      const amt=offAmount(o,B), lab=typeof o.label==="function"?o.label(B):o.label;
+      if(!amt) return `<div class="pt"><b>${o.k}. ${lab}</b></div>`;
+      const pay=loanPayment(amt,o.rate,o.months);
       const tot=pay*o.months;
-      return `<div class="pt"><b>${o.k}. ${o.label}</b> — taux ${(o.rate*100).toFixed(1)} %
+      /* le montant ne s'affiche que si le libellé ne le porte pas déjà :
+         les offres du niveau 1 l'écrivent dans leur titre (« 15 000 € sur 2 ans ») */
+      const dejaDitAmount=/€/.test(lab);   /* « 75 % en dette » n'est pas un montant : c'est le € qui le dit */
+      return `<div class="pt"><b>${o.k}. ${lab}</b> — ${dejaDitAmount?"":eur(amt)+" · "}taux ${(o.rate*100).toFixed(1).replace(".",",")} %
         <br><b style="color:var(--acc)">${eur(pay)}/mois</b> pendant ${o.months} mois
-        <br><span style="color:var(--dim)">Total remboursé ${eur(tot)} · coût du crédit ${eur(tot-o.amount)}</span></div>`;
+        <br><span style="color:var(--dim)">Total remboursé ${eur(tot)} · coût du crédit ${eur(tot-amt)}</span></div>`;
     }).join("")}
     <div class="coach">La mensualité t'est donnée — c'est du calcul, pas du jugement. Ce qu'on te demande, c'est <b>quel besoin précis tu finances et sur quelle durée ce besoin existe</b>.</div>
     ${bizArgBlock("Je prends… pour financer… ce besoin dure environ… mois, donc…")}
@@ -1926,11 +1935,15 @@ function bizOpenLoan(c){
 function bizTakeLoan(cid,k){
   const B=S.biz, c=bizCase(cid), o=c.offers.find(x=>x.k===k);
   const arg=(document.getElementById("bzArg").value||"").trim();
-  if(o.amount>0){
-    const pay=loanPayment(o.amount,o.rate,o.months);
-    B.loans.push({label:o.label,amount:o.amount,rate:o.rate,months:o.months,left:o.months,principalLeft:o.amount,pay:pay});
-    B.cash+=o.amount; B.debt=(B.debt||0)+o.amount;
+  const amt=offAmount(o,B);
+  if(amt>0){
+    B.loans.push(mkLoan(amt,o.rate,o.months,typeof o.label==="function"?o.label(B):o.label));
+    B.cash+=amt; B.debt=bizDebtOf(B);
   }
+  /* Un cas « prêt » peut avoir des conséquences au-delà de l'encaissement :
+     payer une acquisition, ajouter une tranche mezzanine, s'engager sur un
+     covenant. Le crochet manquait — le niveau 1 n'en avait pas besoin. */
+  if(c.apply){ try{ c.apply(B,k); }catch(e){} }
   bizRebalance();
   B.answers.push({id:cid,k,arg,month:B.month,q:o.q,label:o.label});
   B.seen.push(cid); B.pending=null; addXP(12); save();

@@ -130,6 +130,176 @@ function n2releve(B){
    <br>· impôt sur les sociétés : <b>25 %</b> du résultat avant impôt, arrondi à la centaine`;
 }
 const BIZCASES_N2 = [
+
+/* ============================================================
+   LES TROIS CAS « EN FACE » — ajoutés le 2026-09-21.
+   Le niveau 2 n'avait que des QCM et des tableaux à remplir :
+   aucune négociation, aucun financement structuré, alors que le
+   niveau 1 en a. On y cochait et on y calculait ; on n'y discutait
+   jamais. Or les deux sujets du niveau — le covenant et la
+   valorisation — se jouent EN FACE DE QUELQU'UN.
+   Règle d'écriture des leviers, reprise du niveau 1 : certains
+   portent, certains se retournent, et rien ne dit lesquels. Le
+   pouvoir ne vient pas de ce qu'on demande, il vient de ce qu'on
+   peut faire si l'autre refuse.
+   ============================================================ */
+
+{id:"n2negobanque", lvl:2, type:"nego", ch:4, icon:"🏛️", title:"Négocier ton covenant",
+ concept:"Négocier une clause · asymétrie d'information · BATNA bancaire", lesson:"a2",
+ when:B=>B.level>=2 && B.month>=16 && B.hist.length>=12,
+ signal:"Le comité de crédit demande « quelques précisions ». Ce n'est jamais une formalité.",
+ setup:B=>{const eb=eb12Of(B), lev=eb>0?((bizDebtOf(B)-Math.max(0,B.cash))/eb):null;
+  return `Ta banque accepte de financer ta croissance, mais elle a posé ses conditions : <b>dette nette / EBITDA ≤ 3,0</b>, testé chaque semestre, déchéance du terme au deuxième franchissement.
+   <br><br>Tes chiffres aujourd'hui : EBITDA des 12 derniers mois <b>${eur(Math.max(0,eb))}</b> · dette <b>${eur(bizDebtOf(B))}</b> · trésorerie <b>${eur(B.cash)}</b>${lev!==null?` — soit un levier de <b>${lev.toFixed(2).replace(".",",")}×</b>`:''}.
+   <br><br>Tu as un rendez-vous pour desserrer la clause. <b>Trois arguments, pas un de plus</b> : au-delà, tu dilues et le comité retient celui qui l'arrange.`;},
+ goal:"Desserrer le covenant",
+ max:3,
+ levers:[
+  {k:"a", label:"Tes douze derniers mois de flux d'exploitation, chiffrés", power:3,
+   why:"Le seul argument qui parle vraiment à un banquier : il prête contre une capacité de remboursement, pas contre un résultat comptable. Un historique de flux d'exploitation positif est un fait vérifiable qui sert SON dossier auprès de son propre comité."},
+  {k:"b", label:"Une offre écrite d'une banque concurrente", power:3,
+   why:"Ton BATNA, et il est crédible parce qu'il est écrit. Un chargé d'affaires perd un dossier et une commission ; il a une marge de manœuvre qu'il n'annonce jamais spontanément. C'est le levier le plus puissant, et le seul qui change vraiment le rapport de force."},
+  {k:"c", label:"Proposer un test ANNUEL au lieu de semestriel", power:2,
+   why:"Tu ne demandes pas un ratio plus haut, tu demandes moins d'occasions de le franchir — et c'est souvent plus facile à accorder, parce que ça ne change pas le niveau de risque affiché dans son dossier. Négocier la MÉCANIQUE plutôt que le chiffre : la manœuvre la plus sous-employée du métier."},
+  {k:"d", label:"T'engager toi-même à plafonner tes dividendes", power:2,
+   why:"Tu offres une contrainte qui ne te coûte rien aujourd'hui contre un ratio qui te coûterait cher demain. Négociation intégrative : tu échanges ce qui a peu de valeur pour toi contre ce qui en a beaucoup."},
+  {k:"e", label:"Accepter la caution personnelle pour obtenir 3,5×", power:-2,
+   why:"Tu troques une protection structurelle contre un demi-point de ratio. La caution supprime la responsabilité limitée : le jour où ça tourne mal, tu perds la boîte ET le reste. On ne paie jamais une clause de confort avec son patrimoine personnel."},
+  {k:"f", label:"« De toute façon je n'ai pas d'autre solution »", power:-3,
+   why:"La phrase la plus chère de la négociation bancaire. Tu viens de lui dire que ton BATNA est nul : à partir de là, il n'a plus aucune raison de bouger, et il resserrera même là où tu n'avais rien demandé. Ne JAMAIS révéler qu'on n'a pas d'alternative."},
+  {k:"g", label:"Un prévisionnel optimiste sur trois ans", power:-1,
+   why:"Il en reçoit dix par semaine et il les décote tous de moitié. Un prévisionnel sans historique en face ne pèse rien, et un prévisionnel trop beau abîme ta crédibilité sur le reste du dossier — y compris sur les chiffres qui, eux, étaient vrais."},
+  {k:"h", label:"Demander une période de grâce d'un trimestre", power:2,
+   why:"Tu ne contestes pas le seuil, tu demandes du temps pour corriger avant que la sanction tombe. C'est peu coûteux pour la banque et ça transforme une déchéance du terme en simple alerte. Souvent obtenu, rarement demandé."}
+ ],
+ resolve:(B,picks)=>{
+   const C=BIZCASES_N2.find(c=>c.id==="n2negobanque");
+   const p=picks.reduce((t,k)=>t+C.levers.find(l=>l.k===k).power,0);
+   const seuil=Math.max(2.6, Math.min(4.2, 3 + p*.16));
+   B.covenant={max:Math.round(seuil*10)/10, grace:picks.includes("h")?1:0,
+               annuel:picks.includes("c"), dividendesPlafonnes:picks.includes("d")};
+   if(picks.includes("e")) B.cautionPerso=true;
+   if(p<0) B.rep=Math.max(.7,B.rep-.03);
+   const montant=sc(B,250000);
+   B.loans.push(mkLoan(montant, p>=4?.042:p>=1?.046:.053, 60, "Prêt de développement"));
+   B.cash+=montant; B.debt=bizDebtOf(B); B.capacity*=1.4;
+   return {p, seuil:B.covenant.max, montant};
+ },
+ debrief:(B,picks,r)=>{
+  const eb=eb12Of(B), lev=eb>0?((bizDebtOf(B)-Math.max(0,B.cash))/eb):null;
+  return `
+  <p><b>Tu es reparti avec un covenant à ${String(r.seuil).replace(".",",")}× et ${eur(r.montant)}.</b>${r.seuil>3?" Tu as desserré la clause : c'est de l'air, et l'air ne se voit pas tant qu'on n'en manque pas.":r.seuil<3?" Tu es reparti avec une clause PLUS serrée qu'à l'arrivée — ça arrive, et c'est toujours le résultat d'arguments qui se sont retournés.":" La clause n'a pas bougé."}${B.covenant.annuel?" Test annuel obtenu : quatre occasions de franchir en moins sur cinq ans.":""}${B.covenant.grace?" Et un trimestre de grâce : une alerte au lieu d'une déchéance.":""}</p>
+  <p><b>Ce qu'un banquier achète, ce n'est pas ton résultat : c'est ta capacité à rembourser.</b> Le covenant n'est pas une punition, c'est son instrument de surveillance — il veut être prévenu avant que ça tourne mal, pas après. Tout ce qui lui donne de la visibilité (historique de flux, engagement de dividendes, test annuel) s'échange bien. Tout ce qui lui en retire s'échange mal.</p>
+  <p><b>Et le rapport de force ne tient qu'à une chose : ton alternative.</b> ${picks.includes("b")?"Tu avais une offre concurrente écrite, et c'est elle qui a fait le travail — pas ton éloquence.":"Tu n'avais aucune offre concurrente à poser sur la table. Un chargé d'affaires le sent en trois minutes, et sa marge de manœuvre s'évapore exactement au même moment."}${picks.includes("f")?" Dire à voix haute que tu n'as pas le choix a coûté plus cher que tout ce que tu as demandé ensuite.":""}</p>
+  ${lev!==null?`<p><b>Ton levier après tirage : ${lev.toFixed(2).replace(".",",")}×</b> contre un seuil à ${String(r.seuil).replace(".",",")}×. ${lev>r.seuil*.8?"Tu es déjà dans la zone d'alerte : une baisse d'EBITDA de 20 % te fait franchir la ligne.":"Il te reste de la marge — c'est maintenant qu'il faut décider ce que tu en fais."}</p>`:""}`;},
+ grid:[
+  "Avoir posé ton levier actuel AVANT d'entrer dans la pièce.",
+  "Avoir apporté un fait vérifiable (flux d'exploitation, historique), pas une promesse.",
+  "Avoir compris qu'une alternative écrite vaut plus que n'importe quel argument.",
+  "Avoir négocié la MÉCANIQUE de la clause (fréquence, grâce) et pas seulement le chiffre.",
+  "N'avoir jamais dit que tu n'avais pas d'autre solution.",
+  "Avoir refusé de payer une clause de confort avec ta caution personnelle."
+ ]},
+
+{id:"n2negovendeur", lvl:2, type:"nego", ch:6, icon:"♟️", title:"Négocier le prix avec le vendeur",
+ concept:"Asymétrie d'information · VE vs prix des titres · structuration", lesson:"v3",
+ when:B=>B.level>=2 && B.month>=26 && B.seen.indexOf("n2valo")>=0,
+ signal:"Il t'a relancé deux fois cette semaine. Un vendeur pressé est un vendeur qui a une raison de l'être.",
+ setup:B=>`Le vendeur maintient son prix : <b>${eur(sc(B,1800000))}</b>, « c'est le marché ». Tes diligences ont sorti trois choses qu'il n'a pas mises en avant : un <b>litige prud'homal provisionné à 0 €</b>, un client qui pèse <b>38 % de son chiffre</b>, et un EBITDA qui inclut <b>${eur(sc(B,40000))}</b> de frais personnels du dirigeant, qui disparaîtront avec lui.
+   <br><br>Tu veux ramener le prix vers la valeur des <b>titres</b>, pas de l'entreprise.
+   <br><br><b>Trois arguments.</b> Certains le feront bouger, d'autres lui apprendront que tu tiens absolument à ce deal.`,
+ goal:"Ramener le prix au juste niveau",
+ max:3,
+ levers:[
+  {k:"a", label:"La dette nette se déduit : ton prix est une VE, pas un prix d'actions", power:3,
+   why:"Le point le plus solide, parce qu'il n'est pas négociable : c'est une identité comptable. Valeur d'entreprise − dette nette = prix des titres. Ce n'est pas une opinion sur sa boîte, c'est une règle. Un vendeur qui la conteste se disqualifie lui-même."},
+  {k:"b", label:"Le litige non provisionné, chiffré par ton avocat", power:3,
+   why:"Un risque identifié, chiffré et documenté. Il ne le conteste pas — il ne l'avait simplement pas mis sur la table. Deux issues : il baisse le prix, ou il accepte une garantie d'actif et de passif avec séquestre. Les deux te vont."},
+  {k:"c", label:"L'EBITDA retraité des frais personnels du dirigeant", power:3,
+   why:"C'est la quality of earnings, et c'est le cœur du métier : le multiple s'applique à un EBITDA NORMATIF, celui que la boîte produira sans lui. Retirer ces frais du calcul réduit mécaniquement la valeur d'entreprise — et c'est indiscutable."},
+  {k:"d", label:"Proposer un earn-out sur la rétention du gros client", power:2,
+   why:"Tu ne lui demandes pas de baisser son prix, tu lui demandes de le PROUVER. S'il a raison sur son client, il touchera tout ; s'il a tort, tu ne paies pas ce qui n'existait pas. Un vendeur sincère accepte un earn-out — c'est aussi un test de sa sincérité."},
+  {k:"e", label:"« Cette boîte est exactement ce que je cherche »", power:-3,
+   why:"La phrase qui coûte le plus cher du lot. Tu viens de lui dire que ton alternative est nulle. À partir de là, chaque concession que tu demanderas se paiera ailleurs, et il n'a plus aucune raison de bouger sur le prix."},
+  {k:"f", label:"Lui annoncer que ton financement est déjà bouclé", power:-2,
+   why:"Tu crois montrer ton sérieux, tu montres surtout que tu ne peux plus reculer. Un financement bouclé rassure sur ta capacité à closer — et supprime ton meilleur prétexte pour renégocier. Garde-le pour la fin, quand le prix est arrêté."},
+  {k:"g", label:"La concentration client, sans l'avoir chiffrée", power:-1,
+   why:"Le fait est vrai mais l'argument est creux tant qu'il n'est pas chiffré : combien de CA, quelle marge, quel préavis contractuel ? Sorti à main nue, il se retourne — il répondra que ce client est fidèle depuis quinze ans, et tu n'auras rien à opposer."},
+  {k:"h", label:"Un crédit-vendeur sur trois ans", power:2,
+   why:"Tu le fais rester dans le capital du risque : s'il croit à sa boîte, il accepte d'être payé plus tard. Ça allège ton financement bancaire, ça aligne ses intérêts sur la transition — et son refus, s'il refuse, est lui-même une information."}
+ ],
+ resolve:(B,picks)=>{
+   const C=BIZCASES_N2.find(c=>c.id==="n2negovendeur");
+   const p=picks.reduce((t,k)=>t+C.levers.find(l=>l.k===k).power,0);
+   const ve=sc(B,1800000);
+   const baisse=Math.max(0, Math.min(.34, p*.045));
+   const prix=Math.round(ve*(1-baisse)/1000)*1000;
+   B.negoPrix=prix; B.negoBaisse=baisse;
+   if(picks.includes("d")) B.earnoutPrevu=true;
+   if(picks.includes("h")) B.creditVendeur=true;
+   if(picks.includes("b")) B.gapObtenue=true;
+   if(p<0) B.rep=Math.max(.7,B.rep-.02);
+   return {p, prix, ve, baisse};
+ },
+ debrief:(B,picks,r)=>`
+  <p><b>Tu sors à ${eur(r.prix)}</b>, contre ${eur(r.ve)} annoncés — ${r.baisse>0?`soit <b>${Math.round(r.baisse*100)} % de moins</b>, ${eur(r.ve-r.prix)} que tu ne paieras pas`:`c'est-à-dire au prix affiché : il n'a pas bougé d'un euro`}.${B.gapObtenue?" Et tu repars avec une garantie d'actif et de passif sur le litige.":""}${B.earnoutPrevu?" L'earn-out transfère sur lui le risque du gros client.":""}${B.creditVendeur?" Le crédit-vendeur allège ton financement et le garde impliqué.":""}</p>
+  <p><b>Les trois arguments qui marchent ici ont un point commun : ce ne sont pas des opinions.</b> La dette nette qui se déduit est une identité comptable. Le litige est documenté. Les frais personnels sont dans ses propres comptes. Un vendeur peut refuser une opinion ; il ne peut pas refuser un fait qui figure dans ses livres. <b>En négociation d'acquisition, on n'achète pas moins cher parce qu'on négocie mieux : on achète moins cher parce qu'on a mieux regardé.</b></p>
+  <p><b>Et l'asymétrie d'information joue contre toi par défaut.</b> Il connaît sa boîte, tu ne la connais pas. Les diligences ne servent pas à « vérifier » : elles servent à renverser cette asymétrie, ligne par ligne. ${picks.includes("e")||picks.includes("f")?"Tu as révélé que tu tenais au deal — c'est exactement l'information qu'il lui manquait pour ne plus bouger.":"Tu n'as rien révélé de ton empressement : c'est ce qui t'a laissé une marge de manœuvre jusqu'au bout."}</p>`,
+ grid:[
+  "Avoir distingué valeur d'entreprise et prix des titres, et l'avoir dit.",
+  "Avoir chiffré chaque risque avant de le poser sur la table.",
+  "Avoir retraité l'EBITDA de ce qui disparaîtra avec le vendeur.",
+  "Avoir proposé une structure (earn-out, crédit-vendeur) plutôt que de marchander un montant.",
+  "N'avoir jamais montré à quel point tu voulais ce deal."
+ ]},
+
+{id:"n2acqui", lvl:2, type:"loan", ch:7, icon:"🏗️", title:"Comment tu finances l'acquisition",
+ concept:"Structuration du financement · service de la dette · DSCR", lesson:"a4",
+ when:B=>B.level>=2 && B.month>=30 && (B.negoPrix||B.acquired),
+ signal:"Le vendeur a signé la lettre d'intention. Le financement, lui, n'est pas bouclé.",
+ setup:B=>{const prix=B.negoPrix||sc(B,1440000), eb=Math.max(1,eb12Of(B));
+  return `Prix arrêté : <b>${eur(prix)}</b>. Ta trésorerie : <b>${eur(B.cash)}</b>. Ton EBITDA des douze derniers mois : <b>${eur(eb)}</b>, celui de la cible environ <b>${eur(sc(B,300000))}</b>.
+   <br><br>Quatre montages sur la table. Ils ne coûtent pas le même prix, et surtout ils ne pèsent pas la même chose <b>chaque mois</b>.
+   <br><br>Avant de choisir : calcule la <b>mensualité rapportée à l'EBITDA combiné</b>. C'est elle qui dit si le montage tient, pas le taux affiché.`;},
+ offers:[
+  {k:"N", amount:0, months:0, rate:0, label:"Tu renonces — le montage ne tient pas", q:0},
+  {k:"A", amountOf:B=>Math.round(((B.negoPrix||sc(B,1440000))*.75)/1000)*1000, months:84, rate:.05,
+   label:"75 % en dette senior sur 7 ans, le reste en cash", q:2},
+  {k:"B", amountOf:B=>Math.round(((B.negoPrix||sc(B,1440000))*.95)/1000)*1000, months:84, rate:.062,
+   label:"95 % en dette, 7 ans, taux plus élevé", q:-1},
+  {k:"C", amountOf:B=>Math.round(((B.negoPrix||sc(B,1440000))*.55)/1000)*1000, months:60, rate:.046,
+   label:"55 % en dette sur 5 ans, tu mets plus de cash", q:1}
+ ],
+ apply:(B,k)=>{
+   if(k==="N") return;
+   const prix=B.negoPrix||sc(B,1440000);
+   /* ⚠️ Le moteur a DÉJÀ encaissé le produit de l'emprunt avant d'appeler
+      apply. Le prix se déduit donc EN ENTIER : la dette a financé une
+      partie du chèque, elle ne le remplace pas. Première version : on ne
+      retirait que l'apport, et l'acquisition RAPPORTAIT du cash. */
+   B.cash-=prix;
+   B.acquired=true;
+   B.goodwill=(B.goodwill||0)+Math.round(prix*.55);
+   B.demandMult*=1.6; B.fc+=sc(B,14000);
+   if(k==="B") B.surEndette=true;
+ },
+ debrief:(B,k)=>{
+  const l=B.loans[B.loans.length-1], eb=Math.max(1,eb12Of(B));
+  const ebComb=eb+sc(B,300000);
+  const service=l&&l.pay?l.pay*12:0;
+  const dscr=service>0?ebComb/service:null;
+  return `
+  <p><b>Le taux n'est pas ce qui tue un montage. C'est le service de la dette.</b> ${l&&l.pay?`Tu rembourses <b>${eur(l.pay)} par mois</b>, soit <b>${eur(service)} par an</b>, contre un EBITDA combiné d'environ <b>${eur(ebComb)}</b>.`:"Tu n'as pris aucune dette — ton service annuel est nul, et ta trésorerie a tout encaissé."}${dscr!==null?` Ton ratio de couverture (EBITDA ÷ service de la dette) vaut <b>${dscr.toFixed(2).replace(".",",")}</b>.`:""}</p>
+  ${dscr!==null?`<p>${dscr>=1.8?"<b>Au-dessus de 1,8 : le montage respire.</b> Tu peux absorber une mauvaise année sans appeler ton banquier.":dscr>=1.3?"<b>Entre 1,3 et 1,8 : c'est tenable, mais sans marge.</b> Une baisse d'EBITDA de 25 % et tu ne couvres plus. C'est la zone où l'on signe des covenants qu'on regrette.":"<b>Sous 1,3 : tu as acheté une boîte que tu ne peux pas payer.</b> Le moindre accroc — un client perdu, un retard d'intégration — te met en défaut. C'est comme ça que meurent les acquisitions réussies."}</p>`:""}
+  <p><b>Maximiser la dette n'est pas maximiser le rendement.</b> Plus de dette augmente ton TRI si tout se passe bien, et transforme le moindre trou d'air en cessation de paiements si ça ne se passe pas bien. Le levier ne crée pas de valeur : il amplifie celle que tu crées, et celle que tu détruis, exactement dans les mêmes proportions.</p>
+  <p><b>Et la question que personne ne pose au bon moment</b> : de quoi la boîte rachetée a-t-elle besoin les douze prochains mois ? Une acquisition financée à 95 % ne laisse rien pour intégrer, recruter, remplacer le dirigeant qui part. ${k==="B"?"C'est exactement ce que tu viens de faire.":k==="N"?"Tu as renoncé — vérifie que c'était un calcul et pas un recul.":"Tu as gardé du cash pour le lendemain du deal : c'est là que la moitié des acquisitions se jouent."}</p>`;},
+ grid:[
+  "Avoir calculé la mensualité et l'avoir rapportée à l'EBITDA combiné, pas au prix.",
+  "Avoir regardé le ratio de couverture avant le taux.",
+  "Avoir gardé de la trésorerie pour l'après-deal, pas seulement pour le deal.",
+  "Avoir compris que le levier amplifie dans les deux sens.",
+  "Avoir vu que la dette d'acquisition se rembourse avec l'EBITDA de la CIBLE, pas avec des synergies espérées."
+ ]},
 {id:"n2cr", lvl:2, type:"build", ch:3, icon:"🧾",
  title:"Construis ton compte de résultat",
  concept:"Du relevé d'opérations aux soldes intermédiaires de gestion", lesson:"b1",
