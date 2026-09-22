@@ -1548,6 +1548,22 @@ function calcVars(){
     const cur=EXS.ex[EXS.e];
     const out=(cur.donnees||[]).map(d=>[d[0], d[1]]);
     (EXS.acquis||[]).forEach(a=>out.push(["✓ "+a.lab, a.val]));
+    /* Une question peut porter ses propres chiffres — « le coût des ventes
+       passera à 143 200 € », « ramener le délai à 25 jours ». Ils font partie
+       de l'énoncé autant que le tableau : la calculatrice les offre aussi,
+       sinon il doit les retaper à la main au milieu d'un calcul.
+       Seuil à 100 : en dessous (pourcentages, nombres de jours), une puce
+       coûte plus d'attention qu'elle n'en fait gagner. */
+    const it=cur.questions&&cur.questions[EXS.q];
+    if(it&&it.q){
+      const vus=new Set(out.map(x=>Math.round(x[1]*1000)/1000));
+      (String(it.q).match(/\d[\d\u202f\u00a0 ]*(?:,\d+)?/g)||[]).forEach(t=>{
+        const v=parseFloat(t.replace(/[\u202f\u00a0 ]/g,"").replace(",","."));
+        if(!isFinite(v)||v<100) return;
+        const k=Math.round(v*1000)/1000; if(vus.has(k)) return;
+        vus.add(k); out.push(["énoncé", v]);
+      });
+    }
     return out;
   }
   const B=S.biz; if(!B) return [];
@@ -2342,6 +2358,8 @@ function vDeals(){
    Les chiffres sont tirés à chaque série : on ne mémorise pas une
    réponse, on apprend un geste. ================================= */
 const EXO_SERIE=3;        /* exercices par séance (chacun porte 2 à 4 questions) */
+const EXO_QMAX=3;         /* questions posées par exercice — le palier en propose plus */
+const EXO_QREV=2;         /* en reprise, on prend moins par palier : c'est le mélange qui compte */
 const EXO_SEUIL=.80;      /* pour valider un palier et ouvrir le suivant */
 function exosSt(){
   if(!S.exos) S.exos={cur:1,p:{}}; if(!S.exos.p) S.exos.p={}; if(!S.exos.cur) S.exos.cur=1;
@@ -2418,6 +2436,31 @@ function exoRng(){
   /* Générateur simple : on veut du hasard à chaque série, pas de la
      reproductibilité — l'intérêt est justement que les chiffres changent. */
   return { ent:(a,b)=>a+Math.floor(Math.random()*(b-a+1)) };
+}
+/* ⚠️ UN EXERCICE NE POSE PAS TOUT CE QUE LE PALIER SAIT DEMANDER.
+   Mesuré le 2026-09-22 : une séance du palier 4 posait TROIS FOIS les
+   mêmes trois questions, dans le même ordre, à trente secondes
+   d'intervalle — seuls les chiffres changeaient. On n'apprend pas une
+   notion comme ça, on apprend une position dans une liste.
+   Chaque palier propose donc un POOL. La première question est le socle,
+   toujours demandée ; les autres tournent selon l'exercice. Deux
+   exercices de la même série ne posent plus le même jeu, et l'ordre
+   d'origine est préservé — une question peut supposer la précédente
+   comprise, jamais calculée. */
+function exoVarie(g,k,max){
+  if(!g) return g;
+  max=max||EXO_QMAX;
+  const cx=g.contextes;
+  if(cx && cx.length) g.contexte=cx[((k%cx.length)+cx.length)%cx.length];
+  const qs=g.questions||[];
+  if(qs.length>max && max>=1){
+    const opt=qs.slice(1), keep=new Set([qs[0]]);
+    /* le pas vaut la largeur de la fenêtre : deux exercices consécutifs
+       ne se recouvrent pas, sinon on repose la moitié du jeu précédent. */
+    for(let j=0;j<max-1;j++) keep.add(opt[((k*(max-1)+j)%opt.length+opt.length)%opt.length]);
+    g.questions=qs.filter(q=>keep.has(q));
+  }
+  return g;
 }
 function exoTol(q){
   if(q.tol!==undefined) return q.tol;
@@ -2502,8 +2545,8 @@ function exoPalRoom(n){
 let EXS=null;
 function exoStart(n){
   const p=exoPal(n); if(!p) return;
-  const R=exoRng(), ex=[];
-  for(let i=0;i<EXO_SERIE;i++){ try{ ex.push(p.gen(R)); }catch(e){} }
+  const R=exoRng(), ex=[], rot=Math.floor(Math.random()*11);
+  for(let i=0;i<EXO_SERIE;i++){ try{ ex.push(exoVarie(p.gen(R), rot+i)); }catch(e){} }
   if(!ex.length) return toast("Impossible de générer la série.");
   EXS={n, p, ex, e:0, q:0, bons:0, total:ex.reduce((t,x)=>t+x.questions.length,0), answered:false, rates:[], acquis:[]};
   exoDraw();
@@ -2513,10 +2556,10 @@ function exoStart(n){
    palier en bloc, c'est se souvenir du bloc, pas de la formule. */
 function exoReprise(){
   const dus=exoDus(); if(!dus.length){ toast('Rien à reprendre aujourd\'hui.'); return exosRoom(); }
-  const R=exoRng(), ex=[];
-  dus.slice(0,4).forEach(nn=>{
+  const R=exoRng(), ex=[], rot=Math.floor(Math.random()*11);
+  dus.slice(0,4).forEach((nn,ix)=>{
     const p=exoPal(nn); if(!p) return;
-    const e=p.gen(R);
+    const e=exoVarie(p.gen(R), rot+ix, EXO_QREV);
     e.questions.forEach(q=>q.pal=nn);
     e.palIc=p.ic; e.palTitre=p.titre; e.palN=nn;
     ex.push(e);

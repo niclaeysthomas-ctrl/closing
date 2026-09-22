@@ -1,5 +1,5 @@
 // LE CLOSING — service worker : cache-first, app 100 % hors-ligne
-const CACHE = "closing-v24-coach";
+const CACHE = "closing-v25-exos-pool";
 const ASSETS = [
   "./",
   "./index.html",
