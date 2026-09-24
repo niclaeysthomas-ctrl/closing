@@ -321,6 +321,7 @@
 <script src="data-boite-jalons.js"></script>
 <script src="data-exos.js"></script>
 <script src="data-cas.js"></script>
+<script src="data-chiffrage.js"></script>
 <script src="data-boite-n2.js"></script>
 <script src="data-boite-n3.js"></script>
 <script src="data-deals-tech.js"></script>
@@ -2685,6 +2686,138 @@ function casFin(){
   CAS_ST=null; casRoom();
 }
 
+/* ================================================================
+   LE CHIFFRAGE — le calcul de tête, chronométré.
+   Ajouté le 2026-09-24, suite de LE CAS.
+
+   ⚠️ LE CHRONO MESURE, IL NE SANCTIONNE PAS. En entretien, la vitesse
+   compte — mais une app qui fait échouer sur le temps apprend à
+   paniquer, pas à calculer. On enregistre donc le temps par item, on
+   le montre, on garde un record par famille, et c'est tout.
+
+   ⚠️ LES TOLÉRANCES SONT LARGES sur les familles d'estimation
+   (`tolPct` par famille). Arrondir n'est pas tricher : c'est la
+   compétence qu'on entraîne. L'écran le dit explicitement, sinon il
+   croirait que l'app est laxiste.
+   ================================================================ */
+const CHIF_SERIE=10;
+let CHF=null;
+function chifSt(){ if(!S.chif) S.chif={fam:{}, series:0}; if(!S.chif.fam) S.chif.fam={}; return S.chif; }
+function chifFam(id){ const st=chifSt(); return st.fam[id]||(st.fam[id]={vus:0,bons:0,best:null,msTot:0}); }
+/* ⚠️ UN ITEM PEUT ÉLARGIR LA TOLÉRANCE DE SA FAMILLE.
+   Mesuré le 2026-09-24 : deux familles REJETAIENT la méthode qu'elles
+   enseignent. Le raccourci « ÷52 ≈ ×2÷100 » se trompe systématiquement
+   de 4,0 % — exactement la tolérance de la famille. Et l'approximation
+   « (1+x)ⁿ ≈ 1+n·x » s'écartait jusqu'à 18 % sur les items générés.
+   Une app qui punit son propre enseignement apprend à s'en méfier. */
+function chifTol(f,val,it){
+  const p=(it&&it.tolPct!==undefined)?it.tolPct:(f.tolPct||0);
+  return Math.max(Math.abs(val)*p/100, p?0.05:1e-9);
+}
+function chifMs(ms){ return ms<1000?Math.round(ms)+" ms":(ms/1000).toFixed(1).replace(".",",")+" s"; }
+
+function chifRoom(){
+  const st=chifSt();
+  const lignes=CHIFFRAGE.map(f=>{
+    const e=chifFam(f.id);
+    const part=e.vus?Math.round(e.bons/e.vus*100):0;
+    const moy=e.bons?chifMs(e.msTot/e.bons):"—";
+    return `<div class="mod${e.best!==null?" gold":""}" onclick="chifStart('${f.id}')">
+      <div class="ico">${f.ic}</div>
+      <div class="t"><b>${esc(f.nom)}</b><small>${esc(f.sujet)}${e.vus?` · ${part} % justes · ${moy} en moyenne`:""}${e.best!==null?` · record <b style="color:var(--acc)">${e.best}/${CHIF_SERIE}</b>`:""}</small></div>
+      <div class="pc">›</div></div>`;}).join("");
+  openOv(ovTop("⚡ Le chiffrage")+`
+    <p class="sub">En entretien, personne ne demande 47 × 83. On demande « ça fait combien, à peu près ? » — et ce qui se note est la <b>vitesse</b>, l'<b>ordre de grandeur</b>, et le fait de ne pas se taire pendant qu'on cherche. Huit familles, dix items par série, sans calculatrice.</p>
+    <div class="crit" style="margin:10px 0"><b>Arrondir n'est pas tricher.</b> Sauf sur les pourcentages exacts, une réponse approchée est acceptée — c'est précisément la compétence qu'on entraîne. Chaque famille indique sa tolérance.</div>
+    <div class="mod gold" onclick="chifStart('mix')">
+      <div class="ico">🎲</div><div class="t"><b>Tout mélangé</b><small>Dix items tirés dans les huit familles. C'est le vrai test : en entretien, on ne sait pas quelle famille arrive.</small></div>
+      <div class="pc">›</div></div>
+    ${lignes}
+    <div class="xptxt" style="margin-top:10px">Le chrono mesure, il ne sanctionne pas. Il est là pour que tu voies ton temps baisser.</div>`);
+}
+
+function chifStart(famId){
+  const R={ent:(a,b)=>a+Math.floor(Math.random()*(b-a+1))};
+  const pool = famId==='mix' ? CHIFFRAGE : CHIFFRAGE.filter(f=>f.id===famId);
+  if(!pool.length) return;
+  const items=[];
+  for(let i=0;i<CHIF_SERIE;i++){
+    const f=pool[famId==='mix'?Math.floor(Math.random()*pool.length):0];
+    try{ const it=f.gen(R); it.fam=f; items.push(it); }catch(e){}
+  }
+  if(!items.length) return toast("Impossible de générer la série.");
+  CHF={famId, items, i:0, bons:0, ms:[], t0:Date.now(), rates:[]};
+  chifDraw();
+}
+function chifQuit(){ CHF=null; chifRoom(); }
+
+function chifDraw(){
+  if(!CHF) return;
+  const it=CHF.items[CHF.i], f=it.fam;
+  const fait=CHF.ms.length?chifMs(CHF.ms.reduce((a,b)=>a+b,0)/CHF.ms.length):"—";
+  openOv(ovTop("⚡ "+(CHF.famId==='mix'?"Tout mélangé":f.nom))+`
+    <div class="meta"><span class="tag">${f.ic} ${esc(f.nom)}</span>item ${CHF.i+1} / ${CHF.items.length}</div>
+    <div class="xptxt" style="margin:-4px 0 8px">${CHF.bons}/${CHF.i} justes · ${fait} par item${(()=>{const p=it.tolPct!==undefined?it.tolPct:f.tolPct; return p?` · réponse acceptée à ±${p} %`:" · réponse exacte attendue";})()}</div>
+    <div class="card"><h2 style="font-size:19px;line-height:1.45">${it.q}</h2></div>
+    <div class="bldr" style="border:none;padding:12px 0">
+      <div class="lb" style="flex:0 0 auto;color:var(--dim);font-size:12px">De tête</div>
+      <input id="chifIn" inputmode="decimal" placeholder="${it.unit||"nombre"}"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();chifCheck();}">
+      <div style="flex:0 0 26px;color:var(--dim);font-weight:800">${it.unit||""}</div>
+    </div>
+    <button class="btn" id="chifGo" onclick="chifCheck()">Valider</button>
+    <div id="chifOut"></div>
+    <button class="btn ghost mt" onclick="chifQuit()">Arrêter la série</button>`);
+  CHF.t0=Date.now();
+  setTimeout(()=>{ const i=document.getElementById("chifIn"); if(i) i.focus(); },120);
+}
+function chifCheck(){
+  if(!CHF||CHF.verrou) return; CHF.verrou=1;
+  const it=CHF.items[CHF.i], f=it.fam;
+  const ms=Date.now()-CHF.t0; CHF.ms.push(ms);
+  const v=bldNum((document.getElementById("chifIn")||{}).value||"");
+  const ok = v!==null && Math.abs(v-it.val)<=chifTol(f,it.val,it);
+  if(ok) CHF.bons++; else CHF.rates.push(it);
+  const e=chifFam(f.id); e.vus++; if(ok){ e.bons++; e.msTot+=ms; }
+  const inp=document.getElementById("chifIn"); if(inp) inp.disabled=true;
+  const go=document.getElementById("chifGo"); if(go) go.remove();
+  /* l'ordre de grandeur est nommé à part : se tromper d'un facteur dix
+     n'est pas la même faute qu'un arrondi, et ne se corrige pas pareil. */
+  const facteur = !ok && v!==null && it.val!==0 && (()=>{ const r=Math.abs(v/it.val);
+    return (r>=9.5&&r<=10.5)||(r>=0.095&&r<=0.105)||(r>=95&&r<=105)||(r>=0.0095&&r<=0.0105); })();
+  const dernier=CHF.i===CHF.items.length-1;
+  document.getElementById("chifOut").innerHTML=`
+    <div class="expl ${ok?"ok":"no"}">${ok?`✅ Juste · ${chifMs(ms)}`
+      : facteur?`❌ <b>Le calcul est bon, l'ordre de grandeur non.</b> Tu t'es trompé d'un facteur dix : la réponse est <b>${cf(it.val)}${it.unit?" "+it.unit:""}</b>. C'est l'erreur qui se remarque le plus en entretien, et elle ne vient jamais du calcul — elle vient des zéros.`
+      : `❌ La réponse est <b>${cf(it.val)}${it.unit?" "+it.unit:""}</b> · ${chifMs(ms)}`}</div>
+    <div class="bldfix" style="padding:10px 0"><b>De tête :</b> ${it.calcul}</div>
+    <div class="crit" style="margin:8px 0"><b>La technique :</b> ${it.truc}</div>
+    <button class="btn" onclick="CHF.verrou=0;${dernier?"chifFin()":"CHF.i++;chifDraw()"}">${dernier?"Voir le résultat":"Suivant"}</button>`;
+  save();
+}
+function chifFin(){
+  if(!CHF) return;
+  const {famId,items,bons,ms,rates}=CHF;
+  const tot=items.length, moy=ms.length?ms.reduce((a,b)=>a+b,0)/ms.length:0;
+  const st=chifSt(); st.series=(st.series||0)+1;
+  let record=false;
+  if(famId!=='mix'){ const e=chifFam(famId); if(e.best===null||bons>e.best){ e.best=bons; record=true; } }
+  addXP(4+bons*2+(bons===tot?15:0));
+  save();
+  openOv(ovTop("Résultat")+`
+    <div class="card" style="text-align:center;border-color:${bons===tot?"var(--ok)":"var(--line)"}">
+      <div style="font-size:42px">${bons===tot?"⚡":bons>=tot*0.7?"✅":"🔁"}</div>
+      <h2 style="font-size:26px;margin-top:6px">${bons} / ${tot}</h2>
+      <div class="sub mt"><b>${chifMs(moy)}</b> par item en moyenne${record?" · <b style=\"color:var(--acc)\">nouveau record</b>":""}</div>
+      <div class="sub mt">${moy<8000?"Ce rythme-là tient en entretien.":moy<15000?"Correct. En entretien, on vise moins de huit secondes sur ces familles.":"Le calcul est là, la vitesse viendra : c'est la répétition qui la fait, pas l'effort."}</div>
+    </div>
+    ${rates.length?`<div class="card"><div class="lab" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--bad);font-weight:800;margin-bottom:8px">Les techniques à reprendre</div>
+      ${rates.map(r=>`<div class="bldfix" style="padding:8px 0"><b>${r.q}</b><br>${r.truc}</div>`).join("")}</div>`:""}
+    <button class="btn" onclick="chifStart('${famId}')">Refaire une série</button>
+    <button class="btn ghost" onclick="chifQuit()">‹ Le chiffrage</button>`);
+  CHF=null;
+}
+
 /* ---------- l'échelle ---------- */
 function exosRoom(){
   const st=exosSt();
@@ -2912,6 +3045,10 @@ function vAcad(){
   <div class="mod gold" onclick="exosRoom()" style="border-color:#453a20">
     <div class="ico">${exoDus().length?"🔁":"🧮"}</div><div class="t"><b>Les exos — les calculs, depuis le début</b><small>${exosFaits()}/${EXOS.length} paliers validés${exoDus().length?` · <b style="color:var(--acc)">${exoDus().length} à reprendre</b>`:""}. Deux pistes : <b>le socle</b> (marge, EBITDA, BFR, point mort… jusqu'au FCFF, au WACC et aux bêtas) et <b>le prix</b> (l'élasticité, de sa lecture au prix optimal). Chaque marche ouvre la suivante.</small></div>
     <div class="pc">${exoDus().length||exosFaits()||"›"}</div>
+  </div>
+  <div class="mod gold" onclick="chifRoom()" style="border-color:#453a20">
+    <div class="ico">⚡</div><div class="t"><b>Le chiffrage — calculer de tête, sous chrono</b><small>${CHIFFRAGE.length} familles : pourcentages, variations, points contre pour cent, fractions, ordres de grandeur, divisions, règle de 72, conversions. Dix items par série, sans calculatrice. ${(()=>{const t=chifSt().series||0;return t?t+" série"+(t>1?"s":"")+" faite"+(t>1?"s":""):"C'est la vitesse qui se note en entretien.";})()}</small></div>
+    <div class="pc">›</div>
   </div>
   <div class="mod gold" onclick="casRoom()" style="border-color:#453a20">
     <div class="ico">🧠</div><div class="t"><b>Le cas — l'entretien de conseil</b><small>${casFaits()}/${CAS.length} cas traités. Cadrer, découper, chiffrer, conclure : la démarche qu'on note en entretien, pas les connaissances. Rentabilité, market sizing, entrée sur un marché, pricing.</small></div>

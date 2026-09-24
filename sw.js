@@ -1,5 +1,5 @@
 // LE CLOSING — service worker : cache-first, app 100 % hors-ligne
-const CACHE = "closing-v28-lecas";
+const CACHE = "closing-v29-chiffrage";
 const ASSETS = [
   "./",
   "./index.html",
@@ -19,6 +19,7 @@ const ASSETS = [
   "./data-boite-jalons.js",
   "./data-exos.js",
   "./data-cas.js",
+  "./data-chiffrage.js",
   "./data-boite-n2.js",
   "./data-boite-n3.js",
   "./data-deals-tech.js",
