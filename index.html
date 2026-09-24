@@ -2612,12 +2612,28 @@ function casOpen(id){
 }
 function casQuit(){ CAS_ST=null; casRoom(); }
 
+/* ⚠️ LA SÉQUENCE EST NOMMÉE, PAS NUMÉROTÉE.
+   Un cas mené par l'examinateur comporte souvent un EXHIBIT — un
+   tableau ou un graphique qu'on te tend en demandant « qu'en
+   concluez-vous ? ». C'est une étape à part entière (fiche 6 du
+   briefing), et elle n'existe que dans certains cas. Numéroter les
+   étapes en dur obligerait à renuméroter à chaque ajout. */
+function casSeq(c){
+  const e=["clarif","structure"];
+  if(c.exhibit) e.push("exhibit");
+  e.push("chiffres","reco","fin");
+  return e;
+}
+const CAS_TETES={clarif:"① Cadrer",structure:"② Découper",exhibit:"③ Lire l'exhibit",
+  chiffres:"Chiffrer",reco:"Conclure",fin:"Débriefing"};
+function casNom(){ return casSeq(CAS_ST.c)[CAS_ST.etape]; }
+function casSuivant(){ CAS_ST.verrou=0; CAS_ST.etape++; CAS_ST.qi=0; casDraw(); }
 function casDraw(){
   if(!CAS_ST) return;
-  const {c,etape}=CAS_ST;
-  const tetes=["① Cadrer","② Découper","③ Chiffrer","④ Conclure","Débriefing"];
-  const head=`<div class="meta"><span class="tag">${tetes[etape]}</span>${esc(c.type)} · niveau ${c.niveau}</div>`;
-  if(etape===0){
+  const {c}=CAS_ST, nom=casNom();
+  const seq=casSeq(c), num=seq.indexOf(nom)+1;
+  const head=`<div class="meta"><span class="tag">${["①","②","③","④","⑤","⑥"][num-1]||""} ${esc((CAS_TETES[nom]||"").replace(/^[①②③④⑤⑥]\s*/,""))}</span>${esc(c.type)} · niveau ${c.niveau}</div>`;
+  if(nom==="clarif"){
     openOv(ovTop(c.ic+" "+c.titre)+head+`
       <div class="card"><div class="lab" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--acc);font-weight:800;margin-bottom:8px">Le client</div>
         <div class="story"><p><b>${esc(c.client)}</b></p><p>${c.enonce}</p></div></div>
@@ -2628,8 +2644,8 @@ function casDraw(){
       <button class="btn ghost" onclick="casQuit()">‹ Les cas</button>`);
     return;
   }
-  if(etape===1||etape===3){
-    const b=etape===1?c.structure:c.reco;
+  if(nom==="structure"||nom==="reco"){
+    const b=nom==="structure"?c.structure:c.reco;
     openOv(ovTop(c.ic+" "+c.titre)+head+`
       ${b.rappel?`<div class="card"><div class="story"><p>${b.rappel}</p></div></div>`:""}
       <div class="crit" style="margin:10px 0"><b>${b.q}</b></div>
@@ -2638,7 +2654,23 @@ function casDraw(){
       <button class="btn ghost mt" onclick="casQuit()">‹ Les cas</button>`);
     return;
   }
-  if(etape===2){
+  if(nom==="exhibit"){
+    const x=c.exhibit;
+    openOv(ovTop(c.ic+" "+c.titre)+head+`
+      <div class="xptxt" style="margin-bottom:8px">On te tend ce document sans commentaire. Prends trente secondes pour le lire <b>avant</b> de conclure : titre, colonnes, unités, période — puis seulement ce qu'il dit.</div>
+      <div class="card"><div class="lab" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--acc);font-weight:800;margin-bottom:8px">${esc(x.titre)}</div>
+        <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:14px">
+          <tr>${x.colonnes.map((h,i)=>`<th style="text-align:${i?"right":"left"};padding:6px 8px;border-bottom:1px solid var(--acc);font-size:12px;color:var(--dim);font-weight:700">${esc(h)}</th>`).join("")}</tr>
+          ${x.lignes.map(l=>`<tr>${l.map((v,i)=>`<td style="text-align:${i?"right":"left"};padding:6px 8px;border-bottom:1px solid var(--line);${i?"font-weight:700;white-space:nowrap":""}">${esc(v)}</td>`).join("")}</tr>`).join("")}
+        </table></div>
+        ${x.note?`<div class="xptxt" style="margin-top:8px">${esc(x.note)}</div>`:""}</div>
+      <div class="crit" style="margin:10px 0"><b>${x.q}</b></div>
+      <div id="casOpts">${x.opts.map((o,i)=>`<div class="mod" onclick="casExhibit(${i})"><div class="ico">${"ABCD"[i]}</div><div class="t"><small>${esc(o)}</small></div></div>`).join("")}</div>
+      <div id="casOut"></div>
+      <button class="btn ghost mt" onclick="casQuit()">‹ Les cas</button>`);
+    return;
+  }
+  if(nom==="chiffres"){
     const ch=c.chiffres, q=ch.questions[CAS_ST.qi||0];
     openOv(ovTop(c.ic+" "+c.titre)+head+`
       <div class="card"><div class="story"><p>${ch.contexte}</p></div>
@@ -2688,16 +2720,25 @@ function casClarif(){
   document.getElementById("casOut").innerHTML=`
     <div class="expl ${bons===3?"ok":"no"}">${bons}/3 — ${bons===3?"les trois bonnes.":"voici ce que chacune apportait."}</div>
     ${c.clarif.opts.map(o=>`<div class="bldfix" style="padding:6px 0">${o.bon?"✅":"⬜️"} <b>${esc(o.t)}</b><br><small>${esc(o.why)}</small></div>`).join("")}
-    <button class="btn mt" onclick="CAS_ST.etape=1;casDraw()">Découper le problème ›</button>`;
+    <button class="btn mt" onclick="casSuivant()">Découper le problème ›</button>`;
 }
 function casQcm(i){
   if(!CAS_ST||CAS_ST.verrou) return; CAS_ST.verrou=1;
-  const c=CAS_ST.c, b=CAS_ST.etape===1?c.structure:c.reco, ok=i===b.a;
+  const c=CAS_ST.c, nom=casNom(), b=nom==="structure"?c.structure:c.reco, ok=i===b.a;
   CAS_ST.score+=ok?1:0; CAS_ST.total+=1;
   document.getElementById("casOut").innerHTML=`
     <div class="expl ${ok?"ok":"no"}">${ok?"✅ Juste.":"❌ La réponse est <b>"+"ABCD"[b.a]+"</b> — "+esc(b.opts[b.a])}</div>
     <div class="crit" style="margin:8px 0">${b.exp}</div>
-    <button class="btn mt" onclick="CAS_ST.verrou=0;CAS_ST.etape=${CAS_ST.etape===1?2:4};CAS_ST.qi=0;casDraw()">${CAS_ST.etape===1?"Chiffrer ›":"Voir le débriefing ›"}</button>`;
+    <button class="btn mt" onclick="casSuivant()">${nom==="structure"?(c.exhibit?"Lire l'exhibit ›":"Chiffrer ›"):"Voir le débriefing ›"}</button>`;
+}
+function casExhibit(i){
+  if(!CAS_ST||CAS_ST.verrou) return; CAS_ST.verrou=1;
+  const x=CAS_ST.c.exhibit, ok=i===x.a;
+  CAS_ST.score+=ok?1:0; CAS_ST.total+=1;
+  document.getElementById("casOut").innerHTML=`
+    <div class="expl ${ok?"ok":"no"}">${ok?"✅ Juste.":"❌ La réponse est <b>"+"ABCD"[x.a]+"</b> — "+esc(x.opts[x.a])}</div>
+    <div class="crit" style="margin:8px 0">${x.exp}</div>
+    <button class="btn mt" onclick="casSuivant()">Chiffrer ›</button>`;
 }
 function casChiffre(){
   if(!CAS_ST) return;
@@ -2716,7 +2757,7 @@ function casChiffre(){
       :"❌ La réponse est <b>"+exoFmt(it.val,it.unit)+"</b>"}</div>
     <div class="bldfix" style="padding:10px 0"><b>Le calcul :</b> ${it.calcul}</div>
     <div class="crit" style="margin:8px 0"><b>Ce qu'un associé en retient :</b> ${it.cle}</div>
-    <button class="btn mt" onclick="${dernier?"CAS_ST.etape=3;casDraw()":"CAS_ST.qi="+(qi+1)+";casDraw()"}">${dernier?"Conclure ›":"Question suivante"}</button>`;
+    <button class="btn mt" onclick="${dernier?"casSuivant()":"CAS_ST.qi="+(qi+1)+";casDraw()"}">${dernier?"Conclure ›":"Question suivante"}</button>`;
 }
 function casFin(){
   if(!CAS_ST) return;

@@ -427,7 +427,92 @@ const CAS = [
   "Avoir refusé l'objectif du client sans le rejeter — en le chiffrant.",
   "Avoir traduit les points de marge en pourcentage de résultat.",
   "Avoir écarté la fermeture en expliquant l'absorption des coûts de structure.",
-  "Avoir proposé un geste de diagnostic avant un plan d'action."]}
+  "Avoir proposé un geste de diagnostic avant un plan d'action."]},
+
+{id:"cas7", ic:"☁️", titre:"Basculer en abonnement, ou tenir la licence", type:"Stratégie · modèle économique", format:"mené par l'examinateur", duree:"40 min", niveau:4,
+ client:"Un éditeur français de logiciels de gestion, 2 000 clients, vendus en licence perpétuelle.",
+ enonce:`« Nous vendons une licence <b>30 000 €</b> une fois, plus une maintenance annuelle de <b>18 %</b>. Deux concurrents sont passés à l'abonnement : <b>12 000 € par an</b>, tout compris. Nos commerciaux disent qu'ils perdent des appels d'offres. Notre directeur financier dit que basculer nous ferait perdre un quart de notre chiffre d'affaires.
+   <br><br>Les deux ont raison. Que fait-on ? »
+   <br><br>⚠️ Cet entretien est <b>mené par l'examinateur</b> : il te posera ses questions dans son ordre, y compris un document à lire. Réponds complètement à chacune, sans chercher à reprendre la main.`,
+ clarif:{q:"Il commence par te laisser poser trois questions. Choisis-les bien : tu n'en auras pas d'autres.",
+  opts:[
+   {t:"Combien de temps un client reste-t-il, en moyenne, dans chaque modèle ?", bon:true,
+    why:"La question qui décide de tout. Un abonnement ne vaut que par sa durée : il faut environ quatre ans et demi pour qu'un client en abonnement rapporte autant qu'une licence. En dessous, la bascule détruit de la valeur ; au-dessus, elle en crée massivement. Sans la durée de vie client, aucune des deux positions n'est défendable."},
+   {t:"Perd-on des appels d'offres à cause du MODÈLE de facturation, ou du produit lui-même ?", bon:true,
+    why:"Si le produit décroche, passer à l'abonnement ne fera que faire payer moins cher un produit qu'on n'achète déjà plus. C'est le contrôle d'hypothèse qui évite de résoudre le mauvais problème — et la plainte des commerciaux ne suffit pas à trancher."},
+   {t:"Le parc existant migrerait-il, ou seules les nouvelles ventes basculeraient-elles ?", bon:true,
+    why:"Deux stratégies totalement différentes. Migrer 2 000 clients payant déjà une maintenance récurrente vers un abonnement, c'est renoncer volontairement à une rente ; ne basculer que les ventes nouvelles limite le trou. Le périmètre doit être fixé avant tout chiffrage."},
+   {t:"Quelle est la part de marché des deux concurrents ?", bon:false,
+    why:"Un chiffre de contexte. Il ne change ni l'arithmétique de la bascule, ni le périmètre, ni la durée de vie client."},
+   {t:"Quelle technologie utilisent-ils ?", bon:false,
+    why:"Question d'exécution : elle arrive une fois la décision prise, pas avant."},
+   {t:"Quel est le budget de recherche et développement ?", bon:false,
+    why:"Il pèsera sur la faisabilité, pas sur le choix de modèle. On ne le regarde qu'après avoir décidé si la bascule a un sens."}
+  ]},
+ structure:{q:"Comment poses-tu le problème ?",
+  rappel:"Le piège de ce cas est de raisonner en <b>chiffre d'affaires annuel</b>, ce que fait le directeur financier. Un changement de modèle de facturation ne se juge pas sur une année : il se juge sur la <b>valeur d'un client sur sa durée de vie</b>, et sur la <b>trajectoire</b> qui mène d'un modèle à l'autre.",
+  opts:[
+   "Je compare le chiffre d'affaires de l'année prochaine dans les deux modèles",
+   "Je compare la valeur d'un client sur sa durée de vie dans les deux modèles, puis je regarde la trajectoire du chiffre d'affaires pendant la transition — et je traite les deux comme deux questions distinctes",
+   "Je regarde les marges des deux concurrents",
+   "J'évalue le coût technique de la migration vers le cloud"],
+  a:1, exp:"Deux questions, et il faut refuser de les mélanger. <b>« Le modèle est-il meilleur ? »</b> se répond par client, sur sa durée de vie. <b>« Peut-on survivre à la transition ? »</b> se répond par la trajectoire de trésorerie. Un candidat qui n'en traite qu'une donne une réponse à moitié — et c'est exactement pour ça que le commercial et le financier n'arrivent pas à se parler : ils ne répondent pas à la même question."},
+ exhibit:{titre:"Chiffre d'affaires projeté selon le modèle retenu",
+  note:"Hypothèse : le parc existant de 2 000 clients reste en maintenance ; seules les ventes nouvelles (250 par an) basculent en abonnement.",
+  colonnes:["Année","Licence","Abonnement","Écart"],
+  lignes:[["1","18,3 M€","13,8 M€","−24,6 %"],["2","19,7 M€","16,8 M€","−14,5 %"],
+          ["3","21,0 M€","19,8 M€","−5,7 %"],["4","22,4 M€","22,8 M€","+2,0 %"],
+          ["5","23,7 M€","25,8 M€","+8,9 %"]],
+  q:"Qu'en conclus-tu ?",
+  opts:["L'abonnement est moins rentable : il rapporte moins pendant trois ans",
+   "L'abonnement passe devant en année 4, au prix de trois années de chiffre d'affaires inférieur — un creux de 24,6 % la première année",
+   "Les deux trajectoires sont équivalentes",
+   "La licence croît plus vite et restera devant"],
+  a:1, exp:"La lecture correcte nomme <b>les deux choses</b> : le creux ET le croisement. Dire « moins rentable » confond d'ailleurs chiffre d'affaires et rentabilité — ce tableau ne dit rien des marges.<br><br>⚠️ Et le réflexe qui distingue vraiment : <b>ce qui n'est PAS sur ce tableau</b>. Il s'arrête à cinq ans, alors que l'écart continue de se creuser ensuite. Il est en chiffre d'affaires, pas en trésorerie — or un abonnement encaisse mensuellement là où une licence encaisse d'un coup. Et il suppose zéro perte de clients, ce qui est l'hypothèse la plus fragile de tout le cas."},
+ chiffres:{contexte:"Il te donne les chiffres unitaires et te demande de raisonner par client.",
+  donnees:[["Prix de la licence",30000,"€"],["Maintenance annuelle",18,"%"],
+           ["Abonnement annuel équivalent",12000,"€"],["Nouvelles ventes par an",250,""],
+           ["Parc de clients existant",2000,""]],
+  questions:[
+   {q:"Combien rapporte la maintenance annuelle par client ?", val:5400, unit:"€",
+    calcul:"30 000 € × 18 % = <b>5 400 €</b>",
+    cle:"C'est la rente du modèle licence, et elle est bien plus importante que ne le croient les éditeurs qui veulent basculer : elle représente déjà 59 % du chiffre d'affaires total."},
+   {q:"Au bout de combien d'années un client en abonnement rapporte-t-il autant qu'un client en licence ?",
+    val:4.55, unit:"", tol:.25,
+    calcul:"On cherche n tel que 12 000n = 30 000 + 5 400n · 6 600n = 30 000 · n = <b>4,55 ans</b>",
+    cle:"C'est LE chiffre du cas. Tout se joue autour de lui : si les clients restent plus de quatre ans et demi, l'abonnement gagne ; sinon il perd. Et cette durée-là, on la connaît — c'est la première question qu'on a posée."},
+   {q:"Sur huit ans, combien rapporte un client en licence ?", val:73200, unit:"€",
+    calcul:"30 000 € + 8 × 5 400 € = 30 000 + 43 200 = <b>73 200 €</b>",
+    cle:"Le modèle licence ne s'arrête jamais de rapporter tant que le client paie sa maintenance. C'est ce que les partisans de la bascule oublient systématiquement."},
+   {q:"Et un client en abonnement sur huit ans ?", val:96000, unit:"€",
+    calcul:"8 × 12 000 € = <b>96 000 €</b>, soit 31 % de plus",
+    cle:"Sur une durée de vie longue, l'abonnement est nettement supérieur. Le modèle n'est pas moins rentable : il est plus lent."},
+   {q:"Un client en abonnement qui partirait au bout de 3 ans rapporterait combien de MOINS qu'un client en licence sur la même période ?",
+    val:10200, unit:"€",
+    calcul:"Licence sur 3 ans : 30 000 + 3 × 5 400 = 46 200 € · abonnement : 3 × 12 000 = 36 000 € · écart <b>10 200 €</b>",
+    cle:"Voilà le risque, chiffré. En abonnement, on ne gagne rien tant que le client ne dure pas — et on perd 10 200 € par client qui part à trois ans. La rétention n'est plus un indicateur marketing, elle devient le modèle économique."},
+   {q:"Quel est le creux de chiffre d'affaires la première année, en euros ?", val:4500000, unit:"€",
+    calcul:"250 × 30 000 € = 7 500 000 € de licences remplacées par 250 × 12 000 € = 3 000 000 € · creux de <b>4 500 000 €</b>",
+    cle:"Le directeur financier a raison sur les faits et tort sur la conclusion. Ce trou est réel, il dure trois ans, et il se finance — ce n'est pas un argument contre la bascule, c'est le coût d'entrée qu'il faut savoir porter."}
+  ]},
+ reco:{q:"L'examinateur te dit : « votre client entre dans l'ascenseur. Trente secondes. »",
+  opts:[
+   "Basculer immédiatement l'intégralité du parc en abonnement",
+   "Basculer les ventes nouvelles, garder le parc existant en maintenance, et conditionner la décision à un seul chiffre : une durée de vie client supérieure à cinq ans. Le creux de 4,5 M€ dure trois ans et doit être financé d'avance — c'est un coût d'entrée, pas une objection",
+   "Ne rien changer : la licence rapporte plus",
+   "Baisser le prix de la licence à 12 000 € pour s'aligner"],
+  a:1, exp:"La recommandation nomme <b>le périmètre</b> (ventes nouvelles seulement), <b>la condition</b> (la durée de vie client, seul chiffre qui fait basculer la réponse) et <b>le coût assumé</b> (4,5 M€ à financer sur trois ans). La quatrième option est le piège le plus tentant : aligner le prix de la licence sur 12 000 € détruirait la marge sans rien apporter du modèle par abonnement — on prendrait la baisse de prix sans la récurrence."},
+ debrief:`<p><b>Ce cas est de niveau 4 pour une raison précise : les deux camps ont raison, et la réponse n'est ni l'un ni l'autre.</b> Le commercial voit qu'on perd des appels d'offres. Le financier voit qu'on perdrait un quart du chiffre d'affaires. Les deux constats sont exacts — ils ne répondent simplement pas à la même question.</p>
+  <p><b>Le geste central</b> est de séparer « le modèle est-il meilleur ? » (qui se répond par client, sur sa durée de vie) de « peut-on survivre à la transition ? » (qui se répond par la trésorerie). Un candidat qui mélange les deux tourne en rond, quelle que soit la qualité de ses calculs.</p>
+  <p><b>Le chiffre qui tranche</b> est le point d'équilibre : 4,55 ans. Il transforme un débat d'opinion en condition vérifiable — « basculez si vos clients restent plus de cinq ans ». C'est le genre de phrase qu'un dirigeant peut emporter en comité.</p>
+  <p>⚠️ <b>Et la lecture de l'exhibit</b> était la vraie difficulté. Le tableau s'arrête à cinq ans, il est en chiffre d'affaires et non en trésorerie, et il suppose zéro perte de clients. Les trois limites étaient visibles sans aucun calcul — et c'est ce qu'un examinateur note le plus haut : ne pas se laisser conduire par les données qu'on te tend.</p>`,
+ grid:["Avoir posé la durée de vie client en première question — sans elle, aucune position n'est défendable.",
+  "Avoir séparé « le modèle est-il meilleur » de « peut-on survivre à la transition ».",
+  "Avoir raisonné par client sur sa durée de vie, et non en chiffre d'affaires annuel.",
+  "Avoir nommé les limites de l'exhibit sans qu'on le demande (horizon, CA ≠ trésorerie, zéro churn).",
+  "Avoir donné au dirigeant une CONDITION vérifiable, pas un avis.",
+  "Avoir assumé le creux de 4,5 M€ comme un coût d'entrée à financer, au lieu de le contourner.",
+  "N'avoir pas repris la main : cet entretien était mené par l'examinateur."]}
 
 ];
 
