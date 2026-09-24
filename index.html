@@ -2750,7 +2750,7 @@ function vAcad(){
   const cd=cardsDue().length, cm=cardsMastered();
   return `<h1 class="page">Académie</h1><div class="sub">${S.done.lessons.length}/${LESSONS.length} leçons. Du bilan au SPA — le juridique n'est pas en option.</div>
   <div class="mod gold" onclick="exosRoom()" style="border-color:#453a20">
-    <div class="ico">${exoDus().length?"🔁":"🧮"}</div><div class="t"><b>Les exos — les calculs, depuis le début</b><small>${exosFaits()}/12 paliers validés${exoDus().length?` · <b style="color:var(--acc)">${exoDus().length} à reprendre</b>`:""}. Je te donne les chiffres, tu calcules : marge, EBITDA, BFR, point mort… jusqu'au FCFF, au WACC et aux bêtas. Chacun ouvre le suivant.</small></div>
+    <div class="ico">${exoDus().length?"🔁":"🧮"}</div><div class="t"><b>Les exos — les calculs, depuis le début</b><small>${exosFaits()}/${EXOS.length} paliers validés${exoDus().length?` · <b style="color:var(--acc)">${exoDus().length} à reprendre</b>`:""}. Deux pistes : <b>le socle</b> (marge, EBITDA, BFR, point mort… jusqu'au FCFF, au WACC et aux bêtas) et <b>le prix</b> (l'élasticité, de sa lecture au prix optimal). Chaque marche ouvre la suivante.</small></div>
     <div class="pc">${exoDus().length||exosFaits()||"›"}</div>
   </div>
   <div class="mod gold" onclick="openCardIntro()">
