@@ -2559,9 +2559,47 @@ function casRoom(){
       <div class="pc">${f?"✓":"›"}</div></div>`;}).join("");
   openOv(ovTop("🧠 Le cas")+`
     <p class="sub">L'entretien de conseil ne teste pas ce que tu sais : il teste comment tu attaques un problème que tu découvres. Quatre temps, toujours les mêmes — <b>cadrer</b>, <b>découper</b>, <b>chiffrer</b>, <b>conclure</b>. On ne saute pas le premier : un candidat qui se jette sur les chiffres a déjà perdu.</p>
+    <div class="mod gold" onclick="casBrief()" style="border-color:#453a20">
+      <div class="ico">📓</div><div class="t"><b>Le briefing — à lire avant</b><small>${briefFaits()}/${CAS_BRIEF.length} fiches. Ce qu'on te note vraiment, qui mène l'entretien selon les cabinets, les sept premières minutes, structurer sans réciter, calculer à voix haute, lire un graphique, la synthèse, les fautes qui éliminent.</small></div>
+      <div class="pc">${briefFaits()||"›"}</div>
+    </div>
     <div class="crit" style="margin:10px 0"><b>${casFaits()}/${CAS.length} cas traités.</b> ${casFaits()===0?"Commence par le 1 : c'est le plus fréquent en entretien.":"Refaire un cas ne sert à rien de suivi — ce qui compte est la démarche, pas la réponse."}</div>
     ${lignes}
     <div class="xptxt" style="margin-top:10px">⚠️ Les chiffres d'un cas ne sont JAMAIS donnés d'avance. En entretien, on les demande. Ici, ils arrivent au temps ③ — et pas avant.</div>`);
+}
+
+/* ---------- LE BRIEFING : les conseils, avant les cas ----------
+   ⚠️ Placé AVANT la liste des cas et non dans un coin : demandé
+   explicitement (« beaucoup de conseils au début »), et c'est la
+   partie qui fait le plus de différence pour quelqu'un qui n'a
+   jamais passé d'entretien de cas. Un module de cas sans briefing
+   entraîne à répéter ses propres fautes. */
+function briefLu(id){ const st=casEtat(); return !!(st.brief&&st.brief[id]); }
+function briefFaits(){ return CAS_BRIEF.filter(f=>briefLu(f.id)).length; }
+function casBrief(){
+  const lignes=CAS_BRIEF.map(f=>`
+    <div class="mod${briefLu(f.id)?" gold":""}" onclick="briefOpen('${f.id}')">
+      <div class="ico">${f.ic}</div>
+      <div class="t"><b>${esc(f.titre)}</b><small>${esc(f.sujet)}</small></div>
+      <div class="pc">${briefLu(f.id)?"✓":"›"}</div></div>`).join("");
+  openOv(ovTop("📓 Le briefing")+`
+    <p class="sub">Ce qu'il faut savoir <b>avant</b> de faire un cas. Les critères sur lesquels on te note, la mécanique des deux écoles d'entretien, l'ouverture, la structuration, le calcul à voix haute, la lecture d'un graphique, la synthèse — et la liste des fautes qui éliminent.</p>
+    <div class="crit" style="margin:10px 0"><b>${briefFaits()}/${CAS_BRIEF.length} fiches lues.</b> ${briefFaits()===0?"Lis au moins les trois premières avant ton premier cas : elles changent la façon dont tu l'abordes.":briefFaits()<CAS_BRIEF.length?"Les suivantes se lisent bien entre deux cas.":"Tout est lu — relis la 8 la veille d'un entretien."}</div>
+    ${lignes}
+    <div class="xptxt" style="margin-top:10px">⚠️ Les process des cabinets évoluent (tests en ligne, cas écrits, entretiens de groupe selon les bureaux). Ce qui est écrit ici est ce qui ne change pas : les critères, la mécanique, les fautes. Pour le format exact d'un process donné, la page carrières du cabinet fait foi.</div>
+    <button class="btn ghost mt" onclick="casRoom()">‹ Les cas</button>`);
+}
+function briefOpen(id){
+  const f=CAS_BRIEF.find(x=>x.id===id); if(!f) return;
+  const st=casEtat(); if(!st.brief) st.brief={}; st.brief[id]=1; save();
+  const i=CAS_BRIEF.findIndex(x=>x.id===id), suiv=CAS_BRIEF[i+1];
+  openOv(ovTop(f.ic+" "+f.titre)+`
+    <div class="meta"><span class="tag">Fiche ${i+1} / ${CAS_BRIEF.length}</span>${esc(f.sujet)}</div>
+    <div class="card"><div class="story">${f.contenu.map(p=>`<p>${p}</p>`).join("")}</div></div>
+    <div class="card"><div class="lab" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--acc);font-weight:800;margin-bottom:8px">À retenir</div>
+      ${f.cles.map(k=>`<div class="crit" style="margin:6px 0">${esc(k)}</div>`).join("")}</div>
+    ${suiv?`<button class="btn" onclick="briefOpen('${suiv.id}')">${esc(suiv.ic)} ${esc(suiv.titre)} ›</button>`:`<button class="btn" onclick="casRoom()">Passer aux cas ›</button>`}
+    <button class="btn ghost" onclick="casBrief()">‹ Le briefing</button>`);
 }
 
 function casOpen(id){
