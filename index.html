@@ -320,6 +320,7 @@
 <script src="data-boite-marche.js"></script>
 <script src="data-boite-jalons.js"></script>
 <script src="data-exos.js"></script>
+<script src="data-cas.js"></script>
 <script src="data-boite-n2.js"></script>
 <script src="data-boite-n3.js"></script>
 <script src="data-deals-tech.js"></script>
@@ -2525,6 +2526,165 @@ function exoFmt(v,u){
   return String(Math.round(v*1000)/1000).replace(".",",");
 }
 
+/* ================================================================
+   LE CAS — l'entretien de conseil, en quatre temps.
+   Ajouté le 2026-09-24, sur « je me destine au consulting ».
+
+   ⚠️ CE QUI DISTINGUE UN CAS D'UN EXERCICE. Un exo a une réponse ;
+   un cas a une DÉMARCHE. Ce qui est noté en entretien, dans l'ordre :
+   ce qu'on demande AVANT de se lancer, la façon dont on découpe le
+   problème, la justesse du chiffrage, et le « donc » final. Le
+   module suit donc ces quatre temps, et refuse de les mélanger.
+
+   ① CADRER  — choisir les 3 questions qui changent la suite (parmi 6).
+   ② DÉCOUPER — la décomposition qui sert ce problème-là, pas un
+                 cadre appris par cœur.
+   ③ CHIFFRER — les calculs, avec la même mécanique que LES EXOS.
+   ④ CONCLURE — le « donc », le risque, le prochain pas.
+   Puis une GRILLE que l'on s'applique à soi-même, façon CASCADES :
+   c'est le seul endroit où l'app ne peut pas noter à sa place.
+   ================================================================ */
+let CAS_ST=null;
+function casEtat(){ if(!S.cas) S.cas={}; return S.cas; }
+function casFait(id){ return !!casEtat()[id]; }
+function casFaits(){ return CAS.filter(c=>casFait(c.id)).length; }
+
+function casRoom(){
+  const lignes=CAS.map(c=>{
+    const f=casEtat()[c.id];
+    return `<div class="mod${f?" gold":""}" onclick="casOpen('${c.id}')">
+      <div class="ico">${c.ic}</div>
+      <div class="t"><b>${esc(c.titre)}</b><small>${esc(c.type)} · ${esc(c.duree)} · niveau ${c.niveau}${f?` · <b style="color:var(--ok)">fait — ${f.score}/${f.total}</b>`:""}</small></div>
+      <div class="pc">${f?"✓":"›"}</div></div>`;}).join("");
+  openOv(ovTop("🧠 Le cas")+`
+    <p class="sub">L'entretien de conseil ne teste pas ce que tu sais : il teste comment tu attaques un problème que tu découvres. Quatre temps, toujours les mêmes — <b>cadrer</b>, <b>découper</b>, <b>chiffrer</b>, <b>conclure</b>. On ne saute pas le premier : un candidat qui se jette sur les chiffres a déjà perdu.</p>
+    <div class="crit" style="margin:10px 0"><b>${casFaits()}/${CAS.length} cas traités.</b> ${casFaits()===0?"Commence par le 1 : c'est le plus fréquent en entretien.":"Refaire un cas ne sert à rien de suivi — ce qui compte est la démarche, pas la réponse."}</div>
+    ${lignes}
+    <div class="xptxt" style="margin-top:10px">⚠️ Les chiffres d'un cas ne sont JAMAIS donnés d'avance. En entretien, on les demande. Ici, ils arrivent au temps ③ — et pas avant.</div>`);
+}
+
+function casOpen(id){
+  const c=CAS.find(x=>x.id===id); if(!c) return;
+  CAS_ST={c, etape:0, score:0, total:0, rep:{}, acquis:[]};
+  casDraw();
+}
+function casQuit(){ CAS_ST=null; casRoom(); }
+
+function casDraw(){
+  if(!CAS_ST) return;
+  const {c,etape}=CAS_ST;
+  const tetes=["① Cadrer","② Découper","③ Chiffrer","④ Conclure","Débriefing"];
+  const head=`<div class="meta"><span class="tag">${tetes[etape]}</span>${esc(c.type)} · niveau ${c.niveau}</div>`;
+  if(etape===0){
+    openOv(ovTop(c.ic+" "+c.titre)+head+`
+      <div class="card"><div class="lab" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--acc);font-weight:800;margin-bottom:8px">Le client</div>
+        <div class="story"><p><b>${esc(c.client)}</b></p><p>${c.enonce}</p></div></div>
+      <div class="crit" style="margin:10px 0"><b>${c.clarif.q}</b></div>
+      <div id="casOpts">${c.clarif.opts.map((o,i)=>`<div class="mod" id="cl${i}" onclick="casPick(${i})"><div class="ico">○</div><div class="t"><small>${esc(o.t)}</small></div></div>`).join("")}</div>
+      <div id="casOut"></div>
+      <button class="btn mt" id="casGo" onclick="casClarif()">Valider mes trois questions</button>
+      <button class="btn ghost" onclick="casQuit()">‹ Les cas</button>`);
+    return;
+  }
+  if(etape===1||etape===3){
+    const b=etape===1?c.structure:c.reco;
+    openOv(ovTop(c.ic+" "+c.titre)+head+`
+      ${b.rappel?`<div class="card"><div class="story"><p>${b.rappel}</p></div></div>`:""}
+      <div class="crit" style="margin:10px 0"><b>${b.q}</b></div>
+      <div id="casOpts">${b.opts.map((o,i)=>`<div class="mod" onclick="casQcm(${i})"><div class="ico">${"ABCD"[i]}</div><div class="t"><small>${esc(o)}</small></div></div>`).join("")}</div>
+      <div id="casOut"></div>
+      <button class="btn ghost mt" onclick="casQuit()">‹ Les cas</button>`);
+    return;
+  }
+  if(etape===2){
+    const ch=c.chiffres, q=ch.questions[CAS_ST.qi||0];
+    openOv(ovTop(c.ic+" "+c.titre)+head+`
+      <div class="card"><div class="story"><p>${ch.contexte}</p></div>
+        <div class="bld">${ch.donnees.map(d=>`<div class="bldr" style="border-bottom:1px solid var(--line)"><div class="lb">${esc(d[0])}</div><div style="font-weight:800;font-size:15px;white-space:nowrap">${exoFmt(d[1],d[2])}</div></div>`).join("")}</div></div>
+      <div class="xptxt">Question ${(CAS_ST.qi||0)+1} / ${ch.questions.length}</div>
+      <div class="crit" style="margin:8px 0"><b>${q.q}</b></div>
+      <div class="bldr" style="border:none;padding:12px 0">
+        <div class="lb" style="flex:0 0 auto;color:var(--dim);font-size:12px">Ta réponse</div>
+        <input id="casIn" inputmode="decimal" placeholder="${q.unit||"nombre"}"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();casChiffre();}">
+        <div style="flex:0 0 26px;color:var(--dim);font-weight:800">${q.unit||""}</div>
+      </div>
+      <div id="casOut"></div>
+      <button class="btn mt" id="casGo" onclick="casChiffre()">Vérifier</button>
+      <button class="btn ghost" onclick="casQuit()">‹ Les cas</button>`);
+    setTimeout(()=>{const e=document.getElementById("casIn"); if(e) e.focus();},80);
+    return;
+  }
+  /* ---- débriefing + la grille qu'il s'applique ---- */
+  const f=CAS_ST;
+  openOv(ovTop(c.ic+" "+c.titre)+head+`
+    <div class="crit" style="margin:8px 0;text-align:center"><b style="font-size:22px">${f.score}/${f.total}</b><br><small>sur les quatre temps</small></div>
+    <div class="card"><div class="lab" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--acc);font-weight:800;margin-bottom:8px">Ce que l'entretien attendait</div>
+      <div class="story">${c.debrief}</div></div>
+    <div class="card"><div class="lab" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--acc);font-weight:800;margin-bottom:8px">La grille — à t'appliquer honnêtement</div>
+      <div class="sub" style="margin-bottom:6px">L'app peut noter un calcul. Elle ne peut pas noter ta façon de parler pendant que tu cherches. Ces points-là, personne ne les cochera à ta place.</div>
+      ${c.grid.map(g=>`<div class="crit" style="margin:6px 0">☐ ${esc(g)}</div>`).join("")}</div>
+    <button class="btn" onclick="casFin()">Terminer</button>
+    <button class="btn ghost" onclick="casQuit()">‹ Les cas</button>`);
+}
+
+function casPick(i){
+  if(!CAS_ST) return;
+  const sel=CAS_ST.rep.clarif||(CAS_ST.rep.clarif=[]);
+  const k=sel.indexOf(i);
+  if(k>=0) sel.splice(k,1); else { if(sel.length>=3) return toast("Trois questions, pas plus — en entretien, le temps est la contrainte."); sel.push(i); }
+  const el=document.getElementById("cl"+i);
+  if(el){ el.querySelector(".ico").textContent = sel.indexOf(i)>=0?"●":"○"; el.classList.toggle("gold", sel.indexOf(i)>=0); }
+}
+function casClarif(){
+  if(!CAS_ST) return;
+  const sel=CAS_ST.rep.clarif||[];
+  if(sel.length!==3) return toast("Choisis-en exactement trois.");
+  const c=CAS_ST.c, bons=sel.filter(i=>c.clarif.opts[i].bon).length;
+  CAS_ST.score+=bons; CAS_ST.total+=3;
+  const go=document.getElementById("casGo"); if(go) go.remove();
+  document.getElementById("casOut").innerHTML=`
+    <div class="expl ${bons===3?"ok":"no"}">${bons}/3 — ${bons===3?"les trois bonnes.":"voici ce que chacune apportait."}</div>
+    ${c.clarif.opts.map(o=>`<div class="bldfix" style="padding:6px 0">${o.bon?"✅":"⬜️"} <b>${esc(o.t)}</b><br><small>${esc(o.why)}</small></div>`).join("")}
+    <button class="btn mt" onclick="CAS_ST.etape=1;casDraw()">Découper le problème ›</button>`;
+}
+function casQcm(i){
+  if(!CAS_ST||CAS_ST.verrou) return; CAS_ST.verrou=1;
+  const c=CAS_ST.c, b=CAS_ST.etape===1?c.structure:c.reco, ok=i===b.a;
+  CAS_ST.score+=ok?1:0; CAS_ST.total+=1;
+  document.getElementById("casOut").innerHTML=`
+    <div class="expl ${ok?"ok":"no"}">${ok?"✅ Juste.":"❌ La réponse est <b>"+"ABCD"[b.a]+"</b> — "+esc(b.opts[b.a])}</div>
+    <div class="crit" style="margin:8px 0">${b.exp}</div>
+    <button class="btn mt" onclick="CAS_ST.verrou=0;CAS_ST.etape=${CAS_ST.etape===1?2:4};CAS_ST.qi=0;casDraw()">${CAS_ST.etape===1?"Chiffrer ›":"Voir le débriefing ›"}</button>`;
+}
+function casChiffre(){
+  if(!CAS_ST) return;
+  const c=CAS_ST.c, qs=c.chiffres.questions, qi=CAS_ST.qi||0, it=qs[qi];
+  const v=bldNum((document.getElementById("casIn")||{}).value||"");
+  const tol=it.tol!==undefined?it.tol:(it.unit==="%"?.5:it.unit==="€"?Math.max(100,Math.abs(it.val)*.02):Math.max(1,Math.abs(it.val)*.02));
+  const ok=v!==null && Math.abs(v-it.val)<=tol;
+  CAS_ST.score+=ok?1:0; CAS_ST.total+=1;
+  const inp=document.getElementById("casIn"); if(inp) inp.disabled=true;
+  const go=document.getElementById("casGo"); if(go) go.remove();
+  const dernier=qi===qs.length-1;
+  /* ⚠️ en entretien on enchaîne sur SON chiffre ; ici on redonne le bon,
+     sinon une erreur au premier calcul en fabrique trois. */
+  document.getElementById("casOut").innerHTML=`
+    <div class="expl ${ok?"ok":"no"}">${ok?"✅ Juste."
+      :"❌ La réponse est <b>"+exoFmt(it.val,it.unit)+"</b>"}</div>
+    <div class="bldfix" style="padding:10px 0"><b>Le calcul :</b> ${it.calcul}</div>
+    <div class="crit" style="margin:8px 0"><b>Ce qu'un associé en retient :</b> ${it.cle}</div>
+    <button class="btn mt" onclick="${dernier?"CAS_ST.etape=3;casDraw()":"CAS_ST.qi="+(qi+1)+";casDraw()"}">${dernier?"Conclure ›":"Question suivante"}</button>`;
+}
+function casFin(){
+  if(!CAS_ST) return;
+  const {c,score,total}=CAS_ST;
+  casEtat()[c.id]={score,total,d:exoAujourdhui()};
+  const xp=10+score*2; addXP(xp); save();
+  toast(`+${xp} XP · ${score}/${total}`);
+  CAS_ST=null; casRoom();
+}
+
 /* ---------- l'échelle ---------- */
 function exosRoom(){
   const st=exosSt();
@@ -2752,6 +2912,10 @@ function vAcad(){
   <div class="mod gold" onclick="exosRoom()" style="border-color:#453a20">
     <div class="ico">${exoDus().length?"🔁":"🧮"}</div><div class="t"><b>Les exos — les calculs, depuis le début</b><small>${exosFaits()}/${EXOS.length} paliers validés${exoDus().length?` · <b style="color:var(--acc)">${exoDus().length} à reprendre</b>`:""}. Deux pistes : <b>le socle</b> (marge, EBITDA, BFR, point mort… jusqu'au FCFF, au WACC et aux bêtas) et <b>le prix</b> (l'élasticité, de sa lecture au prix optimal). Chaque marche ouvre la suivante.</small></div>
     <div class="pc">${exoDus().length||exosFaits()||"›"}</div>
+  </div>
+  <div class="mod gold" onclick="casRoom()" style="border-color:#453a20">
+    <div class="ico">🧠</div><div class="t"><b>Le cas — l'entretien de conseil</b><small>${casFaits()}/${CAS.length} cas traités. Cadrer, découper, chiffrer, conclure : la démarche qu'on note en entretien, pas les connaissances. Rentabilité, market sizing, entrée sur un marché, pricing.</small></div>
+    <div class="pc">${casFaits()||"›"}</div>
   </div>
   <div class="mod gold" onclick="openCardIntro()">
     <div class="ico">🃏</div><div class="t"><b>Flashcards — révision espacée</b><small>${cd?cd+" carte"+(cd>1?"s":"")+" due"+(cd>1?"s":"")+" · ":""}${cm} maîtrisée${cm>1?"s":""} sur ${FLASHCARDS.length}. Vocabulaire, multiples, réalité du métier.</small></div>
