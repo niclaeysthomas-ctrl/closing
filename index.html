@@ -2431,7 +2431,37 @@ function exoPointFaible(){
   return pire;
 }
 
-function exoOuvert(n){ return n===1 || exoEtat(n-1).valide; }
+/* ⚠️ DEUX PISTES, PAS UNE SEULE ÉCHELLE.
+   Les paliers 1-12 (« socle ») forment la chaîne d'origine : chacun ouvre
+   le suivant. L'élasticité est un thème à part, dont les bases sont plus
+   simples que le bêta de Hamada : la mettre en 13e marche l'aurait
+   enfermée derrière tout le reste. Elle a donc sa propre chaîne, qui
+   s'ouvre à sa première marche. On ne saute toujours pas de marche —
+   mais on ne monte plus un seul escalier. */
+const PISTES={
+  socle:{nom:"Le socle",ic:"🧮",intro:"Je te donne les chiffres, tu calcules. Chaque palier ouvre le suivant : on ne saute pas une marche. Le premier est une soustraction, le dernier désendette un bêta."},
+  prix:{nom:"Le prix",ic:"🎚️",intro:"L'élasticité, de « à quoi ça sert » jusqu'au prix optimal. Tu l'as vue décider à ta place dans LA BOÎTE — ici tu apprends à la lire, à la mesurer, et à savoir quand elle ment."}
+};
+function exoPiste(n){ const p=exoPal(n); return (p&&p.piste)||"socle"; }
+function exoPistes(){ const v=[]; EXOS.forEach(p=>{ const k=p.piste||"socle"; if(v.indexOf(k)<0) v.push(k); }); return v; }
+function exoDeLaPiste(k){ return EXOS.filter(p=>(p.piste||"socle")===k); }
+/* Point d'entrée d'une piste : la marche la plus haute qu'il ait ouverte.
+   Sert aux renvois depuis LA BOÎTE — l'envoyer sur un palier verrouillé
+   ne ferait rien du tout, et c'est exactement ce genre de lien mort qui
+   laisse un module inutilisé. */
+function exoEntree(k){
+  const l=exoDeLaPiste(k); if(!l.length) return null;
+  let der=l[0];
+  l.forEach(p=>{ if(exoOuvert(p.n)) der=p; });
+  return der.n;
+}
+function exoVersPiste(k){ const n=exoEntree(k); if(n) exoPalRoom(n); }
+function exoOuvert(n){
+  const p=exoPal(n); if(!p) return false;
+  const k=p.piste||"socle";
+  const avant=exoDeLaPiste(k).filter(x=>x.n<n).sort((a,b)=>b.n-a.n)[0];
+  return !avant || exoEtat(avant.n).valide;
+}
 function exoRng(){
   /* Générateur simple : on veut du hasard à chaque série, pas de la
      reproductibilité — l'intérêt est justement que les chiffres changent. */
@@ -2498,7 +2528,7 @@ function exoFmt(v,u){
 /* ---------- l'échelle ---------- */
 function exosRoom(){
   const st=exosSt();
-  const lignes=EXOS.map(p=>{
+  const ligne=(p)=>{
     const e=exoEtat(p.n), ouvert=exoOuvert(p.n), du=exoDue(p.n);
     const pc=e.best?Math.round(e.best*100):0;
     /* un palier dû se voit : c'est le seul moyen qu'une base reste une base */
@@ -2506,11 +2536,17 @@ function exosRoom(){
       <div class="ico">${du?"🔁":ouvert?p.ic:"🔒"}</div>
       <div class="t"><b>${p.n}. ${esc(p.titre)}</b><small>${esc(p.sujet)}${e.done?` · meilleur score ${pc} %`:""}${du?` · <b style="color:var(--acc)">à revoir</b>`:e.valide&&e.due?` · revu le ${e.due.slice(8)}/${e.due.slice(5,7)}`:""}</small></div>
       <div class="pc">${du?"🔁":e.valide?"✓":ouvert?"›":""}</div>
-    </div>`;}).join("");
+    </div>`;};
+  const lignes=exoPistes().map(k=>{
+    const l=exoDeLaPiste(k), ok=l.filter(p=>exoEtat(p.n).valide).length, P=PISTES[k]||{nom:k,ic:"🧮",intro:""};
+    return `<div class="lab" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--acc);font-weight:800;margin:14px 0 6px">${P.ic} ${esc(P.nom)} · ${ok}/${l.length}</div>
+      <div class="xptxt" style="margin:-2px 0 8px">${esc(P.intro)}</div>
+      ${l.map(ligne).join("")}`;
+  }).join("");
   const faits=EXOS.filter(p=>exoEtat(p.n).valide).length;
   openOv(ovTop("🧮 Les exos")+`
-    <p class="sub">Je te donne les chiffres, tu calcules. Douze paliers, et <b>chacun ouvre le suivant</b> : on ne saute pas une marche. Le premier est une soustraction, le dernier désendette un bêta.</p>
-    <div class="crit" style="margin:10px 0"><b>${faits}/12 paliers validés.</b> ${faits===0?"Commence par le 1. Même si tu crois le savoir — surtout si tu crois le savoir.":faits<12?"Le palier "+(faits+1)+" t'attend.":"Les douze sont tombés — et c'est maintenant que la reprise compte."}</div>
+    <p class="sub">Je te donne les chiffres, tu calcules. Deux pistes, chacune montée marche par marche : <b>Le socle</b>, du compte de résultat au bêta de Hamada, et <b>Le prix</b>, entièrement consacré à l'élasticité.</p>
+    <div class="crit" style="margin:10px 0"><b>${faits}/${EXOS.length} paliers validés.</b> ${faits===0?"Commence par le 1 du socle. Même si tu crois le savoir — surtout si tu crois le savoir.":faits<EXOS.length?"Il t'en reste "+(EXOS.length-faits)+".":"Tout est tombé — et c'est maintenant que la reprise compte."}</div>
     ${(()=>{ const dus=exoDus(), pf=exoPointFaible(), nd=exoProchaine();
       let h='';
       if(dus.length){
@@ -2533,7 +2569,7 @@ function exoPalRoom(n){
   const p=exoPal(n), e=exoEtat(n);
   if(!p||!exoOuvert(n)) return;
   openOv(ovTop(p.ic+" "+p.titre)+`
-    <div class="meta"><span class="tag">Palier ${n} / 12</span>${esc(p.sujet)}</div>
+    <div class="meta"><span class="tag">${(()=>{const l=exoDeLaPiste(p.piste||"socle");return "Palier "+(l.findIndex(x=>x.n===n)+1)+" / "+l.length+(p.piste?" · "+PISTES[p.piste].nom:"");})()}</span>${esc(p.sujet)}</div>
     <div class="card"><div class="lab" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--acc);font-weight:800;margin-bottom:8px">La règle</div>
       <div class="story"><p>${p.rappel}</p></div></div>
     ${e.done?`<div class="xptxt" style="margin:10px 0">Déjà travaillé ${e.done} fois · meilleur score <b>${Math.round(e.best*100)} %</b>${e.valide?" · <b style=\"color:var(--ok)\">validé</b>":""}</div>`:""}

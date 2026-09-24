@@ -612,6 +612,313 @@ const EXOS = [
      val:(bl2-bl)*prm*100, unit:"%", tol:.2,
      calcul:`Comparable : ${(rf*100).toFixed(1).replace(".",",")} % + ${bl.toFixed(2).replace(".",",")} × ${(prm*100).toFixed(1).replace(".",",")} % = ${((rf+bl*prm)*100).toFixed(2).replace(".",",")} % · cible ${((rf+bl2*prm)*100).toFixed(2).replace(".",",")} % · écart <b>${((bl2-bl)*prm*100).toFixed(2).replace(".",",")} points</b>`,
      cle:"Même métier, même risque d'exploitation, et pourtant deux exigences différentes : tout l'écart vient de la structure financière. C'est précisément ce que le désendettement puis le réendettement du bêta servent à isoler."}
+   ]};}},
+
+/* ============ 13 · piste PRIX ============ */
+{id:"e13", n:13, piste:"prix", ic:"🎚️", titre:"Lire une élasticité",
+ sujet:"Variation en %, élasticité-prix, élastique ou non",
+ rappel:`L'élasticité-prix répond à une seule question : <b>si je bouge mon prix de 1 %, de combien bouge mon volume ?</b>
+   <br><br><b>Élasticité = (variation du volume en %) ÷ (variation du prix en %).</b>
+   <br>Elle est <b>négative</b> presque toujours : le prix monte, le volume descend. C'est normal, et on garde le signe.
+   <br><br><b>|e| > 1 : produit ÉLASTIQUE.</b> Le volume réagit plus fort que le prix ne bouge. Une baisse de prix fait gagner beaucoup de volume.
+   <br><b>|e| < 1 : produit INÉLASTIQUE.</b> Le volume bouge peu. Baisser le prix ne sert presque à rien.
+   <br><br>Ne confonds jamais une variation en <b>points</b> et en <b>pour cent</b> : passer de 20 € à 18 €, c'est −2 € et <b>−10 %</b>. L'élasticité se calcule sur les pour cent.`,
+ gen:R=>{
+  const p1=R.ent(12,60), baisse=R.ent(5,20);
+  const p2=Math.round(p1*(1-baisse/100)*100)/100;
+  const q1=R.ent(200,2000)*(R.ent(0,1)?1:10);
+  const eVrai=-(R.ent(50,280)/100);
+  const q2=Math.round(q1*(1 - eVrai*baisse/100));
+  const dP=(p2-p1)/p1*100, dQ=(q2-q1)/q1*100, el=dQ/dP;
+  const cible=R.ent(8,30), viser=R.ent(10,35);
+  return {contextes:["Un produit, deux mois : tu as baissé le prix et tu regardes ce qui s'est passé.",
+    "Un mois de promotion sur une référence, et le volume qui a suivi.",
+    "Une gamme de sachets de café : prix d'avant, prix d'après, volumes des deux mois.",
+    "Un abonnement dont tu as baissé le tarif, et le nombre d'abonnés avant/après."],
+   contexte:"Un produit, deux mois : tu as baissé le prix et tu regardes ce qui s'est passé.",
+   donnees:[["Prix avant",p1,"€u"],["Prix après",p2,"€u"],
+            ["Volume avant",q1,""],["Volume après",q2,""]],
+   questions:[
+    {q:"De combien le prix a-t-il varié, en % ?", val:dP, unit:"%", tol:.3,
+     calcul:`(${vf(p2)} € − ${vf(p1)} €) ÷ ${vf(p1)} € = <b>${dP.toFixed(1).replace(".",",")} %</b>`,
+     cle:"Une variation se calcule TOUJOURS sur la valeur de départ. Et elle garde son signe : ici c'est une baisse, donc un nombre négatif."},
+    {q:"De combien le volume a-t-il varié, en % ?", val:dQ, unit:"%", tol:.4,
+     calcul:`(${q2} − ${q1}) ÷ ${q1} = <b>${dQ.toFixed(1).replace(".",",")} %</b>`,
+     cle:"C'est la réponse du marché. Tout l'exercice consiste à la mettre en face de ce que tu as concédé sur le prix."},
+    {q:"Quelle est l'élasticité-prix (valeur signée) ?", val:el, unit:"", tol:.08,
+     calcul:`${dQ.toFixed(1).replace(".",",")} % ÷ ${dP.toFixed(1).replace(".",",")} % = <b>${el.toFixed(2).replace(".",",")}</b>`,
+     cle:`Elle se lit comme une phrase : « si je bouge mon prix de 1 %, mon volume bouge de ${Math.abs(el).toFixed(2).replace(".",",")} % en sens inverse ». Le signe négatif n'est pas un détail, c'est la loi de la demande.`},
+    {q:"Quelle est la valeur absolue de l'élasticité ?", val:Math.abs(el), unit:"", tol:.08,
+     calcul:`|${el.toFixed(2).replace(".",",")}| = <b>${Math.abs(el).toFixed(2).replace(".",",")}</b> · ${Math.abs(el)>1?"au-dessus de 1 : produit ÉLASTIQUE":"en dessous de 1 : produit INÉLASTIQUE"}`,
+     cle:Math.abs(el)>1?"Au-dessus de 1, le volume réagit plus fort que le prix ne bouge : jouer sur le prix a un vrai effet commercial.":"En dessous de 1, le volume bouge moins que le prix. Baisser le prix te coûte plus qu'il ne te rapporte — c'est la situation du carburant ou du pain."},
+    {q:`À cette élasticité, de combien de % bougerait le volume si tu baissais encore le prix de ${cible} % ?`,
+     val:Math.abs(el)*cible, unit:"%", tol:.6,
+     calcul:`${Math.abs(el).toFixed(2).replace(".",",")} × ${cible} % = <b>+${(Math.abs(el)*cible).toFixed(1).replace(".",",")} %</b> de volume`,
+     cle:"L'élasticité est un taux de change : elle convertit des pour cent de prix en pour cent de volume. C'est tout ce qu'elle fait, et c'est déjà beaucoup."},
+    {q:`Quelle baisse de prix faudrait-il, en %, pour gagner ${viser} % de volume à cette élasticité ?`,
+     val:viser/Math.abs(el), unit:"%", tol:.6,
+     calcul:`${viser} % ÷ ${Math.abs(el).toFixed(2).replace(".",",")} = <b>${(viser/Math.abs(el)).toFixed(1).replace(".",",")} %</b> de baisse`,
+     cle:"La formule se lit dans les deux sens. C'est ce calcul-là qu'on fait avant d'annoncer une promotion — pas après."},
+    {q:"Quel était le chiffre d'affaires du mois AVANT la baisse ?", val:p1*q1, unit:"€",
+     calcul:`${vf(p1)} € × ${q1} = <b>${eurX(p1*q1)}</b>`,
+     cle:"Retiens ce chiffre : au palier suivant, toute la question sera de savoir si la baisse de prix l'a fait monter ou descendre."}
+   ]};}},
+
+/* ============ 14 · piste PRIX ============ */
+{id:"e14", n:14, piste:"prix", ic:"📐", titre:"La mesurer proprement",
+ sujet:"Élasticité d'arc, point de référence, écart entre les deux méthodes",
+ rappel:`Un piège apparaît dès qu'on mesure pour de vrai : <b>le résultat dépend du point de départ choisi</b>. De 20 € à 18 €, c'est −10 %. De 18 € à 20 €, c'est +11,1 %. Même mouvement, deux chiffres.
+   <br><br>D'où la méthode standard, dite <b>élasticité d'arc</b> (ou du point milieu) : on divise par la <b>moyenne</b> des deux valeurs, pas par celle de départ.
+   <br><br><b>Élasticité d'arc = [ (Q₂−Q₁) ÷ moyenne(Q) ] ÷ [ (P₂−P₁) ÷ moyenne(P) ]</b>
+   <br>avec moyenne(Q) = (Q₁+Q₂)/2 et moyenne(P) = (P₁+P₂)/2.
+   <br><br>Elle donne le même chiffre dans les deux sens. C'est celle qu'on utilise quand la variation dépasse quelques pour cent — au-delà de 10 %, l'écart avec la méthode naïve devient gênant.`,
+ gen:R=>{
+  const p1=R.ent(15,80), baisse=R.ent(12,30);
+  const p2=Math.round(p1*(1-baisse/100)*100)/100;
+  const q1=R.ent(300,3000), eV=-(R.ent(80,260)/100);
+  const q2=Math.round(q1*(1 - eV*baisse/100));
+  const mP=(p1+p2)/2, mQ=(q1+q2)/2;
+  const dPa=(p2-p1)/mP, qUn=q1*(2-dPa)/(2+dPa);   /* Q₂ tel que l'arc vaille −1 */
+  const arc=((q2-q1)/mQ)/((p2-p1)/mP);
+  const simple=((q2-q1)/q1)/((p2-p1)/p1);
+  const inverse=((q1-q2)/q2)/((p1-p2)/p2);
+  return {contextes:["Deux relevés réels, et il faut en tirer un chiffre défendable.",
+    "Tu compares deux trimestres pour présenter une élasticité à ton comité.",
+    "Un test de prix mené sur deux zones : il faut un chiffre qui ne dépende pas du sens de lecture.",
+    "Avant/après un repositionnement tarifaire. La variation est forte : la méthode compte."],
+   contexte:"Deux relevés réels, et il faut en tirer un chiffre défendable.",
+   donnees:[["Prix avant",p1,"€u"],["Prix après",p2,"€u"],["Volume avant",q1,""],["Volume après",q2,""]],
+   questions:[
+    {q:"Quelle est l'élasticité d'ARC (méthode du point milieu, valeur signée) ?", val:arc, unit:"", tol:.08,
+     calcul:`Volume : (${q2} − ${q1}) ÷ ${Math.round(mQ)} = ${((q2-q1)/mQ*100).toFixed(1).replace(".",",")} % · Prix : (${vf(p2)} − ${vf(p1)}) ÷ ${vf(Math.round(mP*100)/100)} = ${((p2-p1)/mP*100).toFixed(1).replace(".",",")} % · rapport <b>${arc.toFixed(2).replace(".",",")}</b>`,
+     cle:"On divise par la MOYENNE des deux valeurs. C'est ce qui rend la mesure symétrique : on trouvera le même chiffre en lisant de droite à gauche."},
+    {q:"Quelle élasticité donne la méthode naïve (tout rapporté aux valeurs de DÉPART) ?", val:simple, unit:"", tol:.08,
+     calcul:`${((q2-q1)/q1*100).toFixed(1).replace(".",",")} % ÷ ${((p2-p1)/p1*100).toFixed(1).replace(".",",")} % = <b>${simple.toFixed(2).replace(".",",")}</b>`,
+     cle:"Ce n'est pas une faute grave sur de petites variations. Sur une remise à deux chiffres, ça l'est."},
+    {q:"Quel est l'écart entre les deux méthodes, en valeur absolue ?", val:Math.abs(simple-arc), unit:"", tol:.06,
+     calcul:`|${simple.toFixed(2).replace(".",",")} − ${arc.toFixed(2).replace(".",",")}| = <b>${Math.abs(simple-arc).toFixed(2).replace(".",",")}</b>`,
+     cle:`Sur une variation de prix de ${baisse} %, les deux méthodes ne disent déjà plus la même chose. Quand quelqu'un t'annonce une élasticité, la première question est : mesurée comment ?`},
+    {q:"Si tu lisais le mouvement à l'envers (d'après vers avant), que donnerait la méthode naïve ?", val:inverse, unit:"", tol:.08,
+     calcul:`(${q1} − ${q2}) ÷ ${q2} = ${((q1-q2)/q2*100).toFixed(1).replace(".",",")} % · (${vf(p1)} − ${vf(p2)}) ÷ ${vf(p2)} = ${((p1-p2)/p2*100).toFixed(1).replace(".",",")} % · rapport <b>${inverse.toFixed(2).replace(".",",")}</b>`,
+     cle:"Même mouvement, autre chiffre : voilà exactement le défaut que l'élasticité d'arc corrige. Elle, elle est identique dans les deux sens."},
+    {q:"Quelle est la moyenne des deux volumes (le dénominateur de l'arc) ?", val:mQ, unit:"", tol:1,
+     calcul:`(${q1} + ${q2}) ÷ 2 = <b>${Math.round(mQ)}</b>`,
+     cle:"Un point milieu, rien de plus. C'est la seule différence entre les deux méthodes — et elle suffit à rendre la mesure honnête."},
+    {q:"Le produit est-il élastique ? Donne |élasticité d'arc|.", val:Math.abs(arc), unit:"", tol:.08,
+     calcul:`<b>${Math.abs(arc).toFixed(2).replace(".",",")}</b> · ${Math.abs(arc)>1?"supérieur à 1 : élastique":"inférieur à 1 : inélastique"}`,
+     cle:"Le seuil de 1 ne dépend pas de la méthode, mais un chiffre mesuré à 0,95 ou à 1,05 change la décision. Raison de plus pour mesurer proprement."},
+    {q:"Quel volume aurait-il fallu atteindre pour que l'élasticité d'arc vaille exactement −1 ?",
+     val:qUn, unit:"", tol:Math.max(3,q1*.02),
+     calcul:`On cherche Q₂ tel que (Q₂−Q₁)/moyenne(Q) = −1 × ${((p2-p1)/mP*100).toFixed(1).replace(".",",")} % · Q₂ = Q₁ × (2 − ${(dPa*100).toFixed(1).replace(".",",")} %) ÷ (2 + ${(dPa*100).toFixed(1).replace(".",",")} %) = <b>${Math.round(qUn)}</b>`,
+     cle:"À −1 exactement, le chiffre d'affaires ne bouge plus : ce que tu perds en prix, tu le récupères pile en volume. C'est le sujet du palier suivant."}
+   ]};}},
+
+/* ============ 15 · piste PRIX ============ */
+{id:"e15", n:15, piste:"prix", ic:"💰", titre:"Élasticité et chiffre d'affaires",
+ sujet:"Effet d'une baisse de prix sur la recette, le seuil de −1",
+ rappel:`Baisser son prix fait toujours deux choses en sens contraire : <b>chaque unité rapporte moins</b>, mais <b>on en vend plus</b>. Lequel des deux l'emporte ? L'élasticité, et elle seule, répond.
+   <br><br><b>|e| > 1</b> (élastique) : le volume gagné bat le prix perdu → <b>le chiffre d'affaires MONTE</b> quand tu baisses le prix.
+   <br><b>|e| < 1</b> (inélastique) : le volume ne suit pas → <b>le chiffre d'affaires BAISSE</b>. Tu travailles plus pour encaisser moins.
+   <br><b>|e| = 1</b> : le chiffre d'affaires ne bouge pas. C'est le sommet de la courbe de recette.
+   <br><br>Raccourci utile : <b>variation du CA ≈ (|e| − 1) × baisse de prix en %</b>. Approximation valable pour de petites variations — au-delà, on calcule vraiment : CA = prix × volume, avant et après.
+   <br><br>⚠️ Et attention : maximiser le chiffre d'affaires n'est PAS maximiser le profit. Le palier suivant s'occupe de ça.`,
+ gen:R=>{
+  const p1=R.ent(10,50), baisse=R.ent(8,25), el=-(R.ent(40,260)/100);
+  const p2=Math.round(p1*(1-baisse/100)*100)/100;
+  const q1=R.ent(400,4000);
+  const q2=Math.round(q1*(1 + Math.abs(el)*baisse/100));
+  const ca1=p1*q1, ca2=p2*q2, dCA=(ca2-ca1)/ca1*100;
+  const hausse=R.ent(6,18);
+  const q3=Math.round(q1*(1 - Math.abs(el)*hausse/100));
+  const ca3=Math.round(p1*(1+hausse/100)*100)/100*q3;
+  return {contextes:[`Ton produit se vend ${p1} € l'unité. L'élasticité mesurée sur ton marché est de ${el.toFixed(2).replace(".",",")}.`,
+    `Tu prépares une opération commerciale. Élasticité retenue : ${el.toFixed(2).replace(".",",")}.`,
+    `Le comité veut savoir si la remise fera rentrer plus d'argent. Élasticité du segment : ${el.toFixed(2).replace(".",",")}.`,
+    `Un arbitrage de tarif, sur un produit dont l'élasticité vaut ${el.toFixed(2).replace(".",",")}.`],
+   contexte:`Ton produit se vend ${p1} € l'unité. L'élasticité mesurée sur ton marché est de ${el.toFixed(2).replace(".",",")}.`,
+   donnees:[["Prix actuel",p1,"€u"],["Volume actuel",q1,""],["Élasticité-prix",el,""],["Baisse de prix envisagée",baisse,"%"]],
+   questions:[
+    {q:`Quel volume atteindrais-tu après une baisse de prix de ${baisse} % ?`, val:q2, unit:"", tol:Math.max(2,q2*.01),
+     calcul:`${Math.abs(el).toFixed(2).replace(".",",")} × ${baisse} % = +${(Math.abs(el)*baisse).toFixed(1).replace(".",",")} % · ${q1} × ${(1+Math.abs(el)*baisse/100).toFixed(3).replace(".",",")} = <b>${q2}</b>`,
+     cle:"Première étape, toujours la même : convertir la baisse de prix en volume avec l'élasticité. Tout le reste en découle."},
+    {q:"Quel serait le nouveau chiffre d'affaires ?", val:ca2, unit:"€", tol:Math.max(100,ca2*.012),
+     calcul:`${vf(p2)} € × ${q2} = <b>${eurX(ca2)}</b> · contre ${eurX(ca1)} aujourd'hui`,
+     cle:"Prix × volume, sur les chiffres d'APRÈS. Pas de raccourci ici : c'est la seule version qui reste juste quand la variation est forte."},
+    {q:"De combien varierait le chiffre d'affaires, en % ?", val:dCA, unit:"%", tol:.6,
+     calcul:`(${eurX(ca2)} − ${eurX(ca1)}) ÷ ${eurX(ca1)} = <b>${dCA.toFixed(1).replace(".",",")} %</b>`,
+     cle:dCA>0?"Le volume gagné bat le prix concédé : la recette monte. Ça ne dit encore rien de ton profit — c'est le palier suivant.":`Tu vends plus et tu encaisses moins. ⚠️ Et regarde |e| = ${Math.abs(el).toFixed(2).replace(".",",")} : ${Math.abs(el)>1?"il est pourtant AU-DESSUS de 1. La règle « |e| > 1 donc le CA monte » ne vaut que pour de petites variations ; sur une baisse de "+baisse+" %, le seuil réel est 1 ÷ (1 − "+baisse+" %) = "+(1/(1-baisse/100)).toFixed(2).replace(".",",")+".":"il est en dessous de 1 : c'est le piège classique de la remise sur un produit inélastique."}`},
+    {q:`Et si tu AUGMENTAIS le prix de ${hausse} % au lieu de le baisser : quel serait le volume ?`,
+     val:q3, unit:"", tol:Math.max(2,q3*.01),
+     calcul:`−${Math.abs(el).toFixed(2).replace(".",",")} × ${hausse} % = ${(-Math.abs(el)*hausse).toFixed(1).replace(".",",")} % · ${q1} × ${(1-Math.abs(el)*hausse/100).toFixed(3).replace(".",",")} = <b>${q3}</b>`,
+     cle:"L'élasticité marche dans les deux sens. Sur un produit inélastique, c'est même la hausse — pas la baisse — qui fait rentrer l'argent."},
+    {q:`Quel serait le chiffre d'affaires après cette hausse de ${hausse} % ?`, val:ca3, unit:"€", tol:Math.max(100,ca3*.012),
+     calcul:`${vf(Math.round(p1*(1+hausse/100)*100)/100)} € × ${q3} = <b>${eurX(ca3)}</b> · contre ${eurX(ca1)} aujourd'hui`,
+     cle:Math.abs(el)<1?"Sur un produit inélastique, augmenter le prix augmente la recette. C'est pour ça que le prix du carburant ou du tabac monte sans que les volumes s'effondrent.":"Sur un produit élastique, monter le prix coûte de la recette. Le volume part plus vite que le prix ne gagne."},
+    {q:`Pour une baisse de ${baisse} % précisément, à partir de quelle |e| le chiffre d'affaires augmenterait-il ?`,
+     val:1/(1-baisse/100), unit:"", tol:.06,
+     calcul:`CA après ÷ CA avant = (1 − ${baisse} %) × (1 + |e| × ${baisse} %) · ce rapport dépasse 1 quand |e| > 1 ÷ (1 − ${baisse} %) = <b>${(1/(1-baisse/100)).toFixed(2).replace(".",",")}</b>`,
+     cle:`⚠️ Le fameux seuil de 1 n'est exact que pour une variation infinitésimale. Sur une baisse réelle de ${baisse} %, il faut ${(1/(1-baisse/100)).toFixed(2).replace(".",",")}, pas 1 : entre les deux, le chiffre d'affaires BAISSE alors que le manuel dit qu'il monte. C'est le genre d'approximation qui fait perdre de l'argent en vrai.`},
+    {q:`Avec le raccourci « variation du CA ≈ (|e| − 1) × baisse », que prévoirait-on pour une baisse de ${baisse} % ?`,
+     val:(Math.abs(el)-1)*baisse, unit:"%", tol:.6,
+     calcul:`(${Math.abs(el).toFixed(2).replace(".",",")} − 1) × ${baisse} % = <b>${((Math.abs(el)-1)*baisse).toFixed(1).replace(".",",")} %</b> · le calcul exact donnait ${dCA.toFixed(1).replace(".",",")} %`,
+     cle:"Le raccourci se fait de tête et suffit à trancher en réunion. Il dérive quand la variation est forte : c'est une boussole, pas une calculatrice."}
+   ]};}},
+
+/* ============ 16 · piste PRIX ============ */
+{id:"e16", n:16, piste:"prix", ic:"⚔️", titre:"Élasticité et MARGE",
+ sujet:"Volume de compensation, quand une remise se paie vraiment",
+ rappel:`Voici le palier qui compte, et celui que presque personne ne calcule avant de solder.
+   <br><br>Une remise ne se prend pas sur le prix : <b>elle se prend entièrement sur la marge</b>. Si tu vends 100 € un produit qui t'en coûte 60, ta marge est de 40. Une remise de 10 % te fait vendre à 90 : ta marge tombe à 30, soit <b>−25 %</b>, pour −10 % de prix seulement.
+   <br><br>D'où la question qui tranche : <b>combien de volume EN PLUS faut-il pour retrouver la même marge totale ?</b>
+   <br><br><b>Volume de compensation = r ÷ (m − r)</b>
+   <br>où <b>r</b> = la remise en % du prix et <b>m</b> = ton taux de marge en % du prix.
+   <br><br>Ensuite seulement on regarde l'élasticité : elle, elle te donne <b>|e| × r</b> de volume. Si ce qu'elle donne est plus petit que ce qu'il faut, la remise détruit de la marge — même si elle fait monter le chiffre d'affaires.
+   <br><br>C'est exactement ce que LA BOÎTE te dit quand elle refuse ton alignement de prix.`,
+ gen:R=>{
+  const p=R.ent(40,400), m=R.ent(30,65)/100;
+  const c=Math.round(p*(1-m)*100)/100;
+  const r=R.ent(8,22)/100;
+  const el=-(R.ent(60,260)/100);
+  const mu1=Math.round((p-c)*100)/100;
+  const p2=Math.round(p*(1-r)*100)/100, mu2=Math.round((p2-c)*100)/100;
+  const besoin=r/(m-r)*100;
+  const donne=Math.abs(el)*r*100;
+  const eMin=1/(m-r);
+  const q=R.ent(300,3000);
+  return {contextes:[`Un concurrent casse les prix. Tu envisages de t'aligner de ${(r*100).toFixed(0)} %.`,
+    `Une centrale d'achat te demande ${(r*100).toFixed(0)} % de remise pour référencer le produit.`,
+    `Tu prépares une opération à −${(r*100).toFixed(0)} % et le directeur commercial promet du volume.`,
+    `Un gros client négocie ${(r*100).toFixed(0)} % de baisse sur son tarif.`],
+   contexte:`Un concurrent casse les prix. Tu envisages de t'aligner de ${(r*100).toFixed(0)} %.`,
+   donnees:[["Prix de vente",p,"€u"],["Coût variable unitaire",c,"€u"],
+            ["Remise envisagée",r*100,"%"],["Élasticité-prix du segment",el,""],["Volume mensuel actuel",q,""]],
+   questions:[
+    {q:"Quelle est ta marge unitaire AVANT la remise ?", val:mu1, unit:"€", tol:.05,
+     calcul:`${vf(p)} € − ${vf(c)} € = <b>${vf(mu1)} €</b> · soit un taux de marge de ${(m*100).toFixed(1).replace(".",",")} %`,
+     cle:"Tout part de là. Le taux de marge est le chiffre qui décide si une remise est survivable — pas le chiffre d'affaires."},
+    {q:`Quelle serait ta marge unitaire APRÈS une remise de ${(r*100).toFixed(0)} % ?`, val:mu2, unit:"€", tol:.05,
+     calcul:`Prix remisé ${vf(p2)} € − ${vf(c)} € = <b>${vf(mu2)} €</b>, contre ${vf(mu1)} € avant`,
+     cle:`La remise n'a coûté que ${(r*100).toFixed(0)} % du prix, mais ${((1-mu2/mu1)*100).toFixed(0)} % de la marge. Le coût variable, lui, n'a pas bougé d'un centime : c'est pour ça que l'effet se concentre entièrement sur toi.`},
+    {q:"De combien de % ta marge unitaire a-t-elle baissé ?", val:(1-mu2/mu1)*100, unit:"%", tol:.6,
+     calcul:`(${vf(mu1)} − ${vf(mu2)}) ÷ ${vf(mu1)} = <b>${((1-mu2/mu1)*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"Voilà le vrai prix d'une remise. On l'annonce en pour cent du prix parce que ça paraît petit ; il faudrait l'annoncer en pour cent de la marge."},
+    {q:"Combien de volume EN PLUS, en %, faut-il pour retrouver exactement la même marge totale ?",
+     val:besoin, unit:"%", tol:1,
+     calcul:`r ÷ (m − r) = ${(r*100).toFixed(0)} % ÷ (${(m*100).toFixed(1).replace(".",",")} % − ${(r*100).toFixed(0)} %) = <b>+${besoin.toFixed(1).replace(".",",")} %</b> · soit ${Math.round(q*(1+besoin/100))} unités au lieu de ${q}`,
+     cle:"C'est LE chiffre à poser avant d'accepter une remise. Il ne dépend que de deux choses : ta marge et la remise. Ni du volume, ni du chiffre d'affaires."},
+    {q:"Et combien de volume l'élasticité te donne-t-elle réellement, en % ?", val:donne, unit:"%", tol:.6,
+     calcul:`${Math.abs(el).toFixed(2).replace(".",",")} × ${(r*100).toFixed(0)} % = <b>+${donne.toFixed(1).replace(".",",")} %</b>`,
+     cle:donne>=besoin?"Le marché te donne plus qu'il n'en faut : la remise est rentable. C'est rare, et ça se vérifie, ça ne se suppose pas.":"Le marché te donne moins qu'il n'en faut. La remise fera peut-être monter ton chiffre d'affaires — et baisser ta marge. C'est exactement le piège."},
+    {q:"Quel est l'écart entre ce qu'il faut et ce que l'élasticité donne, en points de volume ?",
+     val:donne-besoin, unit:"%", tol:1,
+     calcul:`${donne.toFixed(1).replace(".",",")} % − ${besoin.toFixed(1).replace(".",",")} % = <b>${(donne-besoin).toFixed(1).replace(".",",")} points</b>`,
+     cle:(donne-besoin)>=0?"Positif : la remise crée de la marge. Vérifie quand même que la capacité suit — vendre plus sans pouvoir produire ne rapporte rien.":"Négatif : chaque unité vendue en plus ne rattrape pas ce que la remise a détruit. Un nombre négatif ici, c'est une remise qu'on refuse."},
+    {q:"À partir de quelle valeur absolue d'élasticité la remise deviendrait-elle rentable ?",
+     val:eMin, unit:"", tol:.1,
+     calcul:`Il faut |e| × r ≥ r ÷ (m − r), donc |e| ≥ 1 ÷ (m − r) = 1 ÷ ${((m-r)*100).toFixed(1).replace(".",",")} % = <b>${eMin.toFixed(2).replace(".",",")}</b> · la tienne vaut ${Math.abs(el).toFixed(2).replace(".",",")}`,
+     cle:`Le seuil ne dépend que de ta marge et de la remise : ${eMin.toFixed(2).replace(".",",")}. Plus ta marge est fine, plus il monte — c'est pourquoi les métiers à faible marge ne peuvent presque jamais se permettre de solder.`}
+   ]};}},
+
+/* ============ 17 · piste PRIX ============ */
+{id:"e17", n:17, piste:"prix", ic:"🔬", titre:"La mesurer dans la vraie vie",
+ sujet:"Biais de mesure, effets parasites, élasticité croisée et élasticité-revenu",
+ rappel:`Dans un exercice, l'élasticité se lit. Dans une entreprise, elle se <b>déduit</b> — et mal, si on n'y prend pas garde.
+   <br><br><b>Le biais principal : on ne baisse pas les prix au hasard.</b> On les baisse quand les ventes faiblissent. Comparer naïvement deux périodes mélange donc deux choses : l'effet de ton prix, et la raison pour laquelle tu l'as bougé. Le chiffre qui sort est presque toujours <b>sous-estimé</b>.
+   <br><br><b>La parade</b> : retirer d'abord tout ce qui n'est pas le prix — la saison, une campagne, un référencement, un concurrent en rupture. Ce qui reste seulement est imputable au prix.
+   <br><br>Deux cousines utiles :
+   <br><b>· Élasticité CROISÉE = (Δ volume de A en %) ÷ (Δ prix de B en %).</b> Positive → B est un <b>substitut</b> (son prix monte, on se reporte sur A). Négative → un <b>complément</b> (imprimante et cartouches).
+   <br><b>· Élasticité-REVENU = (Δ volume en %) ÷ (Δ revenu en %).</b> > 1 : bien de luxe. Entre 0 et 1 : bien courant. Négative : bien inférieur, qu'on abandonne dès qu'on s'enrichit.`,
+ gen:R=>{
+  const baisse=R.ent(10,20), obs=R.ent(14,34), parasite=R.ent(4,12);
+  const vrai=obs-parasite;
+  const elBrute=-obs/baisse, elNette=-vrai/baisse;
+  const dPb=R.ent(8,20), dQa=R.ent(3,14);
+  const croisee=dQa/dPb;
+  const dRev=R.ent(3,9), dVol=R.ent(2,20);
+  const revenu=dVol/dRev;
+  return {contextes:["Un test de prix mené sur trois mois, avec tout ce qui s'est passé à côté.",
+    "Le bilan d'une opération commerciale, à démêler de ce qui l'a accompagnée.",
+    "Tu dois défendre un chiffre d'élasticité devant un comité qui va le contester.",
+    "Les données d'un trimestre, promotion et concurrent compris."],
+   contexte:"Un test de prix mené sur trois mois, avec tout ce qui s'est passé à côté.",
+   donnees:[["Baisse de prix appliquée",baisse,"%"],["Hausse de volume observée",obs,"%"],
+            ["Dont effet d'une campagne publicitaire",parasite,"%"],
+            ["Hausse du prix d'un produit concurrent",dPb,"%"],["Hausse de TON volume qui en découle",dQa,"%"],
+            ["Hausse du revenu moyen de ta clientèle",dRev,"%"],["Hausse de volume correspondante",dVol,"%"]],
+   questions:[
+    {q:"Quelle élasticité obtient-on si l'on rapporte bêtement le volume observé à la baisse de prix ?",
+     val:elBrute, unit:"", tol:.1,
+     calcul:`+${obs} % ÷ −${baisse} % = <b>${elBrute.toFixed(2).replace(".",",")}</b>`,
+     cle:"C'est le chiffre que sort un tableur en trente secondes, et celui qu'on présente le plus souvent. Il attribue au prix tout ce qui s'est passé pendant la période."},
+    {q:"Quelle est la hausse de volume réellement imputable au PRIX, en % ?", val:vrai, unit:"%", tol:.5,
+     calcul:`${obs} % observés − ${parasite} % venus de la campagne = <b>+${vrai} %</b>`,
+     cle:"Tout ce qui a bougé en même temps que ton prix n'a pas été causé par ton prix. C'est le geste que la plupart des analyses sautent."},
+    {q:"Quelle est l'élasticité une fois l'effet de la campagne retiré ?", val:elNette, unit:"", tol:.1,
+     calcul:`+${vrai} % ÷ −${baisse} % = <b>${elNette.toFixed(2).replace(".",",")}</b>, contre ${elBrute.toFixed(2).replace(".",",")} en brut`,
+     cle:`L'écart entre ${Math.abs(elBrute).toFixed(2).replace(".",",")} et ${Math.abs(elNette).toFixed(2).replace(".",",")} n'est pas cosmétique : au palier précédent, il décidait si une remise était rentable ou destructrice.`},
+    {q:"De combien de % l'élasticité brute surestime-t-elle la vraie ?", val:(Math.abs(elBrute)/Math.abs(elNette)-1)*100, unit:"%", tol:1.5,
+     calcul:`${Math.abs(elBrute).toFixed(2).replace(".",",")} ÷ ${Math.abs(elNette).toFixed(2).replace(".",",")} − 1 = <b>${((Math.abs(elBrute)/Math.abs(elNette)-1)*100).toFixed(0)} %</b> de trop`,
+     cle:"Surestimer son élasticité conduit à baisser ses prix en croyant que le marché suivra. C'est l'erreur la plus chère de ce module."},
+    {q:"Quelle est l'élasticité CROISÉE avec le produit concurrent (valeur signée) ?", val:croisee, unit:"", tol:.08,
+     calcul:`+${dQa} % de ton volume ÷ +${dPb} % du prix concurrent = <b>+${croisee.toFixed(2).replace(".",",")}</b>`,
+     cle:"Positive : quand son prix monte, on vient chez toi. C'est un SUBSTITUT, et ce chiffre mesure à quel point tu dépends de ce que fait ton concurrent."},
+    {q:"Quelle est l'élasticité-REVENU de ton produit ?", val:revenu, unit:"", tol:.1,
+     calcul:`+${dVol} % de volume ÷ +${dRev} % de revenu = <b>${revenu.toFixed(2).replace(".",",")}</b>`,
+     cle:revenu>1?"Au-dessus de 1 : ton produit est un bien « supérieur », il profite de l'enrichissement de tes clients — et souffre le premier en récession.":"Entre 0 et 1 : un bien courant. Les volumes bougent moins vite que les revenus, à la hausse comme à la baisse. C'est défensif."},
+    {q:`Avec l'élasticité NETTE, quel volume supplémentaire en % donnerait une remise de ${baisse} % ?`,
+     val:Math.abs(elNette)*baisse, unit:"%", tol:.6,
+     calcul:`${Math.abs(elNette).toFixed(2).replace(".",",")} × ${baisse} % = <b>+${(Math.abs(elNette)*baisse).toFixed(1).replace(".",",")} %</b>`,
+     cle:"C'est le seul chiffre défendable devant un comité : celui qu'on obtient après avoir retiré ce qui n'était pas le prix."}
+   ]};}},
+
+/* ============ 18 · piste PRIX ============ */
+{id:"e18", n:18, piste:"prix", ic:"🏭", titre:"Par secteur, et le prix optimal",
+ sujet:"Règle de Lerner, marge optimale, pourquoi les secteurs ne se tarifient pas pareil",
+ rappel:`Le point d'arrivée. On sait mesurer l'élasticité ; on va maintenant s'en servir pour <b>fixer un prix</b>.
+   <br><br><b>Règle de Lerner : au prix qui maximise le profit, (P − c) ÷ P = 1 ÷ |e|.</b>
+   <br>Autrement dit ton <b>taux de marge optimal est l'inverse de ton élasticité</b>. Élasticité de 2 → 50 % de marge. Élasticité de 5 → 20 %. Élasticité de 1,25 → 80 %.
+   <br><br>D'où le <b>prix optimal : P* = c × |e| ÷ (|e| − 1)</b>, avec c le coût variable unitaire.
+   <br>⚠️ La formule exige <b>|e| > 1</b>. En dessous, elle ne donne rien : un monopole face à une demande inélastique n'a aucune raison de s'arrêter de monter — ce sont la régulation, la concurrence ou la colère du client qui l'arrêtent, pas les maths.
+   <br><br><b>Ce que ça explique</b> : le carburant et le tabac (|e| ≈ 0,3-0,5) supportent des prix et des taxes énormes. La restauration ou le voyage de loisir (|e| ≈ 1,5-3) se battent sur les prix. Un logiciel, dont le coût marginal est quasi nul, ne peut pas se tarifier au coût : son prix vient de la valeur perçue, pas de la formule.`,
+ gen:R=>{
+  const c=R.ent(8,120), el=-(R.ent(130,400)/100), E=Math.abs(el);
+  const mOpt=1/E, pOpt=c*E/(E-1);
+  const pAct=Math.round(pOpt*(1+R.ent(-25,25)/100)*100)/100;
+  const mAct=(pAct-c)/pAct;
+  const elInel=R.ent(30,60)/100;
+  const taxe=R.ent(15,40);
+  return {contextes:[`Tu fixes le prix d'un produit dont le coût variable est de ${vf(c)} € et l'élasticité de ${el.toFixed(2).replace(".",",")}.`,
+    `Un lancement à tarifer. Coût variable ${vf(c)} €, élasticité estimée ${el.toFixed(2).replace(".",",")}.`,
+    `Le comité tarifaire arbitre. Coût variable ${vf(c)} €, élasticité du segment ${el.toFixed(2).replace(".",",")}.`,
+    `Repositionnement d'une référence : coût variable ${vf(c)} €, élasticité ${el.toFixed(2).replace(".",",")}.`],
+   contexte:`Tu fixes le prix d'un produit dont le coût variable est de ${vf(c)} € et l'élasticité de ${el.toFixed(2).replace(".",",")}.`,
+   donnees:[["Coût variable unitaire",c,"€u"],["Élasticité-prix",el,""],["Prix pratiqué aujourd'hui",pAct,"€u"],
+            ["Élasticité d'un secteur inélastique (carburant)",-elInel,""],["Hausse de taxe envisagée sur ce secteur",taxe,"%"]],
+   questions:[
+    {q:"Quel est le taux de marge OPTIMAL, en % du prix (règle de Lerner) ?", val:mOpt*100, unit:"%", tol:.8,
+     calcul:`1 ÷ |${el.toFixed(2).replace(".",",")}| = 1 ÷ ${E.toFixed(2).replace(".",",")} = <b>${(mOpt*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"Le taux de marge n'est pas une décision de caractère, c'est l'inverse de ton élasticité. Un marché où les clients comparent beaucoup impose une marge fine, quoi qu'on en pense."},
+    {q:"Quel est le prix optimal ?", val:pOpt, unit:"€", tol:Math.max(.5,pOpt*.02),
+     calcul:`${vf(c)} € × ${E.toFixed(2).replace(".",",")} ÷ (${E.toFixed(2).replace(".",",")} − 1) = ${vf(c)} € × ${(E/(E-1)).toFixed(3).replace(".",",")} = <b>${vf(Math.round(pOpt*100)/100)} €</b>`,
+     cle:"Le coût ne fixe pas le prix : il fixe un plancher. C'est l'élasticité qui dit de combien on peut s'en éloigner."},
+    {q:"Quel est ton taux de marge ACTUEL, en % du prix ?", val:mAct*100, unit:"%", tol:.8,
+     calcul:`(${vf(pAct)} € − ${vf(c)} €) ÷ ${vf(pAct)} € = <b>${(mAct*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:mAct<mOpt?"En dessous du taux optimal : tu laisses de l'argent sur la table, ton prix est trop bas pour ton élasticité.":"Au-dessus du taux optimal : ton prix est trop haut pour ton élasticité — le volume perdu coûte plus que la marge gagnée."},
+    {q:"De combien le prix pratiqué s'écarte-t-il du prix optimal, en % ?", val:(pAct/pOpt-1)*100, unit:"%", tol:1.5,
+     calcul:`${vf(pAct)} € ÷ ${vf(Math.round(pOpt*100)/100)} € − 1 = <b>${((pAct/pOpt-1)*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"Un écart de quelques pour cent n'est pas alarmant : l'élasticité elle-même est estimée. Un écart de vingt l'est — il veut dire qu'on tarife à l'habitude."},
+    {q:"Quel taux de marge la règle de Lerner donnerait-elle pour le secteur inélastique du carburant ?",
+     val:1/elInel*100, unit:"%", tol:8,
+     calcul:`1 ÷ ${elInel.toFixed(2).replace(".",",")} = <b>${(1/elInel*100).toFixed(0)} %</b> — un taux impossible à tenir`,
+     cle:"Au-dessus de 100 %, la formule crie qu'elle sort de son domaine : elle exige |e| > 1. Sur un marché inélastique, ce n'est pas l'optimisation qui fixe le prix, c'est la régulation, la concurrence ou l'acceptabilité."},
+    {q:`De combien baisserait le volume de carburant si une taxe en augmentait le prix de ${taxe} % ?`,
+     val:elInel*taxe, unit:"%", tol:.8,
+     calcul:`${elInel.toFixed(2).replace(".",",")} × ${taxe} % = <b>${(elInel*taxe).toFixed(1).replace(".",",")} %</b> de volume en moins seulement`,
+     cle:"Voilà pourquoi on taxe les produits inélastiques : les volumes tiennent, donc la recette fiscale rentre. Et voilà aussi pourquoi ces taxes pèsent surtout sur ceux qui ne peuvent pas s'en passer."},
+    {q:"À quelle élasticité faudrait-il être pour qu'un taux de marge de 80 % soit optimal ?",
+     val:1.25, unit:"", tol:.06,
+     calcul:`m = 1 ÷ |e| donc |e| = 1 ÷ 80 % = <b>1,25</b>`,
+     cle:"Les marges très élevées ne signalent pas la cupidité mais une demande peu sensible au prix : marque forte, brevet, coût de changement, ou absence d'alternative. Toute la stratégie consiste à faire baisser son propre |e|."}
    ]};}}
 
 ];
