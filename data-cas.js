@@ -14,7 +14,7 @@
 
 const CAS = [
 
-{id:"cas1", ic:"📉", titre:"La marge qui s'effrite", type:"Rentabilité", duree:"25 min", niveau:1,
+{id:"cas1", ic:"📉", titre:"La marge qui s'effrite", type:"Rentabilité", format:"mené par le candidat", duree:"25 min", niveau:1,
  client:"Un fabricant français de mobilier de bureau, 80 M€ de chiffre d'affaires.",
  enonce:`Le directeur général te reçoit. « Notre chiffre d'affaires progresse de 4 % par an depuis trois ans, et pourtant notre résultat a fondu de moitié. Je ne comprends pas. Trouvez-moi ce qui se passe. »
    <br><br>Il n'a apporté aucun document.`,
@@ -80,7 +80,7 @@ const CAS = [
   "Avoir donné une recommandation qui ASSUME une conséquence désagréable (perdre des clients).",
   "Avoir parlé pendant le calcul, pour que l'interlocuteur suive le raisonnement et pas seulement le résultat."]},
 
-{id:"cas2", ic:"📏", titre:"Combien de cafés se boivent à Paris chaque jour ?", type:"Market sizing", duree:"15 min", niveau:1,
+{id:"cas2", ic:"📏", titre:"Combien de cafés se boivent à Paris chaque jour ?", type:"Market sizing", format:"mené par l'examinateur", duree:"15 min", niveau:1,
  client:"Un torréfacteur qui envisage d'ouvrir un réseau de points de vente.",
  enonce:`« Avant de parler d'implantation, donnez-moi un ordre de grandeur : combien de cafés sont consommés hors domicile à Paris intra-muros, un jour de semaine ? »
    <br><br>Aucune donnée. Aucun accès à Internet. Tu as cinq minutes et un tableau blanc.`,
@@ -147,7 +147,7 @@ const CAS = [
   "Avoir contrôlé le résultat par l'autre chemin, spontanément et sans qu'on le demande.",
   "Avoir nommé l'hypothèse la plus fragile et chiffré son impact — c'est le réflexe qui fait passer de « bon candidat » à « embauché »."]},
 
-{id:"cas3", ic:"🚪", titre:"Faut-il entrer en Espagne ?", type:"Entrée sur un marché", duree:"30 min", niveau:2,
+{id:"cas3", ic:"🚪", titre:"Faut-il entrer en Espagne ?", type:"Entrée sur un marché", format:"mené par le candidat", duree:"30 min", niveau:2,
  client:"Un éditeur français de logiciels de gestion pour PME, 40 M€ de chiffre d'affaires, rentable.",
  enonce:`« Notre marché français arrive à maturité. Le comité pousse pour l'Espagne : même taille de tissu de PME, proximité culturelle, équipe commerciale motivée. Faut-il y aller ? »
    <br><br>Ils ont déjà choisi le pays. Ils veulent que tu valides.`,
@@ -218,7 +218,7 @@ const CAS = [
   "Avoir proposé une option à faible coût plutôt qu'un « non » sec.",
   "Avoir mentionné le coût d'opportunité, même en une phrase."]},
 
-{id:"cas4", ic:"🎚️", titre:"Le concurrent casse les prix de 15 %", type:"Pricing", duree:"25 min", niveau:2,
+{id:"cas4", ic:"🎚️", titre:"Le concurrent casse les prix de 15 %", type:"Pricing", format:"mené par le candidat", duree:"25 min", niveau:2,
  client:"Un fabricant de consommables techniques pour laboratoires.",
  enonce:`« Notre principal concurrent vient de baisser ses tarifs de 15 %. Mon directeur commercial veut s'aligner dès lundi, il parle d'hémorragie. Mon directeur financier refuse. Tranchez. »
    <br><br>On te demande un arbitrage, pas une analyse.`,
@@ -286,6 +286,148 @@ const CAS = [
   "Avoir nommé le demi-alignement comme un piège, au lieu de le proposer comme compromis.",
   "Avoir regardé la trésorerie du concurrent — la guerre des prix est une question de durée, pas de prix.",
   "Avoir donné une décision claire, datée et assumée, et non un éventail d'options."]},
+
+{id:"cas5", ic:"🤝", titre:"Racheter un concurrent régional", type:"M&A · synergies", format:"mené par le candidat", duree:"35 min", niveau:2,
+ client:"Un distributeur de matériel électrique B2B, 320 M€ de chiffre d'affaires, présent dans le quart nord-est.",
+ enonce:`« Un concurrent régional est à vendre : 90 M€ de chiffre d'affaires, bonne implantation dans l'ouest où nous sommes faibles. Le vendeur demande <b>58 M€</b> en valeur d'entreprise. Notre équipe a identifié <b>4 M€ de synergies annuelles</b>. Le comité se réunit jeudi : faut-il y aller à ce prix ? »
+   <br><br>Il te tend une note de deux pages. Tu n'as pas accès aux comptes détaillés.`,
+ clarif:{q:"Trois questions, avant de toucher au moindre chiffre.",
+  opts:[
+   {t:"Ces 4 M€ sont-ils des synergies de COÛTS ou de REVENUS, et lesquelles précisément ?", bon:true,
+    why:"La distinction décide de la crédibilité. Les synergies de coûts — achats groupés, logistique, doublons de siège — se chiffrent et se tiennent. Les synergies de revenus (« nous vendrons nos produits à leurs clients ») se réalisent rarement et jamais dans les délais annoncés. Un comité qui ne fait pas la distinction paie les secondes au prix des premières."},
+   {t:"Combien de temps pour les réaliser, et quel coût de mise en œuvre ?", bon:true,
+    why:"Une synergie annoncée en année 1 et réalisée en année 3 vaut beaucoup moins. Et l'intégration coûte : systèmes, plans sociaux, harmonisation des gammes. Ce coût one-off est presque toujours absent des notes de comité."},
+   {t:"Quel est le chevauchement géographique et client entre les deux réseaux ?", bon:true,
+    why:"Il commande tout : un fort chevauchement fait de vraies économies de doublons mais attire l'attention de l'autorité de concurrence ; un chevauchement faible, comme ici, donne de la couverture mais peu de synergies de coûts."},
+   {t:"Quelle banque conseille le vendeur ?", bon:false,
+    why:"Sans effet sur la valeur. Utile pour anticiper le process, jamais pour l'arbitrage."},
+   {t:"Combien de salariés compte la cible ?", bon:false,
+    why:"Un chiffre de contexte. Il n'entre pas dans le calcul de ce qu'on peut payer."},
+   {t:"Quelle est l'ancienneté de la marque ?", bon:false,
+    why:"En distribution B2B, la marque de l'enseigne pèse peu : ce sont la couverture, les prix d'achat et la relation commerciale qui font la valeur."}
+  ]},
+ structure:{q:"Comment poses-tu la question du prix ?",
+  rappel:"Un prix d'acquisition se décompose toujours ainsi : <b>ce que la cible vaut sans toi</b> (stand-alone), plus <b>ce que tu peux en tirer de plus</b> (les synergies nettes). La négociation ne porte que sur une chose : <b>quelle part des synergies tu laisses au vendeur</b>.",
+  opts:[
+   "Je compare le prix au chiffre d'affaires de la cible",
+   "Je décompose : valeur stand-alone + synergies nettes = prix maximum. Puis je regarde quelle part des synergies le prix demandé laisse au vendeur",
+   "Je regarde si nous avons les moyens de financer 58 M€",
+   "Je calcule le retour sur investissement à cinq ans"],
+  a:1, exp:"C'est la seule décomposition qui permette de répondre. Elle donne un <b>prix plafond</b> — au-delà, l'acquéreur détruit de la valeur mécaniquement — et elle transforme la question « est-ce cher ? », qui n'a pas de réponse, en « combien des synergies QUE NOUS CRÉONS sommes-nous en train de payer au vendeur ? », qui en a une."},
+ chiffres:{contexte:"Tu obtiens le détail. Les synergies sont bien des synergies de coûts : 2,5 M€ d'achats groupés, 1 M€ de logistique, 0,5 M€ de doublons de siège.",
+  donnees:[["Chiffre d'affaires de la cible",90000000,"€"],["Marge d'EBITDA de la cible",6,"%"],
+           ["Multiple du secteur",7,""],["Synergies de coûts annuelles",4000000,"€"],
+           ["Coût de mise en œuvre (une fois)",6000000,"€"],["Prix demandé (valeur d'entreprise)",58000000,"€"]],
+  questions:[
+   {q:"Quel est l'EBITDA de la cible ?", val:5400000, unit:"€",
+    calcul:"90 000 000 € × 6 % = <b>5 400 000 €</b>",
+    cle:"Une marge de 6 % est normale en distribution : le métier se joue sur le volume et le besoin en fonds de roulement, pas sur la marge."},
+   {q:"Quelle est la valeur de la cible SANS toi (stand-alone) ?", val:37800000, unit:"€",
+    calcul:"7 × 5 400 000 € = <b>37 800 000 €</b>",
+    cle:"C'est ce que n'importe quel acheteur paierait. Tout ce qui dépasse, c'est ce que TU apportes — ou ce que tu offres."},
+   {q:"Quelle prime le vendeur demande-t-il au-dessus de cette valeur ?", val:20200000, unit:"€",
+    calcul:"58 000 000 € − 37 800 000 € = <b>20 200 000 €</b>",
+    cle:"Une prime de 53 % sur la valeur stand-alone. Ce n'est pas anormal en soi — la question est de savoir si les synergies la justifient."},
+   {q:"Que valent les synergies NETTES, au même multiple ?", val:22000000, unit:"€", tol:200000,
+    calcul:"7 × 4 000 000 € = 28 000 000 € · − 6 000 000 € de coût de mise en œuvre = <b>22 000 000 €</b>",
+    cle:"On valorise un flux récurrent au multiple du secteur, et on retire le coût one-off. Oublier ce coût est l'erreur la plus fréquente des notes de comité."},
+   {q:"Combien l'acquéreur crée-t-il réellement de valeur à ce prix ?", val:1800000, unit:"€", tol:200000,
+    calcul:"22 000 000 € de synergies − 20 200 000 € de prime = <b>1 800 000 €</b>",
+    cle:"Moins de 2 M€ pour une opération à 58 M€, avec tout le risque d'exécution. Le rapport risque/gain est le vrai sujet du comité."},
+   {q:"Quelle part des synergies revient au VENDEUR, en % ?", val:91.8, unit:"%", tol:2,
+    calcul:"20 200 000 € ÷ 22 000 000 € = <b>92 %</b>",
+    cle:"Voilà la phrase à dire au comité : « nous payons au vendeur 92 % de la valeur que NOUS allons créer ». Personne ne la formule jamais comme ça, et c'est pourtant l'unique enjeu de la négociation."},
+   {q:"Si les synergies ne faisaient finalement que 3 M€ par an au lieu de 4, de combien l'opération détruirait-elle de la valeur ?", val:5200000, unit:"€", tol:200000,
+    calcul:"7 × 3 000 000 € − 6 000 000 € = 15 000 000 € de synergies nettes, contre 20 200 000 € de prime · destruction de <b>5 200 000 €</b>",
+    cle:"Un quart de synergies en moins fait basculer l'opération de +1,8 M€ à −5,2 M€. C'est ça, une opération sans marge de sécurité : elle n'a pas le droit de se tromper."}
+  ]},
+ reco:{q:"Que dis-tu au comité jeudi ?",
+  opts:[
+   "Y aller : l'opération est relutive et la couverture géographique est stratégique",
+   "Ne pas dépasser 50 M€, ou structurer le complément en earn-out adossé aux synergies réellement constatées — à 58 M€, nous payons 92 % de la valeur que nous créons et une synergie manquée sur quatre suffit à détruire 5 M€",
+   "Renoncer définitivement à l'acquisition",
+   "Racheter plutôt un concurrent plus grand"],
+  a:1, exp:"La recommandation n'est ni « oui » ni « non » : c'est un <b>prix</b> et une <b>structure</b>. L'earn-out est ici l'outil naturel — il déplace le risque d'exécution des synergies vers celui qui les a annoncées. Et le chiffre qui emporte la décision est la sensibilité : une opération qui bascule de +1,8 à −5,2 M€ pour un quart de synergies manquées n'a pas de marge de sécurité."},
+ debrief:`<p><b>Ce cas teste une seule idée, et elle est contre-intuitive :</b> dans une acquisition, la valeur ne se crée pas au moment où l'on trouve des synergies. Elle se crée — ou se perd — au moment où l'on fixe le prix.</p>
+  <p><b>La décomposition qui résout tout</b> : prix = valeur stand-alone + part des synergies cédée au vendeur. Le prix plafond, c'est stand-alone + synergies nettes ; au-delà, l'acquéreur paie pour travailler. Ici 59,8 M€ — le vendeur en demande 58, soit quasiment tout.</p>
+  <p><b>Le piège du multiple.</b> Beaucoup de candidats valorisent les synergies « à part », sans multiple, et trouvent 4 M€ au lieu de 22. Une synergie récurrente se valorise comme un flux récurrent : au multiple. Sinon on sous-estime massivement ce qu'on peut payer — et on renonce à de bonnes opérations.</p>
+  <p>⚠️ <b>Et la distinction coûts / revenus est le vrai jugement business.</b> Ici les 4 M€ sont entièrement des synergies de coûts, identifiées ligne par ligne : c'est crédible. Si la note avait annoncé « 4 M€ dont 2,5 de ventes croisées », le bon réflexe aurait été de les valoriser à zéro et de le dire.</p>`,
+ grid:["Avoir demandé coûts ou revenus AVANT de regarder le prix.",
+  "Avoir valorisé les synergies au multiple, et non en euros annuels.",
+  "Avoir retiré le coût de mise en œuvre — presque toujours absent des notes de comité.",
+  "Avoir formulé le résultat comme « nous payons 92 % de la valeur que nous créons ».",
+  "Avoir testé la sensibilité à une synergie manquée, sans qu'on le demande.",
+  "Avoir recommandé un PRIX et une STRUCTURE, pas un oui ou un non."]},
+
+{id:"cas6", ic:"🏪", titre:"Pourquoi le magasin d'à côté gagne trois fois plus", type:"Opérations · dispersion", format:"mené par le candidat", duree:"35 min", niveau:3,
+ client:"Une enseigne de 120 magasins d'équipement de la maison, 288 M€ de chiffre d'affaires.",
+ enonce:`« Nos magasins ont tous le même concept, la même gamme, les mêmes prix. Et pourtant la marge du meilleur quartile est de <b>9 %</b> quand celle du dernier est à <b>2 %</b>. Le directeur général veut un plan pour « aligner tout le monde sur les meilleurs ». Combien ça vaut, et par où commencer ? »
+   <br><br>On te demande implicitement de valider une ambition. Regarde-la avant de la chiffrer.`,
+ clarif:{q:"Trois questions. Une seule d'entre elles peut faire s'effondrer toute la demande.",
+  opts:[
+   {t:"Les magasins du dernier quartile sont-ils COMPARABLES aux autres — surface, zone de chalandise, ancienneté, concurrence locale ?", bon:true,
+    why:"C'est la question qui décide si le problème existe. Si les magasins faibles sont dans des zones deux fois moins denses, l'écart est STRUCTUREL : aucun plan d'action ne le comblera, et « aligner tout le monde sur les meilleurs » est un objectif impossible qu'on va poursuivre pendant deux ans."},
+   {t:"L'écart vient-il du chiffre d'affaires au mètre carré, de la marge commerciale, ou des coûts du magasin ?", bon:true,
+    why:"Trois causes, trois plans d'action totalement différents. Un magasin qui vend peu n'a pas le même problème qu'un magasin qui vend autant mais plus cher à servir."},
+   {t:"La dispersion est-elle stable dans le temps, ou les magasins changent-ils de quartile d'une année sur l'autre ?", bon:true,
+    why:"La question la plus fine du cas. Si les mêmes magasins restent en bas année après année, la cause est structurelle (emplacement). S'ils bougent, elle est managériale (directeur, équipe, exécution) — et là, un plan peut agir."},
+   {t:"Quelle est la notoriété de l'enseigne au niveau national ?", bon:false,
+    why:"Elle est la même pour tous les magasins par construction. Elle ne peut donc pas expliquer une dispersion INTERNE."},
+   {t:"Quel est le budget publicitaire annuel ?", bon:false,
+    why:"Un chiffre de contexte, national, qui n'explique pas davantage un écart entre magasins d'une même enseigne."},
+   {t:"Depuis combien d'années l'enseigne existe-t-elle ?", bon:false,
+    why:"Sans effet sur l'arbitrage. On cherche la source d'un écart, pas l'histoire de l'entreprise."}
+  ]},
+ structure:{q:"Comment abordes-tu la question du gain ?",
+  rappel:"Devant une dispersion, deux ambitions existent et elles n'ont rien à voir : <b>hisser les plus faibles à la médiane</b> — réaliste, mesurable, souvent l'essentiel du gain — ou <b>amener tout le monde au niveau des meilleurs</b>, qui suppose que l'écart soit entièrement reproductible. Chiffrer les deux, et dire laquelle on retient, EST le cas.",
+  opts:[
+   "Je chiffre le gain si tous les magasins atteignaient 9 %",
+   "Je chiffre les deux ambitions — dernier quartile ramené à la médiane, et réseau entier au niveau du quartile haut — puis je dis laquelle est atteignable et pourquoi",
+   "Je calcule la marge moyenne et je la compare au secteur",
+   "Je propose de fermer les magasins du dernier quartile"],
+  a:1, exp:"Chiffrer une seule ambition, c'est accepter le cadrage du client. Chiffrer les deux donne une <b>fourchette</b> et, surtout, permet de dire ce qui sépare les deux chiffres : la part de l'écart qui est reproductible. C'est exactement ce qu'un directeur général ne sait pas et ce pour quoi il paie."},
+ chiffres:{contexte:"On te donne la structure du réseau. Le dernier quartile compte 30 magasins.",
+  donnees:[["Nombre de magasins",120,""],["Chiffre d'affaires moyen par magasin",2400000,"€"],
+           ["Marge d'exploitation moyenne du réseau",5.5,"%"],
+           ["Marge du quartile HAUT",9,"%"],["Marge du dernier quartile",2,"%"],
+           ["Magasins du dernier quartile",30,""]],
+  questions:[
+   {q:"Quel est le chiffre d'affaires total du réseau ?", val:288000000, unit:"€",
+    calcul:"120 × 2 400 000 € = <b>288 000 000 €</b>",
+    cle:"On pose toujours la taille du gâteau avant de discuter des parts. Ça donne l'ordre de grandeur du gain possible en une seconde."},
+   {q:"Quel est le résultat d'exploitation actuel du réseau ?", val:15840000, unit:"€",
+    calcul:"288 000 000 € × 5,5 % = <b>15 840 000 €</b>",
+    cle:"C'est la base de comparaison. Tout gain annoncé se rapportera à ces 15,8 M€ — et un plan qui promet « +10 M€ » propose en réalité de faire +64 %."},
+   {q:"Quel gain annuel si le dernier quartile atteignait la MÉDIANE du réseau (5,5 %) ?", val:2520000, unit:"€", tol:50000,
+    calcul:"30 magasins × 2 400 000 € = 72 000 000 € de CA · × (5,5 % − 2 %) = <b>2 520 000 €</b>",
+    cle:"C'est l'ambition réaliste : demander aux plus faibles de faire ce que la moitié du réseau fait déjà. Aucun magasin n'est prié d'être exceptionnel."},
+   {q:"Quel gain si TOUS les magasins atteignaient 9 % ?", val:10080000, unit:"€", tol:100000,
+    calcul:"288 000 000 € × 9 % = 25 920 000 € · − 15 840 000 € = <b>10 080 000 €</b>",
+    cle:"Quatre fois plus — et c'est précisément le chiffre que le directeur général a en tête. Le rôle du consultant est de dire pourquoi il ne l'aura pas."},
+   {q:"Combien de POINTS de marge le réseau gagnerait-il avec la seule ambition réaliste ?", val:0.875, unit:"%", tol:.08,
+    calcul:"2 520 000 € ÷ 288 000 000 € = <b>0,875 point</b> · la marge du réseau passerait de 5,5 % à 6,4 %",
+    cle:"Moins d'un point. Dit comme ça, ça paraît maigre ; c'est pourtant +16 % de résultat. Savoir traduire un point de marge en pourcentage de résultat est un réflexe de comité."},
+   {q:"De combien de % le résultat du réseau progresserait-il avec cette ambition réaliste ?", val:15.9, unit:"%", tol:1,
+    calcul:"2 520 000 € ÷ 15 840 000 € = <b>15,9 %</b>",
+    cle:"+0,9 point de marge, mais +16 % de résultat. C'est la même confusion points / pour cent que le module de chiffrage : sur la marge, l'écart entre les deux unités est énorme."}
+  ]},
+ reco:{q:"Que recommandes-tu ?",
+  opts:[
+   "Un plan de performance pour aligner les 120 magasins sur 9 % de marge",
+   "Séparer d'abord l'écart structurel de l'écart d'exécution — en comparant les magasins à zone de chalandise équivalente — puis viser le dernier quartile vers la médiane : 2,5 M€, soit +16 % de résultat, sans demander à personne d'être exceptionnel",
+   "Fermer les 30 magasins du dernier quartile",
+   "Baisser les prix dans les magasins en difficulté pour relancer le volume"],
+  a:1, exp:"Deux gestes, dans cet ordre. <b>D'abord séparer</b> ce qui vient de l'emplacement de ce qui vient de l'exécution : sans ça, on lance un plan contre une réalité géographique. <b>Puis viser l'ambition atteignable.</b> Fermer les 30 magasins est le réflexe de celui qui n'a pas fait le premier geste : beaucoup contribuent à absorber des coûts de structure, et un magasin à 2 % de marge gagne quand même de l'argent."},
+ debrief:`<p><b>Ce cas teste ta capacité à refuser un objectif.</b> « Aligner tout le monde sur les meilleurs » est une phrase qu'on entend dans tous les comités et qui n'a presque jamais de sens : une partie de l'écart entre magasins n'est pas reproductible, parce qu'elle tient à l'emplacement.</p>
+  <p><b>La bonne question, celle du troisième choix de cadrage :</b> les mêmes magasins restent-ils en bas d'une année sur l'autre ? Si oui, la cause est structurelle. Si les magasins bougent de quartile, elle est managériale — et là un plan agit. Cette question sépare un diagnostic d'une intuition.</p>
+  <p><b>Le chiffrage de la fourchette</b> — 2,5 M€ contre 10 M€ — est ce qui rend la discussion possible. Il ne dit pas « votre objectif est mauvais », il dit « voici ce qu'il vaut, voici ce qu'il suppose ». Un dirigeant peut arbitrer là-dessus ; il ne peut rien faire d'un « ce n'est pas réaliste ».</p>
+  <p>⚠️ <b>Et la traduction finale compte autant que le calcul.</b> « +0,9 point de marge » endort un comité ; « +16 % de résultat » le réveille. Les deux chiffres sont vrais, et le second est celui qui déclenche la décision.</p>`,
+ grid:["Avoir posé la question de la comparabilité AVANT de chiffrer quoi que ce soit.",
+  "Avoir chiffré les DEUX ambitions et nommé ce qui les sépare.",
+  "Avoir refusé l'objectif du client sans le rejeter — en le chiffrant.",
+  "Avoir traduit les points de marge en pourcentage de résultat.",
+  "Avoir écarté la fermeture en expliquant l'absorption des coûts de structure.",
+  "Avoir proposé un geste de diagnostic avant un plan d'action."]}
 
 ];
 

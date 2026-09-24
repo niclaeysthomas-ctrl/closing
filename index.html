@@ -2551,11 +2551,13 @@ function casFait(id){ return !!casEtat()[id]; }
 function casFaits(){ return CAS.filter(c=>casFait(c.id)).length; }
 
 function casRoom(){
-  const lignes=CAS.map(c=>{
+  /* trié par difficulté : l'ordre d'insertion n'est pas un ordre
+     pédagogique, et il ne le restera pas quand on ajoutera des cas. */
+  const lignes=CAS.slice().sort((x,y)=>(x.niveau-y.niveau)||CAS.indexOf(x)-CAS.indexOf(y)).map(c=>{
     const f=casEtat()[c.id];
     return `<div class="mod${f?" gold":""}" onclick="casOpen('${c.id}')">
       <div class="ico">${c.ic}</div>
-      <div class="t"><b>${esc(c.titre)}</b><small>${esc(c.type)} · ${esc(c.duree)} · niveau ${c.niveau}${f?` · <b style="color:var(--ok)">fait — ${f.score}/${f.total}</b>`:""}</small></div>
+      <div class="t"><b>${esc(c.titre)}</b><small>${esc(c.type)} · <b>niveau ${c.niveau}</b> · ${esc(c.duree)}${c.format?` · entretien ${esc(c.format)}`:""}${f?` · <b style="color:var(--ok)">fait — ${f.score}/${f.total}</b>`:""}</small></div>
       <div class="pc">${f?"✓":"›"}</div></div>`;}).join("");
   openOv(ovTop("🧠 Le cas")+`
     <p class="sub">L'entretien de conseil ne teste pas ce que tu sais : il teste comment tu attaques un problème que tu découvres. Quatre temps, toujours les mêmes — <b>cadrer</b>, <b>découper</b>, <b>chiffrer</b>, <b>conclure</b>. On ne saute pas le premier : un candidat qui se jette sur les chiffres a déjà perdu.</p>
@@ -2563,7 +2565,8 @@ function casRoom(){
       <div class="ico">📓</div><div class="t"><b>Le briefing — à lire avant</b><small>${briefFaits()}/${CAS_BRIEF.length} fiches. Ce qu'on te note vraiment, qui mène l'entretien selon les cabinets, les sept premières minutes, structurer sans réciter, calculer à voix haute, lire un graphique, la synthèse, les fautes qui éliminent.</small></div>
       <div class="pc">${briefFaits()||"›"}</div>
     </div>
-    <div class="crit" style="margin:10px 0"><b>${casFaits()}/${CAS.length} cas traités.</b> ${casFaits()===0?"Commence par le 1 : c'est le plus fréquent en entretien.":"Refaire un cas ne sert à rien de suivi — ce qui compte est la démarche, pas la réponse."}</div>
+    <div class="crit" style="margin:10px 0"><b>${casFaits()}/${CAS.length} cas traités.</b> ${casFaits()===0?"Commence par un niveau 1 : c'est le format le plus fréquent en premier tour.":"Refaire un cas ne sert à rien de suivi — ce qui compte est la démarche, pas la réponse."}</div>
+    <div class="xptxt" style="margin:-4px 0 10px">Niveaux 1 à ${Math.max(...CAS.map(c=>c.niveau))} · le niveau dit l'ambiguïté de l'énoncé et le nombre d'étages à descendre, pas la difficulté du calcul.</div>
     ${lignes}
     <div class="xptxt" style="margin-top:10px">⚠️ Les chiffres d'un cas ne sont JAMAIS donnés d'avance. En entretien, on les demande. Ici, ils arrivent au temps ③ — et pas avant.</div>`);
 }
