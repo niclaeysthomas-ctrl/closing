@@ -1518,8 +1518,13 @@ function calcEval(raw){
   e=e.replace(/\s+/g,"").replace(/,/g,".").replace(/[×✕]/g,"*").replace(/[÷]/g,"/").replace(/[−–—]/g,"-");
   e=e.replace(/(\d+(?:\.\d+)?)%/g,"($1/100)");          /* 20 % → 0,20 : 1200*20% = 240 */
   e=e.replace(/\^/g,"**");                               /* 1,05^10 → intérêts composés, VAN, TCAM : sans ça, il fallait sortir de l'app */
-  if(!/^[0-9+\-*/().]+$/.test(e)) return {err:"Seuls les chiffres et + − × ÷ ( ) % ^ sont acceptés."};
+  /* ln( est le seul mot accepté — pas de fonctions arbitraires. On le retire
+     avant le contrôle de sécurité (il ne reste alors que chiffres et
+     opérateurs à valider), puis on le traduit en Math.log( pour l'évaluation. */
+  const check=e.replace(/ln\(/g,"(");
+  if(!/^[0-9+\-*/().]+$/.test(check)) return {err:"Seuls les chiffres, + − × ÷ ( ) % ^ et ln( sont acceptés."};
   if((e.match(/\(/g)||[]).length!==(e.match(/\)/g)||[]).length) return {err:"Parenthèses non refermées."};
+  e=e.replace(/ln\(/g,"Math.log(");                      /* ln 2 ÷ ln(1+r) → le temps de doublement exact, la règle de 72 n'est qu'une approximation */
   try{
     const v=Function('"use strict";return ('+e+')')();
     if(typeof v!=="number"||!isFinite(v)) return {err:"Division par zéro, ou calcul impossible."};
@@ -1599,7 +1604,7 @@ function calcBlock(){
   const vars=calcVars();
   const pad=[["7"],["8"],["9"],["÷","op"],["4"],["5"],["6"],["×","op"],
              ["1"],["2"],["3"],["−","op"],["0"],[","],["%","op"],["+","op"],
-             ["(","op"],[")","op"],["⌫","del"],["=","eq"],["^","op"]];
+             ["(","op"],[")","op"],["⌫","del"],["=","eq"],["^","op"],["ln","op"]];
   return `<div class="calcw${S.calcOpen?" open":""}" id="calcw">
     <div class="calch" onclick="calcToggle()"><span>🧮</span><b>La calculatrice</b>
       <span class="xptxt">estime avant de trancher</span><span class="ar">›</span></div>
@@ -1632,6 +1637,7 @@ function calcKey(t){
   const i=document.getElementById("calcin"); if(!i) return;
   if(t==="⌫"){ i.value=i.value.slice(0,-1); calcLive(); i.focus(); return; }
   if(t==="="){ calcEq(); return; }
+  if(t==="ln"){ i.value+="ln("; calcLive(); i.focus(); return; }
   i.value+=({"×":"*","÷":"/","−":"-"})[t]||t;
   calcLive(); i.focus();
 }
