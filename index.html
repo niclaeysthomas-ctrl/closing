@@ -1498,7 +1498,13 @@ function vBoiteDead(){
    Évaluation restreinte : la chaîne est validée caractère par caractère
    avant tout calcul, on n'évalue jamais du texte libre.
    Les chiffres de SA boîte sont insérables d'un doigt — c'est ce qui
-   distingue cette calculatrice d'une calculatrice. */
+   distingue cette calculatrice d'une calculatrice.
+
+   ⚠️ LA PUISSANCE (^), ajoutée le 2026-09-25 sur « je suis embêté pour
+   les intérêts ». Sans elle, aucun calcul d'intérêts composés, de VAN
+   ou de TCAM ne tenait dans la calculatrice — il fallait sortir de
+   l'app. 1,05^10 calcule un capital à 10 ans ; (200/100)^(1/7)-1 donne
+   le taux de croissance annuel qui double une grandeur en 7 ans. */
 let CALCMEM=[];
 function calcFmt(v){
   if(!isFinite(v)) return "—";
@@ -1511,7 +1517,8 @@ function calcEval(raw){
   if(!e) return {v:null};
   e=e.replace(/\s+/g,"").replace(/,/g,".").replace(/[×✕]/g,"*").replace(/[÷]/g,"/").replace(/[−–—]/g,"-");
   e=e.replace(/(\d+(?:\.\d+)?)%/g,"($1/100)");          /* 20 % → 0,20 : 1200*20% = 240 */
-  if(!/^[0-9+\-*/().]+$/.test(e)) return {err:"Seuls les chiffres et + − × ÷ ( ) % sont acceptés."};
+  e=e.replace(/\^/g,"**");                               /* 1,05^10 → intérêts composés, VAN, TCAM : sans ça, il fallait sortir de l'app */
+  if(!/^[0-9+\-*/().]+$/.test(e)) return {err:"Seuls les chiffres et + − × ÷ ( ) % ^ sont acceptés."};
   if((e.match(/\(/g)||[]).length!==(e.match(/\)/g)||[]).length) return {err:"Parenthèses non refermées."};
   try{
     const v=Function('"use strict";return ('+e+')')();
@@ -1592,7 +1599,7 @@ function calcBlock(){
   const vars=calcVars();
   const pad=[["7"],["8"],["9"],["÷","op"],["4"],["5"],["6"],["×","op"],
              ["1"],["2"],["3"],["−","op"],["0"],[","],["%","op"],["+","op"],
-             ["(","op"],[")","op"],["⌫","del"],["=","eq"]];
+             ["(","op"],[")","op"],["⌫","del"],["=","eq"],["^","op"]];
   return `<div class="calcw${S.calcOpen?" open":""}" id="calcw">
     <div class="calch" onclick="calcToggle()"><span>🧮</span><b>La calculatrice</b>
       <span class="xptxt">estime avant de trancher</span><span class="ar">›</span></div>
