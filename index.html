@@ -530,11 +530,20 @@ function missItems(){
 
 // ================= MENU DU JOUR =================
 function nextUndone(list,doneIds){ return list.find(x=>!doneIds.includes(x.id))||list[Math.floor(Math.random()*list.length)]; }
+/* Si les deux pistes de l'échelle sont closes et que rien n'est dû, le
+   bloc « exos » du menu du jour s'efface (voir vJour) — il ne doit donc
+   jamais bloquer la validation de la journée. Sans ce garde-fou, finir
+   l'échelle un jour reviendrait à ne plus jamais pouvoir valider. */
+function exoJourClos(){
+  return (typeof exoDus==="function"&&typeof exosFaits==="function"&&typeof EXOS!=="undefined")
+    ? (exoDus().length===0 && exosFaits()>=EXOS.length) : false;
+}
 function ensureMenu(){
   const t=today();
   if(S.menu&&S.menu.date===t){
     if(S.menu.dCards===undefined){ S.menu.dCards=false; save(); } // migration des menus d'avant l'ajout des flashcards
     if(S.menu.readMode===undefined){ S.menu.readMode="deal"; if(!S.menu.mclass) S.menu.mclass=nextUndone(MASTERCLASS,S.done.mclass).id; save(); } // migration masterclass
+    if(S.menu.dExo===undefined){ S.menu.dExo=exoJourClos(); S.menu.dChif=false; save(); } // migration séance à 2h : chiffrage + exos rejoignent la journée
     return;
   }
   const doy=Math.floor((new Date()-new Date(new Date().getFullYear(),0,0))/864e5);
@@ -542,9 +551,27 @@ function ensureMenu(){
   // La "lecture du jour" alterne : 2 jours sur 3 un deal, 1 jour sur 3 une masterclass sectorielle
   const readMode=(doy%3===2)?"mclass":"deal";
   S.menu={date:t,readMode,deal:nextUndone(DEALS,S.done.deals).id,mclass:nextUndone(MASTERCLASS,S.done.mclass).id,
-    lesson:nextUndone(LESSONS,S.done.lessons).id,
-    sparType,spar:nextUndone(SPAR[sparType].l(),SPAR[sparType].d()).id,dDeal:false,dLesson:false,dSpar:false,dCards:false,validated:false};
+    lesson:nextLesson().id,
+    sparType,spar:nextUndone(SPAR[sparType].l(),SPAR[sparType].d()).id,
+    dDeal:false,dLesson:false,dSpar:false,dCards:false,dExo:exoJourClos(),dChif:false,validated:false};
   save();
+}
+/* ⚠️ LA SÉANCE À 2H, ET LES FONDAMENTAUX D'ABORD.
+   Remonté le 2026-09-26, sur « 2 heures par jour minimum […] en mettant
+   l'accent sur les fondamentaux pour l'instant ». Deux conséquences :
+   — le chiffrage et les exos rejoignent la validation de journée (avant,
+     seuls le deal/masterclass, la leçon, le sparring et les flashcards
+     comptaient — quatre blocs, ~30 min) ;
+   — tant que les leçons de base ne sont pas closes, elles passent devant
+     tout le reste de l'Académie, au lieu d'un tirage qui les noie dans
+     52 leçons. */
+const LESSON_FOND=["base","ana","valo"];
+function nextLesson(){
+  for(const mid of LESSON_FOND){
+    const l=LESSONS.filter(x=>x.module===mid).find(x=>!S.done.lessons.includes(x.id));
+    if(l) return l;
+  }
+  return nextUndone(LESSONS,S.done.lessons);
 }
 function checkMenu(kind,id){
   const m=S.menu; if(!m||m.date!==today()) return;
@@ -552,8 +579,10 @@ function checkMenu(kind,id){
   if(kind==="mclass"&&id===m.mclass) m.dDeal=true; // la masterclass valide le slot "lecture du jour"
   if(kind==="lesson"&&id===m.lesson) m.dLesson=true;
   if(kind==="cards") m.dCards=true;
+  if(kind==="exo") m.dExo=true;
+  if(kind==="chif") m.dChif=true;
   if(SPAR[kind]&&kind===m.sparType&&id===m.spar) m.dSpar=true;
-  if(m.dDeal&&m.dLesson&&m.dSpar&&m.dCards&&!m.validated){
+  if(m.dDeal&&m.dLesson&&m.dSpar&&m.dCards&&m.dExo&&m.dChif&&!m.validated){
     m.validated=true;
     S.streak=(S.lastVal===yesterday())?S.streak+1:1;
     S.lastVal=today();
@@ -2227,8 +2256,9 @@ function coachPriorites(){
   }
   const faits=(typeof exosFaits==="function")?exosFaits():0;
   const dus=(typeof exoDus==="function")?exoDus():[];
+  const totalExo=(typeof EXOS!=="undefined")?EXOS.length:0;
   if(dus.length) p.push({k:"reprise", t:"🔁 <b>"+dus.length+" palier"+(dus.length>1?"s":"")+" de calcul à reprendre.</b> Ce qu'on ne révise pas, on l'a juste loué."});
-  else if(faits<3) p.push({k:"exos", t:"🧮 <b>Les bases avant tout le reste.</b> Tu as "+faits+"/12 paliers validés. Le premier est une soustraction — il te prendra trois minutes, et tout le reste de l'app s'appuie dessus."});
+  else if(faits<totalExo) p.push({k:"exos", t:"🧮 <b>Les bases avant tout le reste.</b> Tu as "+faits+"/"+totalExo+" paliers validés. Le premier est une soustraction — il te prendra trois minutes, et tout le reste de l'app s'appuie dessus."});
   return p;
 }
 function coachLine(){
@@ -2246,10 +2276,10 @@ function coachLine(){
     if(restes.length) return "Journée validée — mais il te reste "+restes.join(" et ")+" ci-dessous. Ce qu'on ne révise pas, on l'a juste loué.";
     return "Journée validée, révisions à jour, calculs repris. C'est le niveau attendu, pas un exploit. <b>Reviens demain.</b>";
   }
-  if(dispStreak()===0) return "Streak à <b>zéro</b>. En M&A, la régularité n'est pas une qualité, c'est le ticket d'entrée. Trente minutes. Maintenant.";
+  if(dispStreak()===0) return "Streak à <b>zéro</b>. En M&A, la régularité n'est pas une qualité, c'est le ticket d'entrée. Deux heures, fondamentaux d'abord. Maintenant.";
   if(P.length) return P[0].t;
-  const left=[!m.dDeal&&"le deal",!m.dLesson&&"la leçon",!m.dSpar&&"le sparring",!m.dCards&&"les flashcards"].filter(Boolean);
-  if(left.length===4) return "Rien de fait aujourd'hui. Le deal du jour t'attend — <b>on lit d'abord, on brille ensuite</b>.";
+  const left=[!m.dChif&&"le chiffrage",!m.dExo&&"les fondamentaux",!m.dDeal&&"le deal",!m.dLesson&&"la leçon",!m.dSpar&&"le sparring",!m.dCards&&"les flashcards"].filter(Boolean);
+  if(left.length>=6) return "Rien de fait aujourd'hui. Le chiffrage t'attend — <b>on s'échauffe d'abord, on tranche ensuite</b>.";
   return "Il te reste <b>"+left.join(" et ")+"</b>. On ne laisse pas un menu à moitié terminé — c'est exactement le flou qu'on chasse.";
 }
 
@@ -2282,11 +2312,36 @@ function vJour(){
         <div class="st">↻</div></div>`;
     }).join("");
   }
-  /* La reprise des exos entre dans la boucle quotidienne, au même rang que
-     les révisions : une base qu'on ne revoit pas n'est pas une base. */
+  /* ⚠️ LE BLOC « EXOS » DU JOUR EST UNIQUE, ET IL NE DISPARAÎT PLUS APRÈS
+     TROIS PALIERS. Avant : une tuile de reprise séparée, et une tuile
+     « pose tes bases » qui s'éteignait dès le palier 3 — au-delà, plus
+     aucune invite à continuer l'échelle depuis le menu du jour. Une
+     seule tuile, priorité à la reprise (une base due qu'on ne revoit
+     pas n'est plus une base), sinon le prochain palier ouvert — jusqu'à
+     ce que les deux pistes soient closes. exoContinuer() fait le choix ;
+     ici on ne fait que décrire où il mène. */
   const dusExo=(typeof exoDus==="function")?exoDus():[];
-  const exoHtml=dusExo.length?`<div class="act rev" onclick="exoReprise()">
-    <div class="ico">🔁</div><div class="t"><b>Reprise des calculs — ${dusExo.length} palier${dusExo.length>1?"s":""}</b><small>${dusExo.slice(0,5).map(nn=>{const p=exoPal(nn);return p?p.ic+" "+esc(p.titre):"";}).filter(Boolean).join(" · ")}${dusExo.length>5?" …":""}</small></div>
+  const exoFaits=(typeof exosFaits==="function")?exosFaits():0;
+  const exoTotal=(typeof EXOS!=="undefined")?EXOS.length:0;
+  const exoClos=!dusExo.length && exoFaits>=exoTotal;
+  const exoLabel=dusExo.length
+    ? {ic:"🔁", t:`Reprise des calculs — ${dusExo.length} palier${dusExo.length>1?"s":""}`,
+       s:dusExo.slice(0,5).map(nn=>{const p=exoPal(nn);return p?p.ic+" "+esc(p.titre):"";}).filter(Boolean).join(" · ")+(dusExo.length>5?" …":"")}
+    : (()=>{ const p=(typeof exoProchainPalier==="function")?exoProchainPalier():null;
+        return p?{ic:p.ic, t:`Les exos — palier ${p.n}. ${esc(p.titre)}`, s:`${exoFaits}/${exoTotal} paliers validés · ${esc(p.sujet)}`}
+                :{ic:"🧮", t:"Les exos — tout est validé", s:"Reviens quand une reprise tombera due."}; })();
+  const exoBlockHtml=exoClos?"":`<div class="act ${m.dExo?"done":""}" onclick="exoContinuer()">
+    <div class="ico">${exoLabel.ic}</div><div class="t"><b>${esc(exoLabel.t)}</b><small>${exoLabel.s}</small></div>
+    <div class="st">${m.dExo?"✓":"›"}</div></div>`;
+  const chifHtml=`<div class="act ${m.dChif?"done":""}" onclick="chifStart('mix')">
+    <div class="ico">⚡</div><div class="t"><b>Le chiffrage — calcul de tête, sous chrono</b><small>dix items mélangés, sans calculatrice — l'échauffement avant tout le reste (~10 min)</small></div>
+    <div class="st">${m.dChif?"✓":"›"}</div></div>`;
+  /* Recommandé, pas bloquant : le stock de cas est fini (9 aujourd'hui),
+     contrairement au chiffrage ou aux exos qui se régénèrent à chaque
+     série. Il s'efface tout seul une fois les niveaux 1 et 2 épuisés. */
+  const caseF=(typeof nextCaseFondamental==="function")?nextCaseFondamental():null;
+  const caseHtml=caseF?`<div class="act" onclick="casOpen('${caseF.id}')">
+    <div class="ico">${caseF.ic}</div><div class="t"><b>Le cas — ${esc(caseF.titre)}</b><small>niveau ${caseF.niveau} · cadrer, découper, chiffrer, conclure (~${esc(caseF.duree)})</small></div>
     <div class="st">›</div></div>`:"";
   /* La décision en attente BLOQUE le mois : elle mérite sa tuile en tête,
      pas seulement un onglet où il faut penser à aller. */
@@ -2296,18 +2351,13 @@ function vJour(){
     return `<div class="act rev" onclick="nav('boite');setTimeout(bizOpenCase,150)">
       <div class="ico">${c?c.icon:"🏭"}</div><div class="t"><b>${esc(bz.name)} — une décision t'attend</b><small>${c?esc(c.title):""} · mois ${bz.month}/${bz.horizon}. Le mois ne passe pas sans elle.</small></div>
       <div class="st">›</div></div>`;})():"";
-  /* Et tant que les bases ne sont pas posées, elles passent devant le reste. */
-  const exoFaits=(typeof exosFaits==="function")?exosFaits():0;
-  const basesHtml=(!dusExo.length && exoFaits<3)?`<div class="act" onclick="exosRoom()">
-    <div class="ico">🧮</div><div class="t"><b>Les exos — pose tes bases</b><small>${exoFaits}/12 paliers validés. Marge, EBITDA, BFR, point mort… puis le FCFF et les bêtas. Chacun ouvre le suivant.</small></div>
-    <div class="st">›</div></div>`:"";
   const nMiss=S.miss.length;
   const missHtml=nMiss?`<div class="act rev" onclick="startRattrapage()">
     <div class="ico">🩹</div><div class="t"><b>Rattrapage — ${nMiss} question${nMiss>1?"s":""} ratée${nMiss>1?"s":""}</b><small>tes erreurs t'attendent. Elles ne partiront pas seules.</small></div>
     <div class="st">›</div></div>`:"";
   return `
   <h1 class="page">Le menu du jour</h1>
-  <div class="sub">${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})} — 30 minutes, quatre exercices, zéro excuse.</div>
+  <div class="sub">${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})} — environ 2 heures, les fondamentaux d'abord, zéro excuse.</div>
   <div class="hero">
     <div class="rank">${r[0]}</div>
     <div class="big">${S.xp} XP</div>
@@ -2316,8 +2366,13 @@ function vJour(){
   </div>
   <div class="coach">${coachLine()}</div>
   ${bizHtml}
-  ${exoHtml}
-  ${basesHtml}
+  <h2 class="sec">① Échauffement — ~10 min</h2>
+  ${chifHtml}
+  <h2 class="sec">② Les fondamentaux — ~30 à 60 min</h2>
+  <div class="sub" style="margin-top:-8px;margin-bottom:10px">Tant que le socle n'est pas posé, il passe devant le reste : c'est lui qui porte tout ce qui suit.</div>
+  ${exoBlockHtml}
+  ${caseHtml}
+  <h2 class="sec">③ Culture, cas réels &amp; mémoire — ~35 à 45 min</h2>
   ${readHtml}
   <div class="act ${m.dLesson?"done":""}" onclick="openLesson('${les.id}')">
     <div class="ico">🎓</div><div class="t"><b>Leçon — ${les.title}</b><small>${MODULES.find(x=>x.id===les.module).name} · cours + quiz (~10 min)</small></div>
@@ -2471,6 +2526,16 @@ function exoEntree(k){
   return der.n;
 }
 function exoVersPiste(k){ const n=exoEntree(k); if(n) exoPalRoom(n); }
+/* Le palier suivant à travailler, tous pistes confondues : le premier
+   ouvert mais pas encore validé. Sert au bloc « fondamentaux » du menu
+   du jour — un clic, pas une liste à parcourir. */
+function exoProchainPalier(){ return EXOS.find(p=>exoOuvert(p.n)&&!exoEtat(p.n).valide); }
+function exoContinuer(){
+  if(exoDus().length) return exoReprise();
+  const p=exoProchainPalier();
+  if(p) return exoPalRoom(p.n);
+  return exosRoom();
+}
 function exoOuvert(n){
   const p=exoPal(n); if(!p) return false;
   const k=p.piste||"socle";
@@ -2562,6 +2627,17 @@ let CAS_ST=null;
 function casEtat(){ if(!S.cas) S.cas={}; return S.cas; }
 function casFait(id){ return !!casEtat()[id]; }
 function casFaits(){ return CAS.filter(c=>casFait(c.id)).length; }
+/* Le cas recommandé du jour, tant que les niveaux 1 et 2 ne sont pas
+   épuisés — la base de l'entretien de conseil avant les cas menés par
+   l'examinateur. Optionnel, pas un blocage : le stock est fini (9 cas),
+   contrairement au chiffrage ou aux exos qui se régénèrent. */
+function nextCaseFondamental(){
+  for(const lv of [1,2]){
+    const c=CAS.filter(x=>x.niveau===lv).find(x=>!casFait(x.id));
+    if(c) return c;
+  }
+  return null;
+}
 
 function casRoom(){
   /* trié par difficulté : l'ordre d'insertion n'est pas un ordre
@@ -2898,7 +2974,7 @@ function chifFin(){
   let record=false;
   if(famId!=='mix'){ const e=chifFam(famId); if(e.best===null||bons>e.best){ e.best=bons; record=true; } }
   addXP(4+bons*2+(bons===tot?15:0));
-  save();
+  checkMenu("chif"); save();
   openOv(ovTop("Résultat")+`
     <div class="card" style="text-align:center;border-color:${bons===tot?"var(--ok)":"var(--line)"}">
       <div style="font-size:42px">${bons===tot?"⚡":bons>=tot*0.7?"✅":"🔁"}</div>
@@ -3082,7 +3158,7 @@ function exoFin(){
   });
   if(valide && !avantValide && n<12) st.cur=Math.max(st.cur,n+1);
   addXP(6+bons*3+(valide&&!avantValide?25:0));
-  save();
+  checkMenu("exo"); save();
   const suivant=exoPal(n+1);
   openOv(ovTop("Résultat")+`
     <div class="card" style="text-align:center;border-color:${valide?"var(--ok)":"var(--line)"}">
@@ -3114,7 +3190,7 @@ function exoFinReprise(){
       done:(e.done||0)+1, best:Math.max(e.best||0,part)});
     lignes.push({n:nn, ic:p.ic, titre:p.titre, r, ok, j});
   });
-  const xp=5+bons*2; addXP(xp); save();
+  const xp=5+bons*2; addXP(xp); checkMenu("exo"); save();
   const pf=exoPointFaible();
   openOv(ovTop("🔁 Reprise")+`
     <div class="card" style="text-align:center;border-color:${bons===total?"var(--ok)":"var(--line)"}">
