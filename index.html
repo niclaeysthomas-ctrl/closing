@@ -106,6 +106,9 @@
   .calcvars button{border:none;border-radius:999px;padding:7px 10px;font-size:11px;font-weight:700;cursor:pointer;
     background:var(--bg);color:var(--dim);font-family:var(--mono)}
   .calcvars button:active{background:var(--line);color:var(--acc)}
+  .calcuse{display:block;width:100%;margin:8px 0 0;padding:9px;border:1px solid var(--acc);
+    background:transparent;color:var(--acc);border-radius:10px;font-size:13px;font-weight:800;cursor:pointer}
+  .calcuse:active{background:var(--acc);color:var(--bg)}
   .calcmem{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:8px;line-height:1.7}
   .calcmem span{color:var(--acc);cursor:pointer}
 
@@ -1569,7 +1572,7 @@ function exoLab(txt){
      la 1re version laissait « ✓ Quel est l'EBITDA » sur la puce.
      Et « les » doit passer AVANT « le » : une alternation est ordonnée, sinon
      « les capitaux engagés » devenait « s capitaux engagés ». */
-  t=t.replace(/^Quel(?:le)?s?\s+(?:est|sont|vaut|valent)\s+/i,"")
+  t=t.replace(/^Quel(?:le)?s?\s+(?:est|sont|vaut|valent|était|étaient)\s+/i,"")
      .replace(/^Combien\s+(?:d['’]|de\s+|des\s+)?\s*/i,"")
      .replace(/^(?:les|le|la|l['’]|des|du|de\s+la)\s*/i,"")
      .replace(/\s+faut-il\s+.*$/i,"")
@@ -1609,6 +1612,17 @@ function calcVars(){
     }
     return out;
   }
+  /* ⚠️ MÊME RÈGLE DANS UN CAS. La calculatrice était branchée sur les exos
+     et sur la boîte, mais pas sur l'étape CHIFFRER des cas : il fallait sortir
+     de l'app pour diviser 74 000 000 par 185 000. Remonté le 2026-09-27.
+     On sert les données de l'énoncé du cas, plus les résultats déjà établis
+     dans le même cas — la cascade en a besoin (le prix moyen trouvé à la
+     question 1 sert à la marge unitaire de la question 3). */
+  if(typeof CAS_ST!=="undefined" && CAS_ST && CAS_ST.c && CAS_ST.c.chiffres){
+    const out=(CAS_ST.c.chiffres.donnees||[]).map(d=>[d[0], d[1]]);
+    (CAS_ST.acquis||[]).forEach(a=>out.push(["✓ "+a.lab, a.val]));
+    return out;
+  }
   const B=S.biz; if(!B) return [];
   const h=B.hist&&B.hist.length?B.hist[B.hist.length-1]:null;
   const eb12=eb12Of(B);
@@ -1641,6 +1655,7 @@ function calcBlock(){
       <input class="calcin" id="calcin" inputmode="text" placeholder="3300 / (12 − 7,2)"
         oninput="calcLive()" onkeydown="if(event.key==='Enter'){event.preventDefault();calcEq();}">
       <div class="calcout" id="calcout"></div>
+      <button type="button" class="calcuse" id="calcuse" style="display:none" onclick="calcUse()">↑ Mettre dans ma réponse</button>
       <div class="calcpad">${pad.map(([t,c])=>
         `<button type="button" class="${c||""}" onclick="calcKey('${t==="'"?"":t}')">${t}</button>`).join("")}</div>
       ${vars.length?`<div class="xptxt" style="margin-top:11px">Tes chiffres — touche pour insérer :</div>
@@ -1658,9 +1673,36 @@ function calcLive(){
   const i=document.getElementById("calcin"), o=document.getElementById("calcout");
   if(!i||!o) return;
   const r=calcEval(i.value);
-  if(r.v===null&&!r.err){ o.textContent=""; o.className="calcout"; return; }
-  if(r.err){ o.textContent=r.err; o.className="calcout err"; return; }
+  if(r.v===null&&!r.err){ o.textContent=""; o.className="calcout"; calcUseSync(null); return; }
+  if(r.err){ o.textContent=r.err; o.className="calcout err"; calcUseSync(null); return; }
   o.textContent="= "+calcFmt(r.v); o.className="calcout";
+  calcUseSync(r.v);
+}
+/* ⚠️ Recopier 19 736 000 à la main entre la calculatrice et le champ de réponse,
+   c'est la faute de frappe garantie — et une bonne réponse comptée fausse.
+   Le bouton n'apparaît que s'il y a un résultat ET un champ de réponse actif.
+   Volontairement ABSENT du chiffrage (`chifIn`) : là, le calcul de tête EST
+   l'exercice. */
+function calcAnsInput(){
+  for(const id of ["casIn","exoIn","porteIn"]){
+    const e=document.getElementById(id);
+    if(e && !e.disabled) return e;
+  }
+  return null;
+}
+function calcUseSync(v){
+  const b=document.getElementById("calcuse"); if(!b) return;
+  const ok = v!==null && v!==undefined && isFinite(v) && !!calcAnsInput();
+  b.style.display = ok ? "block" : "none";
+  if(ok) b.dataset.v=v;
+}
+function calcUse(){
+  const b=document.getElementById("calcuse"), e=calcAnsInput();
+  if(!b||!e) return;
+  const v=parseFloat(b.dataset.v); if(!isFinite(v)) return;
+  e.value=String(Math.round(v*10000)/10000).replace(".",",");
+  e.focus();
+  if(typeof toast==="function") toast("Résultat reporté — vérifie l'unité avant de valider.");
 }
 function calcKey(t){
   const i=document.getElementById("calcin"); if(!i) return;
@@ -2772,6 +2814,7 @@ function casDraw(){
           onkeydown="if(event.key==='Enter'){event.preventDefault();casChiffre();}">
         <div style="flex:0 0 26px;color:var(--dim);font-weight:800">${q.unit||""}</div>
       </div>
+      ${calcBlock()}
       <div id="casOut"></div>
       <button class="btn mt" id="casGo" onclick="casChiffre()">Vérifier</button>
       <button class="btn ghost" onclick="casQuit()">‹ Les cas</button>`);
@@ -2836,7 +2879,13 @@ function casChiffre(){
   const tol=it.tol!==undefined?it.tol:(it.unit==="%"?.5:it.unit==="€"?Math.max(100,Math.abs(it.val)*.02):Math.max(1,Math.abs(it.val)*.02));
   const ok=v!==null && Math.abs(v-it.val)<=tol;
   CAS_ST.score+=ok?1:0; CAS_ST.total+=1;
+  /* La bonne valeur — pas la sienne — alimente les puces de la calculatrice :
+     même raison que le bloc ci-dessous, une erreur au premier calcul ne doit
+     pas en fabriquer trois. */
+  if(!CAS_ST.acquis) CAS_ST.acquis=[];
+  CAS_ST.acquis.push({lab:exoLab(it.q), val:Math.round(it.val*1000)/1000});
   const inp=document.getElementById("casIn"); if(inp) inp.disabled=true;
+  calcUseSync(null); /* le champ est verrouillé : le bouton de report n'a plus de cible */
   const go=document.getElementById("casGo"); if(go) go.remove();
   const dernier=qi===qs.length-1;
   /* ⚠️ en entretien on enchaîne sur SON chiffre ; ici on redonne le bon,
@@ -3105,6 +3154,7 @@ function exoCheck(){
   EXS.answered=true;
   if(ok) EXS.bons++; else EXS.rates.push(it);
   const inp=document.getElementById("exoIn"); if(inp) inp.disabled=true;
+  calcUseSync(null);
   const go=document.getElementById("exoGo"); if(go) go.remove();
   const dernier = EXS.e===EXS.ex.length-1 && EXS.q===EXS.ex[EXS.e].questions.length-1;
   /* Le cas « bon calcul, mauvaise unité » : on ne le confond pas avec une
