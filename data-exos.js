@@ -1204,6 +1204,245 @@ const EXOS = [
      val:ratio, unit:"×", tol:.1,
      calcul:`${vLow.toFixed(0)} € ÷ ${vHigh.toFixed(0)} € = <b>${ratio.toFixed(2).replace(".",",")}×</b>`,
      cle:"Voilà pourquoi une erreur de bêta est une des fautes les plus coûteuses d'une valorisation : elle ne se voit presque pas dans l'hypothèse, et elle se voit ÉNORMÉMENT dans le résultat."}
+   ]};}},
+
+/* ================================================================
+   PISTE WACC — ajoutée le 2026-09-28, dans la foulée du bêta : « fais
+   le WACC aussi ». Le palier 11 (LE SOCLE) donne déjà la formule et la
+   calcule avec des chiffres FOURNIS — poids en valeur de marché, coût
+   de la dette après impôt, sensibilité au levier. Cette piste ne le
+   répète pas : elle attaque ce qu'un praticien affronte vraiment et
+   qu'un palier « donné » ne peut pas montrer — la circularité, une
+   dette sans marché coté, la structure CIBLE plutôt que celle du jour,
+   le WACC par division, et pourquoi une petite erreur dessus coûte
+   plus cher qu'ailleurs dans tout le modèle.
+   ================================================================ */
+
+/* ============ 25 · piste WACC ============ */
+{id:"e25", n:25, piste:"wacc", ic:"🔁", titre:"La circularité, et comment la casser",
+ sujet:"Le WACC a besoin de la valeur des fonds propres — que le DCF n'a pas encore calculée",
+ rappel:`Un piège que personne ne voit avant de construire son premier DCF : le WACC pondère par la valeur de MARCHÉ des fonds propres (palier 11). Mais dans une valorisation par DCF, cette valeur est précisément ce qu'on cherche — <b>elle sort du DCF, elle n'y entre pas</b>. Le WACC a besoin d'un résultat qu'il n'a pas encore.
+   <br><br>Deux façons d'en sortir, les deux légitimes. <b>Itérer</b> : partir d'une valeur de départ (comptable, ou un multiple de comparable), calculer un WACC, en déduire une valeur, recalculer le WACC avec cette nouvelle valeur, et répéter — ça converge en général en trois à cinq passages. <b>Ou trancher directement</b> : pondérer sur une structure financière CIBLE (celle que vise l'entreprise, ou la moyenne du secteur) plutôt que sur une valeur de marché qu'on n'a pas encore. C'est la méthode la plus utilisée en pratique — elle évite la boucle en posant l'hypothèse plutôt qu'en la résolvant.`,
+ gen:R=>{
+  const d=R.ent(200,600)*1000, eBook=R.ent(400,1400)*1000;
+  const kd=R.ent(3,6)/100, ke=R.ent(9,15)/100;
+  const fcff=R.ent(150,500)*1000, g=R.ent(10,18)/1000;
+  const wacc0=ke*(eBook/(eBook+d))+kd*(d/(eBook+d));
+  const ev1=fcff/(wacc0-g), e1=ev1-d;
+  const wacc1=ke*(e1/(e1+d))+kd*(d/(e1+d));
+  const wDtarget=R.ent(30,55)/100;
+  const waccTarget=ke*(1-wDtarget)+kd*wDtarget;
+  return {contextes:[`Tu valorises une cible par DCF. Dette financière connue et fixe.`,
+    `Un DCF de première passe, avant toute itération.`,
+    `Le comité veut un WACC avant même d'avoir une valeur des fonds propres.`,
+    `Tu pars de la valeur comptable, faute de mieux, pour amorcer le calcul.`],
+   contexte:`Tu valorises une cible par DCF. Dette financière connue et fixe.`,
+   donnees:[["Dette financière (fixe)",d,"€"],["Valeur comptable des fonds propres (point de départ)",eBook,"€"],
+            ["Coût de la dette après impôt",kd*100,"%"],["Coût des fonds propres",ke*100,"%"],
+            ["FCFF perpétuel",fcff,"€"],["Croissance perpétuelle (g)",g*100,"%"]],
+   questions:[
+    {q:"Avec la valeur comptable des fonds propres comme point de départ, quel est le WACC de première itération ?", val:wacc0*100, unit:"%", tol:.2,
+     calcul:`${(ke*100).toFixed(1).replace(".",",")} % × [${eurX(eBook)} ÷ (${eurX(eBook)}+${eurX(d)})] + ${(kd*100).toFixed(1).replace(".",",")} % × [${eurX(d)} ÷ (${eurX(eBook)}+${eurX(d)})] = <b>${(wacc0*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"Ce premier WACC n'a rien de faux — il est juste construit sur une valeur de fonds propres qu'on SAIT provisoire. C'est le point de départ de la boucle, pas son résultat."},
+    {q:"En actualisant le FCFF perpétuel à ce WACC, quelle valeur d'entreprise obtiens-tu ?", val:ev1, unit:"€", tol:Math.max(2000,ev1*.015),
+     calcul:`${eurX(fcff)} ÷ (${(wacc0*100).toFixed(2).replace(".",",")} % − ${(g*100).toFixed(1).replace(".",",")} %) = <b>${eurX(ev1)}</b>`,
+     cle:"C'est le résultat du DCF, mené une première fois avec le WACC provisoire."},
+    {q:"Quelle valeur des fonds propres en déduis-tu (valeur d'entreprise moins dette) ?", val:e1, unit:"€", tol:Math.max(2000,Math.abs(e1)*.015),
+     calcul:`${eurX(ev1)} − ${eurX(d)} = <b>${eurX(e1)}</b>`,
+     cle:"Voilà la boucle qui se referme : cette valeur, presque toujours différente de la valeur comptable de départ, doit maintenant repondérer le WACC."},
+    {q:"Avec cette nouvelle valeur des fonds propres, quel est le WACC de seconde itération ?", val:wacc1*100, unit:"%", tol:.2,
+     calcul:`${(ke*100).toFixed(1).replace(".",",")} % × [${eurX(e1)} ÷ (${eurX(e1)}+${eurX(d)})] + ${(kd*100).toFixed(1).replace(".",",")} % × [${eurX(d)} ÷ (${eurX(e1)}+${eurX(d)})] = <b>${(wacc1*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"En général, ce deuxième WACC est déjà très proche du troisième qu'on obtiendrait en itérant encore — la boucle converge vite. Deux à trois passages suffisent presque toujours."},
+    {q:"De combien de points le WACC a-t-il bougé entre les deux itérations ?", val:(wacc1-wacc0)*100, unit:"%", tol:.2,
+     calcul:`${(wacc1*100).toFixed(2).replace(".",",")} % − ${(wacc0*100).toFixed(2).replace(".",",")} % = <b>${((wacc1-wacc0)*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"Si la valeur comptable de départ était très éloignée de la valeur de marché réelle, ce premier pas peut être large — c'est justement le signal qu'il faut continuer à itérer, pas s'arrêter là."},
+    {q:`Plutôt que d'itérer, un analyste pressé par le temps pondère directement sur une structure CIBLE de ${(wDtarget*100).toFixed(0)} % de dette (moyenne du secteur). Quel WACC obtient-il, sans aucune itération ?`,
+     val:waccTarget*100, unit:"%", tol:.2,
+     calcul:`${(ke*100).toFixed(1).replace(".",",")} % × ${(100-wDtarget*100).toFixed(0)} % + ${(kd*100).toFixed(1).replace(".",",")} % × ${(wDtarget*100).toFixed(0)} % = <b>${(waccTarget*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"Ce raccourci ne résout pas la circularité, il la CONTOURNE : on ne cherche plus la valeur de marché de l'entreprise qu'on valorise, on emprunte celle du secteur. C'est la méthode la plus utilisée en pratique — rapide, défendable, et suffisante pour la plupart des comités."}
+   ]};}},
+
+/* ============ 26 · piste WACC ============ */
+{id:"e26", n:26, piste:"wacc", ic:"🪜", titre:"Le coût de la dette sans marché obligataire",
+ sujet:"Ratio de couverture des intérêts, notation synthétique, spread de défaut",
+ rappel:`Le coût de la dette (palier 11) suppose un taux observable — un emprunt en cours, une obligation cotée. La plupart des entreprises, notamment privées, n'en ont pas. La méthode standard (Damodaran) : reconstituer une <b>notation synthétique</b> à partir du <b>ratio de couverture des intérêts (ICR = EBIT ÷ intérêts financiers)</b>, lui associer un <b>spread de défaut</b>, puis <b>coût de la dette avant impôt = taux sans risque + spread</b>.
+   <br><br><b>Table simplifiée (à utiliser telle quelle) :</b>
+   <br>ICR &gt; 8,5 → spread 0,75 % · ICR 6,0-8,5 → 1,25 % · ICR 4,0-6,0 → 2,00 %
+   <br>ICR 2,5-4,0 → 3,50 % · ICR 1,5-2,5 → 5,50 % · ICR &lt; 1,5 → 9,00 %
+   <br><br>Plus l'EBIT couvre largement les intérêts, plus le risque de défaut perçu est bas, plus le spread — et donc le coût de la dette — est faible.`,
+ gen:R=>{
+  const spreadTable=[[8.5,.0075],[6.0,.0125],[4.0,.02],[2.5,.035],[1.5,.055],[0,.09]];
+  const spreadFor=icr=>{ for(const [seuil,sp] of spreadTable) if(icr>seuil) return sp; return .09; };
+  const rf=R.ent(2,4)/100, tx=.25;
+  const ebit1=R.ent(300,1800)*1000, int1=R.ent(40,700)*1000, icr1=ebit1/int1;
+  const spread1=spreadFor(icr1), kdPre1=rf+spread1, kdApres1=kdPre1*(1-tx);
+  const ebit2=R.ent(300,1800)*1000, int2=R.ent(40,700)*1000, icr2=ebit2/int2;
+  const spread2=spreadFor(icr2), kdPre2=rf+spread2, kdApres2=kdPre2*(1-tx);
+  return {contextes:[`Une cible sans dette cotée : impossible de lire un coût de la dette sur un marché.`,
+    `Deux entreprises non cotées, à comparer sur leur coût de financement implicite.`,
+    `Avant toute valorisation, il faut un coût de la dette — et il n'y a pas d'obligation à observer.`,
+    `Le comité veut un WACC complet ; personne n'a le taux d'emprunt réel de la cible.`],
+   contexte:`Une cible sans dette cotée : impossible de lire un coût de la dette sur un marché. Impôt à 25 %.`,
+   donnees:[["Taux sans risque",rf*100,"%"],["EBIT, entreprise 1",ebit1,"€"],["Intérêts financiers, entreprise 1",int1,"€"],
+            ["EBIT, entreprise 2",ebit2,"€"],["Intérêts financiers, entreprise 2",int2,"€"]],
+   questions:[
+    {q:"Quel est le ratio de couverture des intérêts (ICR) de l'entreprise 1 ?", val:icr1, unit:"×", tol:.15,
+     calcul:`${eurX(ebit1)} ÷ ${eurX(int1)} = <b>${icr1.toFixed(2).replace(".",",")}×</b>`,
+     cle:"C'est le chiffre qui remplace le marché obligataire absent : plus il est élevé, plus l'EBIT couvre largement les intérêts, moins le risque de défaut perçu est grand."},
+    {q:"D'après la table, à quel spread de défaut cela correspond-il, en % ?", val:spread1*100, unit:"%", tol:.05,
+     calcul:`ICR = ${icr1.toFixed(2).replace(".",",")}× → tranche correspondante → <b>${(spread1*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"La table n'est pas à retenir par cœur — elle est à savoir UTILISER, comme un barème d'imposition. C'est exactement ce que fait un analyste qui n'a pas de terminal Bloomberg sous la main."},
+    {q:"Quel est le coût de la dette AVANT impôt de l'entreprise 1 ?", val:kdPre1*100, unit:"%", tol:.15,
+     calcul:`${(rf*100).toFixed(1).replace(".",",")} % + ${(spread1*100).toFixed(2).replace(".",",")} % = <b>${(kdPre1*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"Taux sans risque plus spread de défaut : c'est la même logique qu'une obligation d'entreprise cotée, reconstituée sans marché pour la lire directement."},
+    {q:"Et APRÈS impôt ?", val:kdApres1*100, unit:"%", tol:.15,
+     calcul:`${(kdPre1*100).toFixed(2).replace(".",",")} % × (1 − 25 %) = <b>${(kdApres1*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"Le bouclier fiscal s'applique exactement comme sur une dette cotée — la nature du coût ne change pas, seule sa mesure a demandé un détour."},
+    {q:"Quel est le ratio de couverture des intérêts de l'entreprise 2 ?", val:icr2, unit:"×", tol:.15,
+     calcul:`${eurX(ebit2)} ÷ ${eurX(int2)} = <b>${icr2.toFixed(2).replace(".",",")}×</b>`,
+     cle:"Un second cas, pour vérifier que la table se lit dans les deux sens — pas seulement sur l'exemple qu'on vient de voir."},
+    {q:"Quel est l'écart de coût de la dette APRÈS impôt entre les deux entreprises, en points ?", val:(kdApres1-kdApres2)*100, unit:"%", tol:.2,
+     calcul:`${(kdApres1*100).toFixed(2).replace(".",",")} % − ${(kdApres2*100).toFixed(2).replace(".",",")} % = <b>${((kdApres1-kdApres2)*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"Deux entreprises, même taux sans risque, et un coût de la dette qui peut s'écarter de plusieurs points — uniquement parce que l'une couvre ses intérêts bien plus largement que l'autre. Le risque de crédit n'est jamais qu'une opinion : ici, il se lit dans un seul ratio."}
+   ]};}},
+
+/* ============ 27 · piste WACC ============ */
+{id:"e27", n:27, piste:"wacc", ic:"🧭", titre:"Structure cible, pas structure du jour",
+ sujet:"Pourquoi on pondère souvent sur la structure financière VISÉE plutôt que sur celle d'aujourd'hui",
+ rappel:`Une entreprise qui sort d'un LBO, qui vient de faire un rachat d'actions massif, ou qui traverse une année atypique, a une structure financière du moment qui ne dit rien de sa trajectoire de long terme. Or un WACC sert à actualiser des flux sur dix, vingt ans — figer la structure d'AUJOURD'HUI reviendrait à parier qu'elle ne bougera jamais.
+   <br><br>La pratique standard : pondérer (et réendetter le bêta — palier 23) sur une structure <b>CIBLE</b> — celle que vise l'entreprise, ou la moyenne durable du secteur — plutôt que sur la structure ACTUELLE, souvent transitoire. Le bêta désendetté du métier ne change pas ; ce qui change, c'est à QUELLE structure on le réendette.`,
+ gen:R=>{
+  const tx=.25, rf=R.ent(2,4)/100, prm=R.ent(5,8)/100;
+  const bu=R.ent(70,140)/100;
+  const wDnow=R.ent(55,75)/100, wDtarget=R.ent(25,40)/100;
+  const deNow=wDnow/(1-wDnow), deTarget=wDtarget/(1-wDtarget);
+  const betaNow=bu*(1+(1-tx)*deNow), betaTarget=bu*(1+(1-tx)*deTarget);
+  const keNow=rf+betaNow*prm, keTarget=rf+betaTarget*prm;
+  const kdPre=R.ent(3,7)/100, kdApres=kdPre*(1-tx);
+  const waccNow=keNow*(1-wDnow)+kdApres*wDnow;
+  const waccTarget=keTarget*(1-wDtarget)+kdApres*wDtarget;
+  return {contextes:[`Une cible sortie d'un LBO, encore fortement endettée, qui vise une structure plus saine à horizon de cinq ans.`,
+    `Une entreprise qui vient de racheter massivement ses propres actions — sa dette du jour n'est pas sa dette de croisière.`,
+    `Le comité hésite entre pondérer sur la dette d'aujourd'hui ou sur celle visée à terme.`,
+    `Une structure financière transitoire, et un WACC censé tenir sur vingt ans.`],
+   contexte:`Une cible sortie d'un LBO, encore fortement endettée, qui vise une structure plus saine à terme. Impôt à 25 %.`,
+   donnees:[["Bêta désendetté du métier",bu,""],["Part de dette ACTUELLE (D/V)",wDnow*100,"%"],
+            ["Part de dette CIBLE (D/V)",wDtarget*100,"%"],["Coût de la dette après impôt",kdApres*100,"%"],
+            ["Taux sans risque",rf*100,"%"],["Prime de risque du marché",prm*100,"%"]],
+   questions:[
+    {q:"Quel est le bêta réendetté à la structure ACTUELLE ?", val:betaNow, unit:"", tol:.04,
+     calcul:`${bu.toFixed(2).replace(".",",")} × [1 + (1 − 25 %) × ${deNow.toFixed(2).replace(".",",")}] = <b>${betaNow.toFixed(2).replace(".",",")}</b>`,
+     cle:"Hamada, comme au palier 23 — mais réendetté à une structure qu'on sait temporaire. Ce bêta est réel aujourd'hui ; il ne le restera pas dix ans."},
+    {q:"Quel est le bêta réendetté à la structure CIBLE ?", val:betaTarget, unit:"", tol:.04,
+     calcul:`${bu.toFixed(2).replace(".",",")} × [1 + (1 − 25 %) × ${deTarget.toFixed(2).replace(".",",")}] = <b>${betaTarget.toFixed(2).replace(".",",")}</b>`,
+     cle:"Le MÊME bêta désendetté, réendetté à une structure différente. Seule la dette suppose change ; le risque du métier, lui, n'a pas bougé."},
+    {q:"Quel est le coût des fonds propres à la structure ACTUELLE ?", val:keNow*100, unit:"%", tol:.3,
+     calcul:`${(rf*100).toFixed(1).replace(".",",")} % + ${betaNow.toFixed(2).replace(".",",")} × ${(prm*100).toFixed(1).replace(".",",")} % = <b>${(keNow*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"Plus la dette actuelle est lourde, plus ce chiffre est élevé — l'actionnaire d'une structure encore très endettée exige davantage, et c'est cohérent."},
+    {q:"Et à la structure CIBLE ?", val:keTarget*100, unit:"%", tol:.3,
+     calcul:`${(rf*100).toFixed(1).replace(".",",")} % + ${betaTarget.toFixed(2).replace(".",",")} × ${(prm*100).toFixed(1).replace(".",",")} % = <b>${(keTarget*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"Une fois la dette redescendue au niveau visé, l'actionnaire exige mécaniquement moins — pas parce que le métier a changé, mais parce que le risque financier qui s'ajoute au risque du métier s'est réduit."},
+    {q:"Quel est le WACC à la structure ACTUELLE ?", val:waccNow*100, unit:"%", tol:.25,
+     calcul:`${(keNow*100).toFixed(2).replace(".",",")} % × ${(100-wDnow*100).toFixed(0)} % + ${(kdApres*100).toFixed(2).replace(".",",")} % × ${(wDnow*100).toFixed(0)} % = <b>${(waccNow*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"Un WACC construit sur une photo d'aujourd'hui qu'on sait provisoire — utile pour comprendre le point de départ, dangereux pour actualiser vingt ans de flux."},
+    {q:"Quel est le WACC à la structure CIBLE ?", val:waccTarget*100, unit:"%", tol:.25,
+     calcul:`${(keTarget*100).toFixed(2).replace(".",",")} % × ${(100-wDtarget*100).toFixed(0)} % + ${(kdApres*100).toFixed(2).replace(".",",")} % × ${(wDtarget*100).toFixed(0)} % = <b>${(waccTarget*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"C'est ce WACC-là, presque toujours, qu'un DCF sérieux utilise — quitte à faire converger progressivement les deux structures sur les premières années explicites du modèle plutôt que de trancher brutalement."}
+   ]};}},
+
+/* ============ 28 · piste WACC ============ */
+{id:"e28", n:28, piste:"wacc", ic:"🏢", titre:"Le WACC par division",
+ sujet:"Pourquoi un groupe à plusieurs métiers n'a pas UN SEUL WACC — la somme des parties",
+ rappel:`Un groupe qui possède à la fois une activité stable (régulée, défensive) et une activité risquée (technologique, cyclique) commet une faute classique en les actualisant TOUTES LES DEUX au même WACC consolidé.
+   <br><br>Un WACC unique, moyenné sur l'ensemble du groupe, <b>SUR-évalue systématiquement la division risquée</b> (ses flux, dangereux, sont actualisés à un taux trop doux) et <b>SOUS-évalue la division stable</b> (ses flux, sûrs, sont actualisés à un taux trop dur). La bonne pratique — la <b>somme des parties</b> (sum-of-the-parts) — actualise chaque division à SON PROPRE WACC, dérivé de comparables purs de son métier (palier 23), puis additionne les valeurs.`,
+ gen:R=>{
+  const tx=.25, rf=R.ent(2,4)/100, prm=R.ent(5,8)/100, wD=R.ent(25,40)/100, kdApres=R.ent(3,6)/100*(1-tx);
+  const betaA=R.ent(40,70)/100, betaB=R.ent(140,210)/100;
+  const fcfA=R.ent(150,400)*1000, fcfB=R.ent(80,250)*1000;
+  const g=R.ent(8,15)/1000;
+  const keA=rf+betaA*prm, keB=rf+betaB*prm;
+  const waccA=keA*(1-wD)+kdApres*wD, waccB=keB*(1-wD)+kdApres*wD;
+  const vA=fcfA/(waccA-g), vB=fcfB/(waccB-g);
+  const betaBlend=(fcfA*betaA+fcfB*betaB)/(fcfA+fcfB);
+  const keBlend=rf+betaBlend*prm, waccBlend=keBlend*(1-wD)+kdApres*wD;
+  const vAwrong=fcfA/(waccBlend-g), vBwrong=fcfB/(waccBlend-g);
+  return {contextes:[`Un groupe à deux métiers : une division défensive (A) et une division cyclique (B). Même structure financière pour les deux.`,
+    `Le comité prépare une somme des parties : deux divisions, deux profils de risque.`,
+    `Avant de valoriser le groupe, il faut décider : un WACC pour tout, ou un WACC par division ?`,
+    `Une conglomérat classique — activité stable d'un côté, activité risquée de l'autre.`],
+   contexte:`Un groupe à deux métiers : une division défensive (A) et une division cyclique (B), même structure financière (D/V) pour les deux. Impôt à 25 %.`,
+   donnees:[["Bêta, division défensive (A)",betaA,""],["Bêta, division cyclique (B)",betaB,""],
+            ["FCF perpétuel, division A",fcfA,"€"],["FCF perpétuel, division B",fcfB,"€"],
+            ["Part de dette (D/V), commune aux deux",wD*100,"%"],["Croissance perpétuelle (g)",g*100,"%"]],
+   questions:[
+    {q:"Quel est le WACC de la division défensive (A) ?", val:waccA*100, unit:"%", tol:.25,
+     calcul:`Ke_A = ${(rf*100).toFixed(1).replace(".",",")} % + ${betaA.toFixed(2).replace(".",",")} × ${(prm*100).toFixed(1).replace(".",",")} % = ${(keA*100).toFixed(2).replace(".",",")} % · WACC_A = ${(keA*100).toFixed(2).replace(".",",")} % × ${(100-wD*100).toFixed(0)} % + ${(kdApres*100).toFixed(2).replace(".",",")} % × ${(wD*100).toFixed(0)} % = <b>${(waccA*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"Le WACC propre au métier A — celui qu'utiliserait n'importe quel investisseur qui achèterait CETTE division seule, cotée séparément."},
+    {q:"Quel est le WACC de la division cyclique (B) ?", val:waccB*100, unit:"%", tol:.25,
+     calcul:`Ke_B = ${(rf*100).toFixed(1).replace(".",",")} % + ${betaB.toFixed(2).replace(".",",")} × ${(prm*100).toFixed(1).replace(".",",")} % = ${(keB*100).toFixed(2).replace(".",",")} % · WACC_B = ${(keB*100).toFixed(2).replace(".",",")} % × ${(100-wD*100).toFixed(0)} % + ${(kdApres*100).toFixed(2).replace(".",",")} % × ${(wD*100).toFixed(0)} % = <b>${(waccB*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"Nettement au-dessus du WACC de la division A — c'est le prix normal d'une activité plus risquée, et c'est exactement ce qu'un WACC unique effacerait."},
+    {q:"Si on calcule un WACC consolidé unique, à partir d'un bêta moyenné par les flux des deux divisions, que trouve-t-on ?", val:waccBlend*100, unit:"%", tol:.25,
+     calcul:`β moyen = (${eurX(fcfA)} × ${betaA.toFixed(2).replace(".",",")} + ${eurX(fcfB)} × ${betaB.toFixed(2).replace(".",",")}) ÷ (${eurX(fcfA)}+${eurX(fcfB)}) = ${betaBlend.toFixed(2).replace(".",",")} · WACC = <b>${(waccBlend*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"Un chiffre qui n'est ni le bon taux pour A, ni le bon taux pour B — une moyenne qui n'existe dans la réalité d'AUCUNE des deux divisions."},
+    {q:"Avec le bon WACC de chaque division (somme des parties), quelle est la valeur totale du groupe ?", val:vA+vB, unit:"€", tol:Math.max(5000,(vA+vB)*.02),
+     calcul:`A : ${eurX(fcfA)} ÷ (${(waccA*100).toFixed(2).replace(".",",")} % − ${(g*100).toFixed(1).replace(".",",")} %) = ${eurX(vA)} · B : ${eurX(fcfB)} ÷ (${(waccB*100).toFixed(2).replace(".",",")} % − ${(g*100).toFixed(1).replace(".",",")} %) = ${eurX(vB)} · total <b>${eurX(vA+vB)}</b>`,
+     cle:"La bonne valeur, division par division, puis additionnée. C'est la définition même de la somme des parties."},
+    {q:"Avec le WACC consolidé UNIQUE appliqué aux deux divisions, quelle valeur totale obtient-on ?", val:vAwrong+vBwrong, unit:"€", tol:Math.max(5000,(vAwrong+vBwrong)*.02),
+     calcul:`A : ${eurX(fcfA)} ÷ (${(waccBlend*100).toFixed(2).replace(".",",")} % − ${(g*100).toFixed(1).replace(".",",")} %) = ${eurX(vAwrong)} · B : ${eurX(fcfB)} ÷ (${(waccBlend*100).toFixed(2).replace(".",",")} % − ${(g*100).toFixed(1).replace(".",",")} %) = ${eurX(vBwrong)} · total <b>${eurX(vAwrong+vBwrong)}</b>`,
+     cle:"Le total peut sembler proche du bon chiffre — c'est le piège. Ce qui est faux n'est pas la somme, c'est la RÉPARTITION entre les deux divisions."},
+    {q:"De combien la division B (risquée) est-elle SUR-évaluée si on la calcule, par erreur, au WACC consolidé unique au lieu de son propre WACC ?",
+     val:vBwrong-vB, unit:"€", tol:Math.max(3000,Math.abs(vBwrong-vB)*.03),
+     calcul:`${eurX(vBwrong)} − ${eurX(vB)} = <b>${eurX(vBwrong-vB)}</b> de sur-évaluation`,
+     cle:"Voilà le vrai coût de l'erreur : pas sur le total du groupe, qui peut sembler à peu près juste par compensation — mais sur CHAQUE division prise séparément. Une erreur invisible en négociant le prix global, très visible dès qu'on cède ou qu'on compare une seule division."}
+   ]};}},
+
+/* ============ 29 · piste WACC ============ */
+{id:"e29", n:29, piste:"wacc", ic:"📡", titre:"Sensibilité — pourquoi une erreur coûte cher",
+ sujet:"L'effet d'une petite erreur de WACC sur un DCF complet, valeur terminale comprise",
+ rappel:`Un WACC ne se contente pas d'actualiser un flux : il actualise TOUS les flux futurs, y compris la valeur terminale — qui pèse souvent 60 à 80 % d'un DCF. Une erreur de WACC ne coûte donc pas qu'une fois : elle se compose sur tout l'horizon ET sur la valeur terminale, qui l'amplifie encore.
+   <br><br>C'est très différent d'une erreur sur UN flux de trésorerie : celle-là ne coûte que ce qu'elle vaut, actualisée une fois. Une erreur de WACC, elle, se propage à TOUT le modèle à la fois — c'est pour ça qu'elle est, ligne pour ligne, l'hypothèse la plus dangereuse d'un DCF.`,
+ gen:R=>{
+  const fcf1=R.ent(80,200)*1000, fcf2=R.ent(90,220)*1000, fcf3=R.ent(100,240)*1000;
+  const wacc=R.ent(80,130)/1000, g=R.ent(10,18)/1000;
+  const waccErr=wacc-.005;
+  const tvOf=w=>fcf3*(1+g)/(w-g);
+  const pvFcfOf=w=>fcf1/(1+w)+fcf2/Math.pow(1+w,2)+fcf3/Math.pow(1+w,3);
+  const evOf=w=>pvFcfOf(w)+tvOf(w)/Math.pow(1+w,3);
+  const tv=tvOf(wacc), pvTv=tv/Math.pow(1+wacc,3), pvFcf=pvFcfOf(wacc), ev=pvFcf+pvTv;
+  const tvErr=tvOf(waccErr), evErr=evOf(waccErr);
+  const partTv=pvTv/ev*100, ecartPct=(evErr-ev)/ev*100;
+  const fcf1Err=R.ent(15,40)*1000;
+  const impactFcf1=fcf1Err/(1+wacc);
+  return {contextes:[`Un DCF explicite sur trois ans, plus une valeur terminale.`,
+    `Un modèle complet, avant de tester sa robustesse au WACC.`,
+    `Le comité veut savoir ce qu'une hypothèse de WACC un peu optimiste change vraiment.`,
+    `Trois années de flux, une valeur terminale, et une question : que se passe-t-il si le WACC est sous-estimé ?`],
+   contexte:`Un DCF explicite sur trois ans, plus une valeur terminale au-delà.`,
+   donnees:[["FCFF année 1",fcf1,"€"],["FCFF année 2",fcf2,"€"],["FCFF année 3",fcf3,"€"],
+            ["WACC retenu",wacc*100,"%"],["Croissance perpétuelle (g)",g*100,"%"]],
+   questions:[
+    {q:"Quelle est la valeur terminale, au WACC retenu (fin d'année 3) ?", val:tv, unit:"€", tol:Math.max(3000,tv*.02),
+     calcul:`${eurX(fcf3)} × (1+${(g*100).toFixed(1).replace(".",",")} %) ÷ (${(wacc*100).toFixed(1).replace(".",",")} % − ${(g*100).toFixed(1).replace(".",",")} %) = <b>${eurX(tv)}</b>`,
+     cle:"Gordon, appliqué au dernier flux explicite : c'est la valeur de tout ce qui vient APRÈS l'horizon détaillé, encore non actualisée à aujourd'hui."},
+    {q:"Quelle part du total (flux explicites + valeur terminale, tous deux actualisés) représente la valeur terminale actualisée ?",
+     val:partTv, unit:"%", tol:2,
+     calcul:`VA de la valeur terminale ÷ valeur d'entreprise totale = <b>${partTv.toFixed(1).replace(".",",")} %</b>`,
+     cle:"C'est le chiffre à garder en tête à chaque DCF : l'essentiel de la valeur ne vient presque jamais des trois années qu'on a pris la peine de détailler."},
+    {q:`Avec un WACC sous-estimé de 0,5 point (${(waccErr*100).toFixed(1).replace(".",",")} % au lieu de ${(wacc*100).toFixed(1).replace(".",",")} %), quelle est la nouvelle valeur terminale ?`,
+     val:tvErr, unit:"€", tol:Math.max(3000,tvErr*.02),
+     calcul:`${eurX(fcf3)} × (1+${(g*100).toFixed(1).replace(".",",")} %) ÷ (${(waccErr*100).toFixed(1).replace(".",",")} % − ${(g*100).toFixed(1).replace(".",",")} %) = <b>${eurX(tvErr)}</b>`,
+     cle:"Un demi-point de WACC en moins, et la valeur terminale seule bouge déjà nettement — avant même de parler du reste du modèle."},
+    {q:"Quelle est la nouvelle valeur d'entreprise totale, à ce WACC sous-estimé ?", val:evErr, unit:"€", tol:Math.max(3000,evErr*.02),
+     calcul:`Flux actualisés + valeur terminale actualisée, au WACC erroné = <b>${eurX(evErr)}</b> contre ${eurX(ev)} au bon WACC`,
+     cle:"L'erreur ne touche pas qu'un poste : elle réactualise absolument TOUT le modèle, flux explicites compris."},
+    {q:"De quel pourcentage la valeur d'entreprise a-t-elle été surestimée à cause de cette seule erreur de 0,5 point ?",
+     val:ecartPct, unit:"%", tol:1,
+     calcul:`(${eurX(evErr)} − ${eurX(ev)}) ÷ ${eurX(ev)} = <b>${ecartPct.toFixed(1).replace(".",",")} %</b>`,
+     cle:"Un demi-point d'hypothèse, invisible dans une slide de comité, qui se traduit par plusieurs points de valeur. C'est la faute la plus coûteuse par caractère tapé de tout un modèle de DCF."},
+    {q:`Si, à la place, l'erreur avait porté sur le SEUL FCFF de l'année 1 — sous-estimé de ${eurX(fcf1Err)} — quel aurait été l'impact sur la valeur d'entreprise, toutes choses égales par ailleurs ?`,
+     val:impactFcf1, unit:"€", tol:Math.max(500,impactFcf1*.02),
+     calcul:`${eurX(fcf1Err)} ÷ (1+${(wacc*100).toFixed(1).replace(".",",")} %) = <b>${eurX(impactFcf1)}</b>`,
+     cle:"Comparé à l'écart trouvé plus haut, l'impact est minuscule. Une erreur de flux ne coûte qu'UNE année, actualisée une fois. Une erreur de WACC recalcule tout le modèle, valeur terminale comprise : ce n'est pas la même catégorie de risque de modélisation."}
    ]};}}
 
 ];
