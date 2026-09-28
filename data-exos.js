@@ -2541,6 +2541,275 @@ const EXOS = [
     {q:"De combien la dette apparente de l'entreprise augmente-t-elle à la signature ?", val:va, unit:"€", tol:Math.max(50000,va*.02),
      calcul:`Exactement la valeur actualisée des loyers, inscrite au passif : <b>${eurX(va)}</b>`,
      cle:"Le levier (dette / EBITDA) bouge donc des deux côtés à la fois avec IFRS 16 — la dette monte, et l'EBITDA aussi. Aucun des deux effets ne s'annule automatiquement."}
+   ]};}},
+
+/* ⚠️ PISTE RENTABILITÉ — ajoutée le 2026-09-28. Anki-fondamentaux a des
+   cartes ROCE/ROE/capitaux engagés depuis le début, et aucun palier ne
+   les faisait calculer. Même arc que le prix et le bêta : à quoi ça
+   sert, la décomposition, l'effet de levier qui écarte ROE de ROCE, la
+   comparaison au WACC, et les pièges de mesure (goodwill) qu'un
+   praticien rencontre pour de vrai. */
+
+/* ============ 53 · piste RENTABILITÉ ============ */
+{id:"e53", n:53, piste:"rentabilite", ic:"🏭", titre:"Lire un ROCE, lire un ROE",
+ sujet:"Capitaux engagés, NOPAT, ROCE contre ROE",
+ rappel:`Deux rentabilités répondent à deux questions différentes — les confondre fait dire n'importe quoi en comité.
+   <br><br><b>Capitaux engagés = Immobilisations + BFR.</b> Tout l'argent immobilisé dans l'outil — usines, machines, stocks, créances moins dettes fournisseurs — quelle que soit la façon dont on l'a financé.
+   <br><br><b>NOPAT = EBIT × (1 − taux d'IS).</b> Le résultat d'exploitation après impôt, comme si l'entreprise n'avait AUCUNE dette.
+   <br><br><b>ROCE = NOPAT ÷ Capitaux engagés.</b> La rentabilité de L'OUTIL — indépendante de qui l'a payé.
+   <br><b>ROE = Résultat net ÷ Capitaux propres.</b> La rentabilité pour L'ACTIONNAIRE — elle, dépend de la dette, puisque le résultat net a déjà payé les intérêts.
+   <br><br>Les deux se lisent côte à côte, jamais l'un à la place de l'autre. Comparer un ROCE à un ROE, c'est comparer la rentabilité d'une usine à celle d'un actionnaire qui ne l'a payée qu'à moitié comptant — les paliers suivants creusent l'écart.`,
+ gen:R=>{
+  const capitauxEngages=R.ent(15000,50000)*1000;
+  const roceT=R.ent(5,22)/100;
+  const nopat=Math.round(roceT*capitauxEngages);
+  const tx=.25;
+  const ebit=Math.round(nopat/(1-tx));
+  const interets=Math.round(ebit*(R.ent(5,20)/100));
+  const capitauxPropres=Math.round(capitauxEngages*(R.ent(55,90)/100));
+  const rn=Math.round((ebit-interets)*(1-tx));
+  const immos=Math.round(capitauxEngages*(R.ent(65,85)/100));
+  const bfr=capitauxEngages-immos;
+  const roce=nopat/capitauxEngages, roe=rn/capitauxPropres;
+  return {contextes:["Le comité veut deux chiffres avant d'investir : ce que rapporte l'outil, et ce que ça rapporte à l'actionnaire.",
+    "Un concurrent affiche un ROE flatteur. Il faut vérifier ce qu'il vaut une fois la dette retirée de l'équation.",
+    "Avant de comparer deux filiales financées différemment, il faut d'abord neutraliser leur structure de financement.",
+    "Un investisseur demande le ROCE de la cible — pas son ROE, qu'il sait déjà déformé par le levier."],
+   contexte:"Le comité veut deux chiffres avant d'investir : ce que rapporte l'outil, et ce que ça rapporte à l'actionnaire.",
+   donnees:[["EBIT",ebit,"€"],["Immobilisations",immos,"€"],["BFR",bfr,"€"],
+            ["Intérêts financiers",interets,"€"],["Capitaux propres",capitauxPropres,"€"]],
+   questions:[
+    {q:"Quel est le NOPAT (taux d'IS : 25 %) ?", val:nopat, unit:"€", tol:Math.max(100,Math.abs(nopat)*.01),
+     calcul:`${eurX(ebit)} × (1 − 25 %) = <b>${eurX(nopat)}</b>`,
+     cle:"Le NOPAT retire l'impôt mais jamais les intérêts — c'est ce qui le rend comparable entre deux entreprises endettées différemment."},
+    {q:"Quels sont les capitaux engagés ?", val:capitauxEngages, unit:"€", tol:Math.max(100,capitauxEngages*.01),
+     calcul:`${eurX(immos)} + ${eurX(bfr)} = <b>${eurX(capitauxEngages)}</b>`,
+     cle:"L'outil, en entier : ce qu'il a fallu immobiliser pour produire et vendre, avant toute question de financement."},
+    {q:"Quel est le ROCE ?", val:roce*100, unit:"%", tol:.3,
+     calcul:`${eurX(nopat)} ÷ ${eurX(capitauxEngages)} = <b>${(roce*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"Le chiffre qui dit si l'outil, en lui-même, gagne sa vie — sans regarder qui l'a payé, ni comment."},
+    {q:"Quel est le résultat net (charges financières et impôt payés) ?", val:rn, unit:"€", tol:Math.max(100,Math.abs(rn)*.01),
+     calcul:`(${eurX(ebit)} − ${eurX(interets)}) × (1 − 25 %) = <b>${eurX(rn)}</b>`,
+     cle:"Ici les intérêts sont retirés AVANT l'impôt — c'est la seule différence de calcul avec le NOPAT, et elle change tout."},
+    {q:"Quel est le ROE ?", val:roe*100, unit:"%", tol:.4,
+     calcul:`${eurX(rn)} ÷ ${eurX(capitauxPropres)} = <b>${(roe*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"Ce que touche réellement l'actionnaire pour son argent à lui — pas pour l'argent du banquier qui a financé le reste."},
+    {q:"Quel est l'écart entre ROE et ROCE, en points ?", val:(roe-roce)*100, unit:"%", tol:.4,
+     calcul:`${(roe*100).toFixed(1).replace(".",",")} % − ${(roce*100).toFixed(1).replace(".",",")} % = <b>${((roe-roce)*100).toFixed(1).replace(".",",")} points</b>`,
+     cle:"Positif ou négatif, cet écart n'est pas un hasard : c'est l'effet de la dette sur la rentabilité de l'actionnaire — tout le sujet du palier suivant."}
+   ]};}},
+
+/* ============ 54 · piste RENTABILITÉ ============ */
+{id:"e54", n:54, piste:"rentabilite", ic:"🏭", titre:"La décomposition : marge × rotation",
+ sujet:"ROCE = marge opérationnelle × rotation des capitaux",
+ rappel:`Un ROCE ne dit pas COMMENT on y arrive — deux chemins opposés mènent au même chiffre.
+   <br><br><b>ROCE = Marge opérationnelle × Rotation des capitaux</b>
+   <br>avec <b>Marge opérationnelle = NOPAT ÷ CA</b> (ce que chaque euro de vente laisse, après impôt)
+   <br>et <b>Rotation des capitaux = CA ÷ Capitaux engagés</b> (combien de fois le capital investi se retourne en chiffre d'affaires chaque année).
+   <br><br>Un joaillier vend peu, cher, avec une marge énorme et une rotation faible. Un supermarché vend beaucoup, pas cher, avec une marge fine et une rotation élevée. Les deux peuvent afficher exactement le même ROCE — pour des raisons opposées.
+   <br><br>C'est le premier réflexe devant un ROCE décevant : est-ce la marge, ou la rotation, qui pèche ? Deux diagnostics, deux remèdes complètement différents.`,
+ gen:R=>{
+  const ca=R.ent(20000,80000)*1000;
+  const margeExplo=R.ent(6,22)/100;
+  const ebit=Math.round(ca*margeExplo);
+  const tx=.25;
+  const nopat=ebit*(1-tx);
+  const margeOp=nopat/ca;
+  const capitauxEngages=R.ent(15000,60000)*1000;
+  const rotation=ca/capitauxEngages;
+  const roceProduit=margeOp*rotation;
+  const roceDouble=margeOp*(rotation*2);
+  const target=R.ent(15,30);
+  const rotationReq=(target/100)/margeOp;
+  return {contextes:[`Ton entreprise fait ${Math.round(ca/1000000)} millions de chiffre d'affaires. Le comité veut savoir d'où vient — ou d'où manque — le ROCE.`,
+    "Deux filiales du groupe affichent le même ROCE. Il faut comprendre si c'est pour la même raison.",
+    "Un ROCE jugé faible : avant de couper les coûts, il faut savoir si le problème est la marge ou l'actif immobilisé.",
+    "Le comité d'investissement veut le détail derrière le ROCE, pas seulement le chiffre final."],
+   contexte:`Ton entreprise fait ${Math.round(ca/1000000)} millions de chiffre d'affaires. Le comité veut savoir d'où vient — ou d'où manque — le ROCE.`,
+   donnees:[["Chiffre d'affaires",ca,"€"],["EBIT",ebit,"€"],["Capitaux engagés",capitauxEngages,"€"]],
+   questions:[
+    {q:"Quelle est la marge opérationnelle après impôt (NOPAT ÷ CA), taux d'IS 25 % ?", val:margeOp*100, unit:"%", tol:.3,
+     calcul:`${eurX(ebit)} × (1 − 25 %) = ${eurX(nopat)} · ÷ ${eurX(ca)} = <b>${(margeOp*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"Ce que chaque euro de vente laisse, une fois l'impôt payé — le premier des deux leviers du ROCE."},
+    {q:"Quelle est la rotation des capitaux (CA ÷ Capitaux engagés) ?", val:rotation, unit:"×",
+     calcul:`${eurX(ca)} ÷ ${eurX(capitauxEngages)} = <b>${rotation.toFixed(2).replace(".",",")}×</b>`,
+     cle:"Combien de fois le capital investi se retourne en chiffre d'affaires chaque année — le second levier, à l'opposé du premier en intensité capitalistique."},
+    {q:"Quel ROCE obtient-on en multipliant les deux (marge × rotation) ?", val:roceProduit*100, unit:"%", tol:.3,
+     calcul:`${(margeOp*100).toFixed(1).replace(".",",")} % × ${rotation.toFixed(2).replace(".",",")}× = <b>${(roceProduit*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"Un pourcentage et un multiple, multipliés, qui redonnent exactement un pourcentage : ce n'est pas un hasard, c'est de l'algèbre — le CA se simplifie entre les deux."},
+    {q:"Retrouve le même ROCE en calculant directement NOPAT ÷ Capitaux engagés.", val:roceProduit*100, unit:"%", tol:.3,
+     calcul:`${eurX(nopat)} ÷ ${eurX(capitauxEngages)} = <b>${(roceProduit*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"Même chiffre, par les deux chemins. Celui qui décompose sert à DIAGNOSTIQUER — marge ou rotation — pas à recalculer autre chose."},
+    {q:"Si les capitaux engagés étaient réduits de moitié, à chiffre d'affaires et marge inchangés, quel serait le nouveau ROCE ?", val:roceDouble*100, unit:"%", tol:.4,
+     calcul:`Rotation doublée : ${(rotation*2).toFixed(2).replace(".",",")}× · ${(margeOp*100).toFixed(1).replace(".",",")} % × ${(rotation*2).toFixed(2).replace(".",",")}× = <b>${(roceDouble*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"Doubler la rotation double le ROCE, terme à terme. C'est tout le raisonnement derrière l'asset-light : vendre autant avec moins d'actifs immobilisés."},
+    {q:`À marge inchangée, quelle rotation faudrait-il pour amener le ROCE à ${target} % ?`, val:rotationReq, unit:"×",
+     calcul:`${target} % ÷ ${(margeOp*100).toFixed(1).replace(".",",")} % = <b>${rotationReq.toFixed(2).replace(".",",")}×</b>`,
+     cle:"La question inverse — celle qu'on pose à l'opérationnel quand la marge ne peut plus bouger : combien de rotation en plus faut-il aller chercher ?"}
+   ]};}},
+
+/* ============ 55 · piste RENTABILITÉ ============ */
+{id:"e55", n:55, piste:"rentabilite", ic:"🏭", titre:"ROE, ROCE et l'effet de levier",
+ sujet:"Pourquoi la dette ne change rien au ROCE mais change tout au ROE",
+ rappel:`La dette ne change RIEN au ROCE — il se calcule sur l'EBIT, avant toute charge financière. Mais elle change tout au ROE.
+   <br><br><b>Effet de levier financier : ROE = ROCE + (ROCE − Kd après impôt) × Dette ÷ Capitaux propres</b>
+   <br>avec <b>Kd après impôt = taux d'intérêt × (1 − taux d'IS)</b>, le même Kd après impôt que dans le WACC.
+   <br><br>Si <b>ROCE > Kd après impôt</b> : la dette est un LEVIER. Chaque euro emprunté rapporte plus qu'il ne coûte, et le surplus revient entièrement à l'actionnaire — le ROE dépasse le ROCE, et grimpe avec le levier.
+   <br>Si <b>ROCE < Kd après impôt</b> : c'est l'inverse. La dette est une MASSUE, et elle empire à chaque euro emprunté de plus.
+   <br><br>⚠️ C'est exactement le mécanisme qui rend un LBO rentable — ou dangereux. Jamais neutre.`,
+ gen:R=>{
+  const capitauxPropres=R.ent(8000,30000)*1000;
+  const dette=R.ent(3000,20000)*1000;
+  const capitauxEngages=capitauxPropres+dette;
+  const roceT=R.ent(6,18)/100;
+  const nopat=Math.round(roceT*capitauxEngages);
+  const tauxInteret=R.ent(3,7)/100;
+  const tx=.25;
+  const kdApres=tauxInteret*(1-tx);
+  const interets=Math.round(dette*tauxInteret);
+  const rn=nopat-Math.round(interets*(1-tx));
+  const roce=nopat/capitauxEngages;
+  const roe=rn/capitauxPropres;
+  const roeFormule=roce+(roce-kdApres)*(dette/capitauxPropres);
+  const ecartLevier=(roce-kdApres)*100;
+  return {contextes:["Une entreprise envisage de s'endetter davantage. Le CFO veut savoir si ça sert l'actionnaire ou si ça le dessert.",
+    "Deux entreprises, même ROCE, structures de financement opposées. Leurs actionnaires ne voient pourtant pas le même chiffre.",
+    "Avant un LBO, le fonds vérifie que le levier qu'il prévoit joue en sa faveur, pas contre lui.",
+    "Le comité veut comprendre pourquoi le ROE a bondi sans que rien n'ait changé dans l'exploitation."],
+   contexte:"Une entreprise envisage de s'endetter davantage. Le CFO veut savoir si ça sert l'actionnaire ou si ça le dessert.",
+   donnees:[["NOPAT",nopat,"€"],["Capitaux engagés",capitauxEngages,"€"],["Dette financière",dette,"€"],
+            ["Capitaux propres",capitauxPropres,"€"],["Taux d'intérêt de la dette",tauxInteret*100,"%"]],
+   questions:[
+    {q:"Quel est le ROCE ?", val:roce*100, unit:"%", tol:.3,
+     calcul:`${eurX(nopat)} ÷ ${eurX(capitauxEngages)} = <b>${(roce*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"Toujours le même calcul : sur l'EBIT, avant toute charge financière. La dette n'y entre pour rien."},
+    {q:"Quel est le coût de la dette après impôt (taux d'IS 25 %) ?", val:kdApres*100, unit:"%", tol:.2,
+     calcul:`${(tauxInteret*100).toFixed(1).replace(".",",")} % × (1 − 25 %) = <b>${(kdApres*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"Les intérêts sont déductibles — la dette coûte réellement moins que son taux affiché. Le même Kd après impôt que dans le WACC."},
+    {q:"Quels sont les intérêts financiers de l'exercice ?", val:interets, unit:"€", tol:Math.max(100,interets*.01),
+     calcul:`${eurX(dette)} × ${(tauxInteret*100).toFixed(1).replace(".",",")} % = <b>${eurX(interets)}</b>`,
+     cle:"Ce que le banquier prélève avant que l'actionnaire ne voie quoi que ce soit."},
+    {q:"Quel est le résultat net ?", val:rn, unit:"€", tol:Math.max(100,Math.abs(rn)*.01),
+     calcul:`${eurX(nopat)} − ${eurX(interets)} × (1 − 25 %) = <b>${eurX(rn)}</b>`,
+     cle:"On retire les intérêts du NOPAT, après leur avoir aussi appliqué l'économie d'impôt — pas avant."},
+    {q:"Quel est le ROE, calculé directement ?", val:roe*100, unit:"%", tol:.4,
+     calcul:`${eurX(rn)} ÷ ${eurX(capitauxPropres)} = <b>${(roe*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"Le chiffre que voit réellement l'actionnaire — après que le banquier a été payé."},
+    {q:"Retrouve ce même ROE avec la formule de l'effet de levier : ROE = ROCE + (ROCE − Kd après impôt) × Dette ÷ Capitaux propres.", val:roeFormule*100, unit:"%", tol:.4,
+     calcul:`${(roce*100).toFixed(1).replace(".",",")} % + (${(roce*100).toFixed(1).replace(".",",")} % − ${(kdApres*100).toFixed(2).replace(".",",")} %) × ${eurX(dette)} ÷ ${eurX(capitauxPropres)} = <b>${(roeFormule*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"Même chiffre, cette fois décomposé : le ROCE de base, plus un supplément — ou un manque — proportionnel au levier Dette/Capitaux propres."},
+    {q:"L'écart (ROCE − Kd après impôt) est-il en faveur de l'actionnaire ? Donne-le en points.", val:ecartLevier, unit:"%", tol:.3,
+     calcul:`${(roce*100).toFixed(1).replace(".",",")} % − ${(kdApres*100).toFixed(2).replace(".",",")} % = <b>${ecartLevier.toFixed(2).replace(".",",")} points</b>`,
+     cle:ecartLevier>0?"Positif : chaque euro emprunté rapporte plus qu'il ne coûte — la dette est un LEVIER, et le ROE dépasse le ROCE d'autant plus que Dette/Capitaux propres est grand.":"Négatif : chaque euro emprunté coûte plus qu'il ne rapporte — la dette est une MASSUE, et plus elle est grande, plus elle abîme le ROE."}
+   ]};}},
+
+/* ============ 56 · piste RENTABILITÉ ============ */
+{id:"e56", n:56, piste:"rentabilite", ic:"🏭", titre:"ROCE contre WACC : qui crée de la valeur",
+ sujet:"Spread, EVA, et le piège de la moyenne contre le marginal",
+ rappel:`Le WACC t'a donné le taux qu'un projet doit dépasser. Voici comment le comparer à ce que l'entreprise gagne réellement.
+   <br><br><b>Spread = ROCE − WACC.</b> Positif : l'entreprise crée de la valeur, chaque euro investi vaut plus que ce qu'il a coûté. Négatif : elle en détruit, même rentable en apparence.
+   <br><br><b>EVA (Economic Value Added) = (ROCE − WACC) × Capitaux engagés.</b> Le surplus — ou le manque — en euros, pas en pourcentage. C'est le chiffre qui dit si la taille compense, ou aggrave, un spread faible.
+   <br><br>⚠️ Un ROCE élevé ne suffit jamais seul : il faut le comparer AU coût du capital qui finance ces capitaux engagés — jamais dans l'absolu. Et un nouveau projet se juge sur SON spread à lui, pas sur l'effet qu'il a sur la moyenne affichée.`,
+ gen:R=>{
+  const capitauxEngages=R.ent(20000,80000)*1000;
+  const roceT=R.ent(4,20)/100;
+  const nopat=Math.round(roceT*capitauxEngages);
+  const roce=nopat/capitauxEngages;
+  const wacc=R.ent(6,11)/100;
+  const spread=roce-wacc;
+  const eva=spread*capitauxEngages;
+  const nopatMin=wacc*capitauxEngages;
+  const newInvest=R.ent(2000,8000)*1000;
+  const margeMarg=R.ent(3,15)/100;
+  const newNopat=Math.round(newInvest*margeMarg);
+  const marginalRoce=newNopat/newInvest;
+  const evaMarginal=(marginalRoce-wacc)*newInvest;
+  const roceConsolide=(nopat+newNopat)/(capitauxEngages+newInvest);
+  return {contextes:[`Ton WACC vaut ${(wacc*100).toFixed(0)} %. Le comité veut savoir si l'entreprise le dépasse — et de combien.`,
+    "Un actionnaire compare deux entreprises au même ROCE, financées à des coûts du capital différents.",
+    "Le comité d'investissement évalue un nouveau projet, à comparer au WACC du groupe.",
+    "Avant d'annoncer un ROCE flatteur en comité, il faut le mettre en face du coût du capital qui le finance."],
+   contexte:`Ton WACC vaut ${(wacc*100).toFixed(0)} %. Le comité veut savoir si l'entreprise le dépasse — et de combien.`,
+   donnees:[["NOPAT",nopat,"€"],["Capitaux engagés",capitauxEngages,"€"],["WACC",wacc*100,"%"],
+            ["Investissement du nouveau projet",newInvest,"€"],["NOPAT additionnel attendu",newNopat,"€"]],
+   questions:[
+    {q:"Quel est le ROCE actuel ?", val:roce*100, unit:"%", tol:.3,
+     calcul:`${eurX(nopat)} ÷ ${eurX(capitauxEngages)} = <b>${(roce*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"Toujours le même calcul — mais il ne veut rien dire seul, tant qu'on ne l'a pas comparé au coût du capital."},
+    {q:"Quel est le spread (ROCE − WACC), en points ?", val:spread*100, unit:"%", tol:.3,
+     calcul:`${(roce*100).toFixed(1).replace(".",",")} % − ${(wacc*100).toFixed(0)} % = <b>${(spread*100).toFixed(1).replace(".",",")} points</b>`,
+     cle:spread>0?"Positif : l'entreprise gagne plus que ce que son capital lui coûte. Elle crée de la valeur.":"Négatif : l'entreprise gagne moins que ce que son capital lui coûte. Elle en détruit, même profitable en apparence."},
+    {q:"Quelle est l'EVA (Economic Value Added), en euros ?", val:eva, unit:"€", tol:Math.max(100,Math.abs(eva)*.02),
+     calcul:`${(spread*100).toFixed(1).replace(".",",")} % × ${eurX(capitauxEngages)} = <b>${eurX(eva)}</b>`,
+     cle:"Le spread en pourcentage ne dit rien de l'ampleur ; l'EVA, en euros, dit si la taille de l'entreprise compense — ou aggrave — un spread faible."},
+    {q:"Quel NOPAT minimum faudrait-il pour que le spread soit tout juste nul ?", val:nopatMin, unit:"€", tol:Math.max(100,nopatMin*.01),
+     calcul:`${(wacc*100).toFixed(0)} % × ${eurX(capitauxEngages)} = <b>${eurX(nopatMin)}</b>`,
+     cle:"C'est le NOPAT en dessous duquel l'entreprise, même bénéficiaire, ne rembourse plus le coût de son propre capital."},
+    {q:`Le nouveau projet coûte ${eurX(newInvest)} et dégagerait ${eurX(newNopat)} de NOPAT additionnel. Quel est son ROCE marginal ?`, val:marginalRoce*100, unit:"%", tol:.4,
+     calcul:`${eurX(newNopat)} ÷ ${eurX(newInvest)} = <b>${(marginalRoce*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"C'est ce chiffre-là qu'il faut comparer au WACC — jamais au ROCE actuel de l'entreprise, qui n'a rien à voir avec ce projet précis."},
+    {q:"Ce projet crée-t-il de la valeur ? Donne son EVA propre.", val:evaMarginal, unit:"€", tol:Math.max(100,Math.abs(evaMarginal)*.02),
+     calcul:`(${(marginalRoce*100).toFixed(1).replace(".",",")} % − ${(wacc*100).toFixed(0)} %) × ${eurX(newInvest)} = <b>${eurX(evaMarginal)}</b>`,
+     cle:evaMarginal>0?"Positif : ce projet, pris seul, crée de la valeur — qu'il tire le ROCE moyen vers le haut ou vers le bas ne change rien à cette conclusion.":"Négatif : ce projet, pris seul, détruit de la valeur — même s'il peut faire illusion en gonflant le ROCE moyen affiché."},
+    {q:"S'il est lancé, quel devient le ROCE consolidé de l'ensemble ?", val:roceConsolide*100, unit:"%", tol:.3,
+     calcul:`(${eurX(nopat)} + ${eurX(newNopat)}) ÷ (${eurX(capitauxEngages)} + ${eurX(newInvest)}) = <b>${(roceConsolide*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"Un projet peut créer de la valeur (EVA positive) tout en tirant le ROCE moyen vers le bas s'il est en dessous du ROCE actuel — ou l'inverse. C'est le spread du projet qui compte pour la décision, jamais son effet sur la moyenne affichée."}
+   ]};}},
+
+/* ============ 57 · piste RENTABILITÉ ============ */
+{id:"e57", n:57, piste:"rentabilite", ic:"🏭", titre:"Les pièges de la mesure",
+ sujet:"Le goodwill, le ROCE comptable et le ROCE économique",
+ rappel:`Un ROCE qui baisse ne veut pas toujours dire que l'entreprise se porte moins bien — parfois, c'est juste la manière dont on l'a payée.
+   <br><br>Le <b>goodwill</b> (le prix payé au-dessus de la valeur comptable des actifs repris, lors d'une acquisition) s'ajoute aux capitaux engagés — mécaniquement, sans qu'aucune usine ni aucun client n'ait changé. Résultat : le ROCE affiché chute après une acquisition, même si rien n'a changé dans l'exploitation.
+   <br><br>D'où deux chiffres à toujours distinguer :
+   <br>· <b>ROCE COMPTABLE</b> = NOPAT ÷ (Capitaux engagés, goodwill compris) — celui qu'on lit dans les comptes.
+   <br>· <b>ROCE ÉCONOMIQUE (« cash »)</b> = NOPAT ÷ (Capitaux engagés, goodwill exclu) — celui qui reflète l'outil industriel réel, comparable d'une entreprise à l'autre, acquéreuse ou pas.
+   <br><br>⚠️ Comparer un ROCE comptable entre un groupe qui a beaucoup acquis et un autre qui a tout construit lui-même, c'est comparer deux choses différentes — pas deux performances.`,
+ gen:R=>{
+  const capitauxEngagesAvant=R.ent(10000,30000)*1000;
+  const nopatAvant=R.ent(1500,5000)*1000;
+  const prix=R.ent(8000,25000)*1000;
+  const actifsNetsRepris=Math.round(prix*(R.ent(30,70)/100));
+  const goodwill=prix-actifsNetsRepris;
+  const nopatCible=R.ent(500,2500)*1000;
+  const capitauxEngagesApres=capitauxEngagesAvant+prix;
+  const nopatApres=nopatAvant+nopatCible;
+  const roceAvant=nopatAvant/capitauxEngagesAvant;
+  const roceApres=nopatApres/capitauxEngagesApres;
+  const capitauxEngagesEco=capitauxEngagesApres-goodwill;
+  const roceEco=nopatApres/capitauxEngagesEco;
+  const ecartPts=(roceEco-roceApres)*100;
+  const chuteRel=(1-roceApres/roceEco)*100;
+  return {contextes:["Une entreprise vient de boucler une acquisition. Son ROCE affiché chute — le comité s'inquiète.",
+    "Deux groupes du même secteur, ROCE très différents : l'un a tout construit, l'autre a beaucoup acheté.",
+    "Un analyste doit expliquer pourquoi le ROCE d'un groupe très acquisitif paraît structurellement faible.",
+    "Avant de comparer deux cibles, il faut savoir laquelle des deux a payé du goodwill — et combien."],
+   contexte:"Une entreprise vient de boucler une acquisition. Son ROCE affiché chute — le comité s'inquiète.",
+   donnees:[["Capitaux engagés avant l'acquisition",capitauxEngagesAvant,"€"],["NOPAT avant l'acquisition",nopatAvant,"€"],
+            ["Prix payé pour la cible",prix,"€"],["Actifs nets repris (valeur comptable de la cible)",actifsNetsRepris,"€"],
+            ["NOPAT apporté par la cible",nopatCible,"€"]],
+   questions:[
+    {q:"Quel est le goodwill payé lors de l'acquisition ?", val:goodwill, unit:"€", tol:Math.max(100,goodwill*.01),
+     calcul:`${eurX(prix)} − ${eurX(actifsNetsRepris)} = <b>${eurX(goodwill)}</b>`,
+     cle:"Le prix payé au-dessus de la valeur comptable des actifs repris — ni une usine, ni un client de plus : juste un prix."},
+    {q:"Quels sont les capitaux engagés après l'acquisition (comptable, goodwill compris) ?", val:capitauxEngagesApres, unit:"€", tol:Math.max(100,capitauxEngagesApres*.01),
+     calcul:`${eurX(capitauxEngagesAvant)} + ${eurX(prix)} = <b>${eurX(capitauxEngagesApres)}</b>`,
+     cle:"Tout le prix payé s'ajoute aux capitaux engagés — pas seulement les actifs nets repris."},
+    {q:"Quel était le ROCE avant l'acquisition ?", val:roceAvant*100, unit:"%", tol:.3,
+     calcul:`${eurX(nopatAvant)} ÷ ${eurX(capitauxEngagesAvant)} = <b>${(roceAvant*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"Le point de départ, avant que le goodwill n'entre dans l'équation."},
+    {q:"Quel est le ROCE comptable après l'acquisition (goodwill compris) ?", val:roceApres*100, unit:"%", tol:.3,
+     calcul:`(${eurX(nopatAvant)} + ${eurX(nopatCible)}) ÷ ${eurX(capitauxEngagesApres)} = <b>${(roceApres*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"C'est ce chiffre-là qu'un lecteur pressé retient — et qui fait paraître l'acquisition moins rentable qu'elle ne l'est réellement."},
+    {q:"Quel est le ROCE économique après l'acquisition (goodwill exclu des capitaux engagés) ?", val:roceEco*100, unit:"%", tol:.3,
+     calcul:`(${eurX(nopatAvant)} + ${eurX(nopatCible)}) ÷ (${eurX(capitauxEngagesApres)} − ${eurX(goodwill)}) = <b>${(roceEco*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"Le ROCE de l'outil industriel réel — celui qui se compare honnêtement à une entreprise qui n'a rien acquis."},
+    {q:"Quel est l'écart entre les deux ROCE, en points ?", val:ecartPts, unit:"%", tol:.4,
+     calcul:`${(roceEco*100).toFixed(1).replace(".",",")} % − ${(roceApres*100).toFixed(1).replace(".",",")} % = <b>${ecartPts.toFixed(1).replace(".",",")} points</b>`,
+     cle:"Cet écart ne vient d'aucune baisse de performance — seulement du goodwill assis dans les capitaux engagés."},
+    {q:"De quel pourcentage le ROCE comptable est-il mécaniquement inférieur au ROCE économique ?", val:chuteRel, unit:"%", tol:1.5,
+     calcul:`1 − ${(roceApres*100).toFixed(1).replace(".",",")} % ÷ ${(roceEco*100).toFixed(1).replace(".",",")} % = <b>${chuteRel.toFixed(0)} %</b> de moins, mécaniquement`,
+     cle:"Voilà pourquoi un groupe très acquisitif affiche presque toujours un ROCE comptable inférieur à un groupe qui a tout construit lui-même — à performance industrielle strictement identique."}
    ]};}}
 
 ];
