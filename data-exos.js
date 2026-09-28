@@ -1667,6 +1667,277 @@ const EXOS = [
      val:sousPaiement, unit:"€", tol:Math.max(3000,Math.abs(sousPaiement)*.02),
      calcul:`${eurX(veHigh)} − ${eurX(veHighAuMultLow)} = <b>${eurX(sousPaiement)}</b>`,
      cle:"Voilà le miroir du piège habituel : on parle toujours du risque de SURPAYER un multiple élevé, rarement du risque de rater une cible en lui appliquant, par prudence mal placée, le multiple d'une tout autre catégorie d'entreprise."}
+   ]};}},
+
+/* ================================================================
+   PISTE LBO — ajoutée le 2026-09-28, à la suite des multiples. LE
+   CLOSING regorge déjà de contenu LBO qualitatif (Paper LBO dans
+   data-drills.js : décomposition de la création de valeur, repères
+   MOIC→TRI, cash sweep) — mais toujours avec des chiffres FIXES,
+   qu'on finit par connaître par cœur sans avoir vraiment appris le
+   geste. Cette piste reprend exactement les mêmes mécaniques, mais
+   randomisées à chaque série — même logique que toutes les autres
+   pistes de cette échelle.
+   ================================================================ */
+
+/* ============ 35 · piste LBO ============ */
+{id:"e35", n:35, piste:"lbo", ic:"🎯", titre:"Le mécanisme du levier",
+ sujet:"EV d'entrée, dette, equity — et pourquoi une petite equity amplifie tout",
+ rappel:`Un LBO se lit en trois chiffres. <b>VE d'entrée = multiple d'entrée × EBITDA.</b> Cette VE est financée par de la <b>dette</b> (un multiple de l'EBITDA, fixé par les prêteurs) et le reste en <b>equity</b> — l'apport du sponsor.
+   <br><br>Le levier tient dans une seule idée : l'equity n'est qu'une FRACTION de la VE — souvent 40 à 50 %, parfois moins. Toute variation de la VE totale se répercute donc, en euros, sur une base bien plus petite : l'equity. C'est ce qui amplifie les gains — et les pertes.`,
+ gen:R=>{
+  const ebitdaEntree=R.ent(15,50)*1000000, multEntree=R.ent(60,90)/10;
+  const evEntree=Math.round(ebitdaEntree*multEntree);
+  const levier=R.ent(40,60)/10;
+  const detteEntree=Math.round(ebitdaEntree*levier);
+  const equityEntree=evEntree-detteEntree;
+  const pctEquity=equityEntree/evEntree*100;
+  const evGrowthPct=R.ent(8,20);
+  const evNouvelle=evEntree*(1+evGrowthPct/100);
+  const deltaEV=evNouvelle-evEntree;
+  const equityNouvelle=equityEntree+deltaEV;
+  const pctEquityGrowth=deltaEV/equityEntree*100;
+  const facteurAmplification=pctEquityGrowth/evGrowthPct;
+  return {contextes:[`Un fonds prépare le rachat par levier d'une entreprise industrielle.`,
+    `Une opération de LBO classique, structurée en dette et en equity.`,
+    `Le comité d'investissement examine la structure de financement d'une cible.`,
+    `Avant de parler de rendement, il faut poser la structure du deal.`],
+   contexte:`Un fonds prépare le rachat par levier d'une entreprise industrielle.`,
+   donnees:[["EBITDA d'entrée",ebitdaEntree,"€"],["Multiple d'entrée",multEntree,"×"],["Levier (Dette/EBITDA)",levier,"×"]],
+   questions:[
+    {q:"Quelle est la valeur d'entreprise (VE) d'entrée ?", val:evEntree, unit:"€", tol:Math.max(50000,evEntree*.01),
+     calcul:`${multEntree.toFixed(1).replace(".",",")}× × ${eurX(ebitdaEntree)} = <b>${eurX(evEntree)}</b>`,
+     cle:"Le point de départ de tout LBO : combien coûte la cible, avant même de parler de comment on la finance."},
+    {q:"Avec ce niveau de levier, quelle dette LBO est mise en place ?", val:detteEntree, unit:"€", tol:Math.max(50000,detteEntree*.01),
+     calcul:`${levier.toFixed(1).replace(".",",")}× × ${eurX(ebitdaEntree)} = <b>${eurX(detteEntree)}</b>`,
+     cle:"Ce n'est pas le sponsor qui fixe ce chiffre : c'est ce que les prêteurs acceptent de prêter, en multiple de l'EBITDA."},
+    {q:"Quel est l'apport en capital (equity) du sponsor ?", val:equityEntree, unit:"€", tol:Math.max(50000,equityEntree*.015),
+     calcul:`${eurX(evEntree)} − ${eurX(detteEntree)} = <b>${eurX(equityEntree)}</b>`,
+     cle:"Le complément entre la VE et la dette. C'est ce chiffre-là, et lui seul, que le sponsor risque réellement."},
+    {q:"Quelle part de la VE d'entrée l'equity représente-t-elle, en % ?", val:pctEquity, unit:"%", tol:2,
+     calcul:`${eurX(equityEntree)} ÷ ${eurX(evEntree)} = <b>${pctEquity.toFixed(1).replace(".",",")} %</b>`,
+     cle:"Une equity qui ne pèse qu'une fraction de la VE totale : c'est cette fraction, précisément, qui va amplifier tout ce qui se passe ensuite."},
+    {q:`Si la VE totale progressait de ${evGrowthPct} % sans qu'aucun euro de dette ne bouge, de quel montant l'equity augmenterait-elle ?`,
+     val:deltaEV, unit:"€", tol:Math.max(20000,Math.abs(deltaEV)*.02),
+     calcul:`${evGrowthPct} % × ${eurX(evEntree)} = <b>${eurX(deltaEV)}</b>`,
+     cle:"La dette est fixe : toute la variation de VE atterrit intégralement sur l'equity, qui l'absorbe en entier."},
+    {q:"Cela représente quel pourcentage de croissance pour l'equity elle-même ?", val:pctEquityGrowth, unit:"%", tol:3,
+     calcul:`${eurX(deltaEV)} ÷ ${eurX(equityEntree)} = <b>${pctEquityGrowth.toFixed(1).replace(".",",")} %</b>`,
+     cle:`Une VE qui progresse de ${evGrowthPct} % fait progresser l'equity de bien plus — c'est l'effet de levier en action, avant même de parler de désendettement.`},
+    {q:"Quel facteur d'amplification cela représente-t-il par rapport à la croissance de la VE elle-même ?", val:facteurAmplification, unit:"×", tol:.3,
+     calcul:`${pctEquityGrowth.toFixed(1).replace(".",",")} % ÷ ${evGrowthPct} % = <b>${facteurAmplification.toFixed(2).replace(".",",")}×</b>`,
+     cle:"C'est l'inverse exact de la part d'equity dans la VE : plus l'equity est une petite tranche du financement, plus ce facteur d'amplification est grand. Le levier n'est rien d'autre que ça."}
+   ]};}},
+
+/* ============ 36 · piste LBO ============ */
+{id:"e36", n:36, piste:"lbo", ic:"🎯", titre:"Les trois leviers de création de valeur",
+ sujet:"Désendettement, croissance d'EBITDA, expansion de multiple — décomposer un gain",
+ rappel:`La création de valeur d'un LBO se décompose TOUJOURS en trois leviers, et un bon candidat sait les isoler. Le <b>désendettement</b> : la dette remboursée pendant la détention revient intégralement à l'equity. La <b>croissance d'EBITDA</b>, valorisée au multiple d'ENTRÉE : (EBITDA sortie − EBITDA entrée) × multiple d'entrée. L'<b>expansion (ou contraction) de multiple</b>, valorisée sur l'EBITDA de SORTIE : (multiple sortie − multiple entrée) × EBITDA de sortie.
+   <br><br>Ces trois termes s'additionnent EXACTEMENT pour retrouver l'écart total d'equity entre l'entrée et la sortie — aucun résidu, aucun arrondi de coin de table.`,
+ gen:R=>{
+  const ebitdaEntree=R.ent(15,50)*1000000, multEntree=R.ent(60,90)/10;
+  const evEntree=Math.round(ebitdaEntree*multEntree);
+  const levier=R.ent(40,60)/10;
+  const detteEntree=Math.round(ebitdaEntree*levier);
+  const equityEntree=evEntree-detteEntree;
+  const croissancePct=R.ent(15,40)/100;
+  const ebitdaSortie=ebitdaEntree*(1+croissancePct);
+  const multSortie=multEntree+R.ent(-10,5)/10;
+  const evSortie=ebitdaSortie*multSortie;
+  const desendPct=R.ent(50,80)/100;
+  const detteSortie=detteEntree*(1-desendPct);
+  const equitySortie=evSortie-detteSortie;
+  const contribCroissance=(ebitdaSortie-ebitdaEntree)*multEntree;
+  const contribMultiple=(multSortie-multEntree)*ebitdaSortie;
+  const contribDesend=detteEntree-detteSortie;
+  return {contextes:[`Une opération de LBO arrive à son terme : il faut décomposer d'où vient le gain.`,
+    `Le fonds prépare un mémo de sortie — chaque levier de valeur doit être chiffré séparément.`,
+    `Cinq ans après l'entrée, il faut expliquer au comité ce qui a vraiment créé la valeur.`,
+    `Avant de célébrer un multiple de retour, il faut savoir ce qui l'a produit.`],
+   contexte:`Une opération de LBO arrive à son terme : il faut décomposer d'où vient le gain.`,
+   donnees:[["EBITDA d'entrée",ebitdaEntree,"€"],["Multiple d'entrée",multEntree,"×"],["Levier à l'entrée",levier,"×"],
+            ["Croissance d'EBITDA sur la période",croissancePct*100,"%"],["Multiple de sortie",multSortie,"×"],
+            ["Dette remboursée sur la période",desendPct*100,"%"]],
+   questions:[
+    {q:"Quelle était l'equity investie à l'entrée ?", val:equityEntree, unit:"€", tol:Math.max(50000,equityEntree*.015),
+     calcul:`${eurX(evEntree)} − ${eurX(detteEntree)} = <b>${eurX(equityEntree)}</b>`,
+     cle:"Le point de départ, avant tout calcul de création de valeur."},
+    {q:"Quelle est la valeur d'entreprise de sortie ?", val:evSortie, unit:"€", tol:Math.max(50000,evSortie*.015),
+     calcul:`${eurX(ebitdaSortie)} × ${multSortie.toFixed(1).replace(".",",")}× = <b>${eurX(evSortie)}</b>`,
+     cle:"L'EBITDA a grandi, le multiple a bougé : les deux effets sont mélangés dans ce chiffre — le reste du palier consiste à les séparer."},
+    {q:"Quelle est l'equity de sortie ?", val:equitySortie, unit:"€", tol:Math.max(50000,equitySortie*.015),
+     calcul:`${eurX(evSortie)} − ${eurX(detteSortie)} = <b>${eurX(equitySortie)}</b>`,
+     cle:"Ce que le sponsor récupère au débouclage — la VE de sortie, moins ce qu'il reste de dette à rembourser."},
+    {q:"Quelle part de la création de valeur vient de la seule CROISSANCE de l'EBITDA (au multiple d'entrée) ?", val:contribCroissance, unit:"€", tol:Math.max(30000,Math.abs(contribCroissance)*.02),
+     calcul:`(${eurX(ebitdaSortie)} − ${eurX(ebitdaEntree)}) × ${multEntree.toFixed(1).replace(".",",")}× = <b>${eurX(contribCroissance)}</b>`,
+     cle:"L'amélioration opérationnelle pure, valorisée au prix qu'on a payé à l'entrée — sans supposer que le marché paiera plus cher à la sortie."},
+    {q:"Quelle part vient du DÉSENDETTEMENT (dette remboursée pendant la détention) ?", val:contribDesend, unit:"€", tol:Math.max(30000,Math.abs(contribDesend)*.02),
+     calcul:`${eurX(detteEntree)} − ${eurX(detteSortie)} = <b>${eurX(contribDesend)}</b>`,
+     cle:"Le levier « mécanique » : chaque euro de dette remboursé grâce au cash généré revient intégralement à l'equity, sans qu'aucune performance opérationnelle ne soit nécessaire."},
+    {q:"Et quelle part vient de la variation du MULTIPLE (à EBITDA de sortie constant) ?", val:contribMultiple, unit:"€", tol:Math.max(30000,Math.abs(contribMultiple)*.03),
+     calcul:`(${multSortie.toFixed(1).replace(".",",")}× − ${multEntree.toFixed(1).replace(".",",")}×) × ${eurX(ebitdaSortie)} = <b>${eurX(contribMultiple)}</b>`,
+     cle:multSortie<multEntree?"Un multiple de sortie inférieur à l'entrée COÛTE de la valeur — et c'est le scénario que les comités sérieux retiennent par prudence.":"Un multiple de sortie supérieur à l'entrée ajoute de la valeur — mais c'est le levier le moins contrôlable des trois, et le moins prudent à supposer d'avance."},
+    {q:"En additionnant les trois leviers, quelle création de valeur totale retrouves-tu — cohérente avec l'écart direct (equity sortie − equity entrée) ?",
+     val:contribCroissance+contribDesend+contribMultiple, unit:"€", tol:Math.max(30000,Math.abs(equitySortie-equityEntree)*.02),
+     calcul:`${eurX(contribCroissance)} + ${eurX(contribDesend)} + ${eurX(contribMultiple)} = <b>${eurX(contribCroissance+contribDesend+contribMultiple)}</b>`,
+     cle:"Les trois termes s'additionnent EXACTEMENT jusqu'au dernier euro — c'est une identité algébrique, pas une coïncidence. Si ça ne tombe pas juste, un des trois calculs est faux."}
+   ]};}},
+
+/* ============ 37 · piste LBO ============ */
+{id:"e37", n:37, piste:"lbo", ic:"🎯", titre:"MOIC et TRI",
+ sujet:"Multiple de capital investi, taux de rendement interne, et le repère à connaître par cœur",
+ rappel:`Le <b>MOIC</b> (multiple of invested capital) = equity de sortie ÷ equity investie. Il dit COMBIEN tu as gagné, sans dire à quelle vitesse. Le <b>TRI</b> (taux de rendement interne) annualise ce gain sur la durée de détention. Pour un investissement unique en entrée et une sortie unique (sans dividende intermédiaire) : <b>TRI ≈ MOIC^(1/n) − 1</b>, avec n le nombre d'années.
+   <br><br><b>Les repères à avoir en tête, sur 5 ans :</b> ×2 ≈ 15 % de TRI · ×2,5 ≈ 20 % · ×3 ≈ 25 %. Un même MOIC donne un TRI très différent selon la durée : ×2 en 3 ans vaut beaucoup mieux que ×2 en 7 ans — le TRI récompense la VITESSE, pas seulement l'ampleur du gain.`,
+ gen:R=>{
+  const equityEntree=R.ent(10,60)*1000000;
+  const moicBrut=R.ent(18,35)/10;
+  const equitySortie=Math.round(equityEntree*moicBrut);
+  const moic=equitySortie/equityEntree;
+  const n=R.ent(3,7);
+  const tri=Math.pow(moic,1/n)-1;
+  let n2=R.ent(3,7); if(n2===n) n2=n>=6?n-3:n+3;
+  const tri2=Math.pow(moic,1/n2)-1;
+  const triCible=R.ent(15,25)/100;
+  const moicNecessaire=Math.pow(1+triCible,n);
+  const equitySortieNecessaire=equityEntree*moicNecessaire;
+  const reperes=[[2,5],[2.5,5],[3,5]];
+  const repere=reperes[R.ent(0,2)];
+  const triRepere=(Math.pow(repere[0],1/repere[1])-1)*100;
+  return {contextes:[`Un fonds sort d'une position après plusieurs années de détention.`,
+    `Le compte-rendu de performance d'un deal LBO, prêt à être présenté aux investisseurs (LPs).`,
+    `Avant de comparer deux opérations, il faut les ramener au même horizon.`,
+    `Un comité d'investissement doit fixer un objectif de rendement avant d'entrer dans le deal.`],
+   contexte:`Un fonds sort d'une position après ${n} ans de détention.`,
+   donnees:[["Equity investie à l'entrée",equityEntree,"€"],["Equity récupérée à la sortie",equitySortie,"€"],["Durée de détention",n,""]],
+   questions:[
+    {q:"Quel est le MOIC de cette opération ?", val:moic, unit:"×", tol:.1,
+     calcul:`${eurX(equitySortie)} ÷ ${eurX(equityEntree)} = <b>${moic.toFixed(2).replace(".",",")}×</b>`,
+     cle:"La mesure la plus simple : combien de fois l'equity investie a-t-elle été rendue, sans référence à la durée."},
+    {q:`Sur ${n} ans, quel est le TRI annualisé approximatif ?`, val:tri*100, unit:"%", tol:1.5,
+     calcul:`${moic.toFixed(2).replace(".",",")}^(1/${n}) − 1 = <b>${(tri*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"Le même gain, ramené à un rythme annuel — c'est ce chiffre-là, pas le MOIC seul, qui permet de comparer deux deals de durées différentes."},
+    {q:`Si la même opération, au MÊME MOIC, avait duré ${n2} ans au lieu de ${n}, quel TRI cela donnerait-il ?`, val:tri2*100, unit:"%", tol:1.5,
+     calcul:`${moic.toFixed(2).replace(".",",")}^(1/${n2}) − 1 = <b>${(tri2*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:tri2<tri?"Le même multiple, obtenu plus lentement, donne un TRI plus faible — la durée n'est jamais un détail dans un rendement de fonds.":"Le même multiple, obtenu plus vite, donne un TRI bien meilleur — c'est pour ça qu'un fonds préfère souvent sortir tôt à multiple égal."},
+    {q:`Pour viser un TRI de ${(triCible*100).toFixed(0)} % sur ${n} ans, quel MOIC faut-il atteindre ?`, val:moicNecessaire, unit:"×", tol:.15,
+     calcul:`(1 + ${(triCible*100).toFixed(0)} %)^${n} = <b>${moicNecessaire.toFixed(2).replace(".",",")}×</b>`,
+     cle:"La formule se lit dans les deux sens : d'un objectif de TRI, on déduit le multiple qu'il faut viser dès l'entrée."},
+    {q:"Et quel equity de sortie cela représente-t-il, à equity d'entrée inchangé ?", val:equitySortieNecessaire, unit:"€", tol:Math.max(50000,equitySortieNecessaire*.02),
+     calcul:`${eurX(equityEntree)} × ${moicNecessaire.toFixed(2).replace(".",",")}× = <b>${eurX(equitySortieNecessaire)}</b>`,
+     cle:"C'est ce chiffre-là, en euros, que le comité d'investissement doit avoir en tête AVANT de signer — pas seulement un pourcentage abstrait."},
+    {q:`Repère de tête à vérifier : à combien estimes-tu le TRI exact d'un MOIC de ${repere[0]}× sur ${repere[1]} ans ?`, val:triRepere, unit:"%", tol:1,
+     calcul:`${repere[0]}^(1/${repere[1]}) − 1 = <b>${triRepere.toFixed(1).replace(".",",")} %</b>`,
+     cle:"C'est exactement le repère à avoir en tête sans calculer — la table du palier sert à vérifier qu'il est bien mémorisé, pas à le découvrir."}
+   ]};}},
+
+/* ============ 38 · piste LBO ============ */
+{id:"e38", n:38, piste:"lbo", ic:"🎯", titre:"La dette LBO et le cash sweep",
+ sujet:"FCF disponible, remboursement anticipé, ratio de couverture des intérêts",
+ rappel:`Le <b>cash sweep</b> est la règle centrale de la dette LBO : tout le cash disponible après charges, intérêts et impôts sert en PRIORITÉ à rembourser la dette par anticipation — avant tout dividende au sponsor.
+   <br><br><b>FCF disponible ≈ EBITDA − investissements (= amortissements, en régime de croisière) − intérêts − impôts</b>, avec impôt = (EBITDA − amortissements − intérêts) × taux d'IS.
+   <br><br>Le <b>ratio de couverture des intérêts</b> (EBITDA ÷ intérêts) est le signal que surveillent les prêteurs : s'il descend trop bas, le covenant de la dette est en danger — souvent bien avant que l'entreprise ne manque réellement de cash.`,
+ gen:R=>{
+  const ebitda=R.ent(15,50)*1000000;
+  const capex=Math.round(ebitda*R.ent(8,15)/100);
+  const levier=R.ent(45,60)/10;
+  const detteInit=Math.round(ebitda*levier);
+  const tauxDette=R.ent(5,8)/100;
+  const interets=Math.round(detteInit*tauxDette);
+  const tx=.25;
+  const couverture=ebitda/interets;
+  const baseImposable=ebitda-capex-interets;
+  const impot=Math.max(0,baseImposable*tx);
+  const fcfDispo=ebitda-capex-interets-impot;
+  const detteApres1An=detteInit-fcfDispo;
+  const chocPct=20;
+  const couvertureChoc=(ebitda*(1-chocPct/100))/interets;
+  return {contextes:[`Une cible LBO, en régime de croisière (investissements = amortissements). IS à 25 %.`,
+    `Le fonds modélise le premier exercice complet post-acquisition. IS à 25 %.`,
+    `Un banquier senior vérifie la capacité de remboursement de la dette. IS à 25 %.`,
+    `Avant de signer, le comité de crédit regarde le premier exercice sous dette. IS à 25 %.`],
+   contexte:`Une cible LBO, en régime de croisière (investissements = amortissements). Impôt à 25 %.`,
+   donnees:[["EBITDA",ebitda,"€"],["Investissements = amortissements (régime de croisière)",capex,"€"],
+            ["Levier à l'entrée (Dette/EBITDA)",levier,"×"],["Taux d'intérêt de la dette",tauxDette*100,"%"]],
+   questions:[
+    {q:"Quelle est la dette LBO mise en place à l'entrée ?", val:detteInit, unit:"€", tol:Math.max(50000,detteInit*.01),
+     calcul:`${levier.toFixed(1).replace(".",",")}× × ${eurX(ebitda)} = <b>${eurX(detteInit)}</b>`,
+     cle:"Le point de départ : le montant que les prêteurs acceptent de financer, en multiple de l'EBITDA."},
+    {q:"Quels sont les intérêts financiers annuels ?", val:interets, unit:"€", tol:Math.max(10000,interets*.01),
+     calcul:`${eurX(detteInit)} × ${(tauxDette*100).toFixed(1).replace(".",",")} % = <b>${eurX(interets)}</b>`,
+     cle:"La première charge que le cash généré doit couvrir, avant même de penser à rembourser le principal."},
+    {q:"Quel est le ratio de couverture des intérêts (EBITDA ÷ intérêts) à l'entrée ?", val:couverture, unit:"×", tol:.2,
+     calcul:`${eurX(ebitda)} ÷ ${eurX(interets)} = <b>${couverture.toFixed(2).replace(".",",")}×</b>`,
+     cle:"Le chiffre que surveillent les prêteurs en premier — souvent avant même le niveau d'endettement lui-même."},
+    {q:"Quelle est la base imposable de l'année (EBITDA − amortissements − intérêts) ?", val:baseImposable, unit:"€", tol:Math.max(20000,Math.abs(baseImposable)*.02),
+     calcul:`${eurX(ebitda)} − ${eurX(capex)} − ${eurX(interets)} = <b>${eurX(baseImposable)}</b>`,
+     cle:"Les intérêts sont déductibles, comme les amortissements : c'est ce qui reste qui est réellement imposé."},
+    {q:"Quel est l'impôt dû sur l'exercice ?", val:impot, unit:"€", tol:Math.max(10000,Math.abs(impot)*.02),
+     calcul:`${eurX(baseImposable)} × 25 % = <b>${eurX(impot)}</b>`,
+     cle:"Le bouclier fiscal de la dette agit ici, directement : plus les intérêts sont élevés, plus l'impôt baisse — jusqu'à un certain point."},
+    {q:"Quel est le FCF disponible pour rembourser la dette (cash sweep) cette année-là ?", val:fcfDispo, unit:"€", tol:Math.max(20000,Math.abs(fcfDispo)*.02),
+     calcul:`${eurX(ebitda)} − ${eurX(capex)} − ${eurX(interets)} − ${eurX(impot)} = <b>${eurX(fcfDispo)}</b>`,
+     cle:"C'est ce chiffre, et lui seul, qui rembourse la dette par anticipation — tant qu'il est positif, le cash sweep fait son travail sans intervention du sponsor."},
+    {q:"Après application intégrale du cash sweep, quelle est la dette restante en fin de première année ?", val:detteApres1An, unit:"€", tol:Math.max(20000,Math.abs(detteApres1An)*.015),
+     calcul:`${eurX(detteInit)} − ${eurX(fcfDispo)} = <b>${eurX(detteApres1An)}</b>`,
+     cle:"Le désendettement d'une seule année — celui qui, cumulé sur toute la détention, alimente le levier « mécanique » de création de valeur vu au palier précédent."},
+    {q:`Si l'EBITDA chutait de ${chocPct} % (choc conjoncturel, intérêts inchangés), quel serait le nouveau ratio de couverture ?`, val:couvertureChoc, unit:"×", tol:.2,
+     calcul:`(${eurX(ebitda)} × ${100-chocPct} %) ÷ ${eurX(interets)} = <b>${couvertureChoc.toFixed(2).replace(".",",")}×</b>`,
+     cle:"La double peine du levier en bas de cycle : l'EBITDA baisse ET le ratio de couverture s'effondre par les deux bouts, souvent bien avant que le cash ne manque réellement."}
+   ]};}},
+
+/* ============ 39 · piste LBO ============ */
+{id:"e39", n:39, piste:"lbo", ic:"🎯", titre:"Sensibilité — le multiple de sortie",
+ sujet:"Comparer l'impact en euros d'un point d'entrée, de sortie, et de croissance manqués",
+ rappel:`Trois hypothèses peuvent se retourner contre un LBO : payer un multiple d'ENTRÉE plus élevé, sortir à un multiple plus BAS que prévu, ou générer moins de CROISSANCE d'EBITDA que prévu. Un écart d'1× sur le multiple d'entrée s'applique à l'EBITDA d'ENTRÉE — le plus petit des deux. Un écart d'1× sur le multiple de SORTIE s'applique à l'EBITDA de SORTIE — plus grand, après plusieurs années de croissance.
+   <br><br>Conséquence directe : à écart de multiple égal, un raté sur le multiple de SORTIE coûte TOUJOURS plus cher qu'un raté à l'entrée. Et c'est la variable la moins contrôlable des trois : on choisit son prix d'entrée, jamais son prix de sortie.`,
+ gen:R=>{
+  const ebitdaEntree=R.ent(15,50)*1000000, multEntree=R.ent(65,85)/10;
+  const levier=R.ent(45,60)/10;
+  const detteEntree=Math.round(ebitdaEntree*levier);
+  const evEntree=ebitdaEntree*multEntree;
+  const equityEntree=evEntree-detteEntree;
+  const croissance=R.ent(20,35)/100;
+  const ebitdaSortie=ebitdaEntree*(1+croissance);
+  const multSortie=multEntree;
+  const desendPct=R.ent(55,75)/100;
+  const detteSortie=detteEntree*(1-desendPct);
+  const equitySortie=ebitdaSortie*multSortie-detteSortie;
+  const profitBase=equitySortie-equityEntree;
+  const deltaProfitEntree=ebitdaEntree;
+  const deltaProfitSortie=ebitdaSortie;
+  const facteur=ebitdaSortie/ebitdaEntree;
+  const croissanceRateePts=10;
+  const deltaProfitCroissance=(croissanceRateePts/100)*ebitdaEntree*multSortie;
+  return {contextes:[`Un comité d'investissement teste la robustesse d'un deal LBO avant de signer.`,
+    `Avant d'arbitrer sur le prix, on chiffre ce que chaque hypothèse manquée coûterait vraiment.`,
+    `Trois risques identifiés sur un dossier : le prix payé, le prix de sortie, la croissance.`,
+    `Le partner demande : « laquelle de ces trois hypothèses nous fait le plus peur ? »`],
+   contexte:`Un comité d'investissement teste la robustesse d'un deal LBO avant de signer.`,
+   donnees:[["EBITDA d'entrée",ebitdaEntree,"€"],["Multiple d'entrée (scénario de base)",multEntree,"×"],
+            ["Levier à l'entrée",levier,"×"],["Croissance d'EBITDA prévue sur la période",croissance*100,"%"],
+            ["Multiple de sortie (scénario de base, égal à l'entrée)",multSortie,"×"],["Dette remboursée sur la période",desendPct*100,"%"]],
+   questions:[
+    {q:"Quel est l'EBITDA de sortie prévu, avec cette croissance ?", val:ebitdaSortie, unit:"€", tol:Math.max(50000,ebitdaSortie*.01),
+     calcul:`${eurX(ebitdaEntree)} × (1 + ${(croissance*100).toFixed(0)} %) = <b>${eurX(ebitdaSortie)}</b>`,
+     cle:"Toujours plus grand que l'EBITDA d'entrée sur une opération réussie — c'est cet écart qui va faire toute la différence entre les deux sensibilités testées plus bas."},
+    {q:"Quel est le profit total du scénario de base (equity sortie − equity entrée) ?", val:profitBase, unit:"€", tol:Math.max(50000,Math.abs(profitBase)*.02),
+     calcul:`${eurX(equitySortie)} − ${eurX(equityEntree)} = <b>${eurX(profitBase)}</b>`,
+     cle:"Le point de référence, avant de tester ce que chaque hypothèse manquée y change."},
+    {q:"Si tu avais payé 1× d'EBITDA de MOINS à l'entrée, tout le reste égal, de combien le profit final augmenterait-il ?",
+     val:deltaProfitEntree, unit:"€", tol:Math.max(30000,deltaProfitEntree*.01),
+     calcul:`1× × EBITDA d'ENTRÉE = 1 × ${eurX(ebitdaEntree)} = <b>${eurX(deltaProfitEntree)}</b>`,
+     cle:"Un euro de multiple d'entrée en moins se traduit, euro pour euro, en equity de plus au moment de signer — l'effet le plus direct et le plus contrôlable des trois."},
+    {q:"Si le multiple de SORTIE finissait 1× plus bas que prévu, tout le reste égal, de combien le profit final baisserait-il ?",
+     val:deltaProfitSortie, unit:"€", tol:Math.max(30000,deltaProfitSortie*.01),
+     calcul:`1× × EBITDA de SORTIE = 1 × ${eurX(ebitdaSortie)} = <b>${eurX(deltaProfitSortie)}</b>`,
+     cle:"Le même écart de multiple, appliqué à un EBITDA plus grand parce qu'il a eu le temps de croître — d'où un impact systématiquement plus lourd qu'à l'entrée."},
+    {q:"De quel facteur l'impact d'un écart de multiple de SORTIE dépasse-t-il l'impact du même écart à l'ENTRÉE ?", val:facteur, unit:"×", tol:.15,
+     calcul:`${eurX(ebitdaSortie)} ÷ ${eurX(ebitdaEntree)} = <b>${facteur.toFixed(2).replace(".",",")}×</b>`,
+     cle:"Exactement 1 plus le taux de croissance de l'EBITDA sur la période — ce n'est pas une coïncidence, c'est la mécanique même de la décomposition du palier précédent."},
+    {q:`Si la croissance d'EBITDA sur la période était finalement ${croissanceRateePts} points plus faible que prévu, de combien le profit final baisserait-il (en valeur absolue) ?`,
+     val:deltaProfitCroissance, unit:"€", tol:Math.max(20000,deltaProfitCroissance*.02),
+     calcul:`${croissanceRateePts} % × ${eurX(ebitdaEntree)} × ${multSortie.toFixed(1).replace(".",",")}× = <b>${eurX(deltaProfitCroissance)}</b>`,
+     cle:"Un troisième risque, chiffré de la même façon que les deux autres — ce qui permet enfin de les COMPARER, plutôt que de les redouter au hasard."}
    ]};}}
 
 ];

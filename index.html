@@ -2555,7 +2555,8 @@ const PISTES={
   prix:{nom:"Le prix",ic:"💰",intro:"L'élasticité, de « à quoi ça sert » jusqu'au prix optimal. Tu l'as vue décider à ta place dans LA BOÎTE — ici tu apprends à la lire, à la mesurer, et à savoir quand elle ment."},
   beta:{nom:"Le bêta",ic:"🧭",intro:"Le socle t'a fait désendetter un bêta déjà donné. Ici tu descends sous la formule : d'où il vient, ce qu'il explique vraiment, ses subtilités de mesure, et le geste du praticien — le bêta bottom-up."},
   wacc:{nom:"Le WACC",ic:"🏦",intro:"Le socle t'a fait calculer un WACC avec des chiffres fournis. Ici, les problèmes qu'un praticien affronte vraiment : la circularité, une dette sans marché coté, la structure cible, le WACC par division, et pourquoi une petite erreur dessus coûte plus cher que partout ailleurs."},
-  multiples:{nom:"Les multiples",ic:"🔍",intro:"Le socle t'a fait calculer le pont VE ↔ titres avec un multiple fourni. Ici, choisir les bons comparables, ne pas confondre boursier et transaction, LTM contre NTM, le vrai pont, et pourquoi un multiple n'est jamais qu'un DCF raccourci."}
+  multiples:{nom:"Les multiples",ic:"🔍",intro:"Le socle t'a fait calculer le pont VE ↔ titres avec un multiple fourni. Ici, choisir les bons comparables, ne pas confondre boursier et transaction, LTM contre NTM, le vrai pont, et pourquoi un multiple n'est jamais qu'un DCF raccourci."},
+  lbo:{nom:"Le LBO",ic:"🎯",intro:"Le Paper LBO (dans Sparring) te fait dérouler le mécanisme à chiffres fixes. Ici, les mêmes gestes — levier, création de valeur, MOIC/TRI, cash sweep, sensibilité — mais randomisés à chaque série."}
 };
 function exoPiste(n){ const p=exoPal(n); return (p&&p.piste)||"socle"; }
 function exoPistes(){ const v=[]; EXOS.forEach(p=>{ const k=p.piste||"socle"; if(v.indexOf(k)<0) v.push(k); }); return v; }
@@ -3061,7 +3062,7 @@ function exosRoom(){
   }).join("");
   const faits=EXOS.filter(p=>exoEtat(p.n).valide).length;
   openOv(ovTop("🧮 Les exos")+`
-    <p class="sub">Je te donne les chiffres, tu calcules. Cinq pistes, chacune montée marche par marche : <b>Le socle</b>, du compte de résultat au bêta de Hamada, <b>Le prix</b> (l'élasticité), <b>Le bêta</b>, <b>Le WACC</b> — circularité, structure cible, WACC par division — et <b>Les multiples</b>, du bon comparable au multiple comme DCF raccourci.</p>
+    <p class="sub">Je te donne les chiffres, tu calcules. Six pistes, chacune montée marche par marche : <b>Le socle</b>, <b>Le prix</b> (l'élasticité), <b>Le bêta</b>, <b>Le WACC</b>, <b>Les multiples</b> — et <b>Le LBO</b>, le levier et sa création de valeur, à chiffres qui changent à chaque série.</p>
     <a class="btn ghost" href="anki-fondamentaux.txt" download="anki-fondamentaux.txt" style="display:block;text-decoration:none;text-align:center;margin-bottom:10px">📥 Le deck Anki des formules (41 cartes — CAF, FCFF, FCFE, WACC, bêta, multiples…)</a>
     <div class="crit" style="margin:10px 0"><b>${faits}/${EXOS.length} paliers validés.</b> ${faits===0?"Commence par le 1 du socle. Même si tu crois le savoir — surtout si tu crois le savoir.":faits<EXOS.length?"Il t'en reste "+(EXOS.length-faits)+".":"Tout est tombé — et c'est maintenant que la reprise compte."}</div>
     ${(()=>{ const dus=exoDus(), pf=exoPointFaible(), nd=exoProchaine();
@@ -3268,7 +3269,7 @@ function vAcad(){
   const cd=cardsDue().length, cm=cardsMastered();
   return `<h1 class="page">Académie</h1><div class="sub">${S.done.lessons.length}/${LESSONS.length} leçons. Du bilan au SPA — le juridique n'est pas en option.</div>
   <div class="mod gold" onclick="exosRoom()" style="border-color:#453a20">
-    <div class="ico">${exoDus().length?"🔁":"🧮"}</div><div class="t"><b>Les exos — les calculs, depuis le début</b><small>${exosFaits()}/${EXOS.length} paliers validés${exoDus().length?` · <b style="color:var(--acc)">${exoDus().length} à reprendre</b>`:""}. Cinq pistes : <b>le socle</b>, <b>le prix</b> (l'élasticité), <b>le bêta</b>, <b>le WACC</b> (circularité, structure cible) et <b>les multiples</b> (comparables, LTM/NTM, le vrai pont). Chaque marche ouvre la suivante.</small></div>
+    <div class="ico">${exoDus().length?"🔁":"🧮"}</div><div class="t"><b>Les exos — les calculs, depuis le début</b><small>${exosFaits()}/${EXOS.length} paliers validés${exoDus().length?` · <b style="color:var(--acc)">${exoDus().length} à reprendre</b>`:""}. Six pistes : <b>le socle</b>, <b>le prix</b>, <b>le bêta</b>, <b>le WACC</b>, <b>les multiples</b> et <b>le LBO</b> (levier, création de valeur, MOIC/TRI, cash sweep). Chaque marche ouvre la suivante.</small></div>
     <div class="pc">${exoDus().length||exosFaits()||"›"}</div>
   </div>
   <div class="mod gold" onclick="chifRoom()" style="border-color:#453a20">
