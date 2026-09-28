@@ -2192,6 +2192,195 @@ const EXOS = [
     {q:"De quel pourcentage le BPA varie-t-il au total ?", val:deltaEpsPct, unit:"%", tol:1,
      calcul:`${epsProforma.toFixed(2).replace(".",",")} € ÷ ${epsA.toFixed(2).replace(".",",")} € − 1 = <b>${deltaEpsPct.toFixed(1).replace(".",",")} %</b>`,
      cle:"Le verdict final, après avoir traité chaque tranche de financement pour ce qu'elle est — jamais en bloc, toujours décomposée."}
+   ]};}},
+
+/* ================================================================
+   PISTE LA CASCADE — ajoutée le 2026-09-28, à la suite d'accrétion/
+   dilution. La leçon de Restructuring (data-academy.js) pose déjà le
+   vocabulaire — priorité absolue, waterfall, fulcrum security, « où
+   casse la valeur » — mais en pur commentaire, sans un seul euro à
+   calculer. Cette piste fait calculer la cascade elle-même.
+   ================================================================ */
+
+/* ============ 45 · piste CASCADE ============ */
+{id:"e45", n:45, piste:"cascade", ic:"👑", titre:"La cascade, en une phrase",
+ sujet:"Priorité absolue : chaque rang servi intégralement avant que le suivant ne touche un euro",
+ rappel:`En restructuration, la valeur disponible se distribue selon un ordre de priorité strict — la <b>règle de priorité absolue</b>. Dette SENIOR d'abord, jusqu'à épuisement. Puis dette SUBORDONNÉE. Enfin l'EQUITY, qui ne touche RIEN tant que toutes les dettes ne sont pas intégralement remboursées.
+   <br><br>Pas de partage : un rang est payé en ENTIER avant que le suivant ne voie le moindre euro. C'est la différence fondamentale avec une répartition proportionnelle.`,
+ gen:R=>{
+  const seniorDue=R.ent(40,90)*1000000;
+  const subDue=R.ent(30,80)*1000000;
+  const veDisponible=seniorDue+Math.round(subDue*R.ent(20,70)/100);
+  const recupSenior=Math.min(veDisponible,seniorDue);
+  const resteApresSenior=veDisponible-recupSenior;
+  const recupSub=Math.min(resteApresSenior,subDue);
+  const tauxSub=recupSub/subDue*100;
+  const recupEquity=Math.max(0,veDisponible-seniorDue-subDue);
+  const manqueEquity=subDue-resteApresSenior;
+  return {contextes:[`Une entreprise en restructuration : sa valeur disponible doit être répartie entre ses créanciers, puis ses actionnaires.`,
+    `Un plan de restructuration se prépare : il faut d'abord savoir qui touche quoi.`,
+    `Le tribunal valide la valeur d'entreprise ; reste à la distribuer dans l'ordre.`,
+    `Avant toute négociation, on pose la cascade telle qu'elle tombe mécaniquement.`],
+   contexte:`Une entreprise en restructuration : sa valeur disponible doit être répartie entre ses créanciers, puis ses actionnaires.`,
+   donnees:[["Dette SENIOR due",seniorDue,"€"],["Dette SUBORDONNÉE due",subDue,"€"],["Valeur d'entreprise disponible à distribuer",veDisponible,"€"]],
+   questions:[
+    {q:"Quel montant la dette SENIOR récupère-t-elle ?", val:recupSenior, unit:"€", tol:Math.max(50000,recupSenior*.01),
+     calcul:`min(${eurX(veDisponible)}, ${eurX(seniorDue)}) = <b>${eurX(recupSenior)}</b>`,
+     cle:"Le senior est intégralement remboursé tant que la valeur disponible le permet — c'est le tout premier étage de la cascade, et il ne partage avec personne."},
+    {q:"Que reste-t-il pour la dette SUBORDONNÉE, une fois le senior intégralement remboursé ?", val:resteApresSenior, unit:"€", tol:Math.max(50000,resteApresSenior*.02),
+     calcul:`${eurX(veDisponible)} − ${eurX(recupSenior)} = <b>${eurX(resteApresSenior)}</b>`,
+     cle:"Ce reliquat, et lui seul, va maintenant descendre à l'étage suivant de la cascade."},
+    {q:"Quel est le taux de recouvrement de la dette subordonnée, en % de ce qui lui est dû ?", val:tauxSub, unit:"%", tol:1.5,
+     calcul:`${eurX(resteApresSenior)} ÷ ${eurX(subDue)} = <b>${tauxSub.toFixed(1).replace(".",",")} %</b>`,
+     cle:"Une tranche peut très bien exister, être juridiquement valide, et pourtant ne récupérer qu'une fraction de ce qui lui est dû — c'est le sort normal d'une dette subordonnée en restructuration."},
+    {q:"Combien les actionnaires (equity) récupèrent-ils ?", val:recupEquity, unit:"€",
+     calcul:`Il ne reste plus rien après le senior et le subordonné : <b>${eurX(recupEquity)}</b>`,
+     cle:"La règle de priorité absolue, dans toute sa rigueur : même si l'entreprise a encore de la valeur, l'equity ne touche rien tant qu'un seul euro de dette reste dû au-dessus d'elle."},
+    {q:"De quel montant la valeur d'entreprise disponible devrait-elle augmenter pour que la dette subordonnée soit remboursée à 100 % ?", val:manqueEquity, unit:"€", tol:Math.max(50000,manqueEquity*.02),
+     calcul:`${eurX(subDue)} − ${eurX(resteApresSenior)} = <b>${eurX(manqueEquity)}</b>`,
+     cle:"C'est le manque à combler avant que l'étage suivant — l'equity — puisse même espérer voir la couleur du premier euro."}
+   ]};}},
+
+/* ============ 46 · piste CASCADE ============ */
+{id:"e46", n:46, piste:"cascade", ic:"👑", titre:"Le recouvrement, classe par classe",
+ sujet:"Taux de recouvrement par tranche, et le partage pari passu au sein d'une même classe",
+ rappel:`Chaque classe reçoit un <b>taux de recouvrement</b> propre — montant récupéré ÷ montant dû — et ce taux ne se partage JAMAIS entre classes de rang différent. En revanche, DANS une même classe, si elle n'est que partiellement remboursée, chaque créancier récupère au prorata de sa créance : c'est la règle du <b>pari passu</b>.`,
+ gen:R=>{
+  const seniorSecDue=R.ent(30,70)*1000000;
+  const seniorUnsecDue=R.ent(40,100)*1000000;
+  const partA=R.ent(30,70)/100;
+  const lenderA=Math.round(seniorUnsecDue*partA), lenderB=seniorUnsecDue-lenderA;
+  const subDue=R.ent(30,80)*1000000;
+  const veDisponible=seniorSecDue+Math.round(seniorUnsecDue*R.ent(30,70)/100);
+  const recupSec=Math.min(veDisponible,seniorSecDue);
+  const resteApresSec=veDisponible-recupSec;
+  const recupUnsecTotal=Math.min(resteApresSec,seniorUnsecDue);
+  const tauxUnsec=recupUnsecTotal/seniorUnsecDue;
+  const recupLenderA=Math.round(lenderA*tauxUnsec);
+  const recupLenderB=Math.round(lenderB*tauxUnsec);
+  return {contextes:[`Une classe de dette senior non sécurisée, partagée entre deux prêteurs de tailles différentes.`,
+    `Deux créanciers du même rang : leur sort dépend d'un seul taux de recouvrement commun.`,
+    `Avant de répartir entre prêteurs, il faut d'abord trouver le taux de leur classe.`,
+    `Le plan de restructuration doit traiter chaque prêteur d'une même classe à l'identique, au prorata.`],
+   contexte:`Une classe de dette senior non sécurisée, partagée entre deux prêteurs de tailles différentes.`,
+   donnees:[["Dette senior SÉCURISÉE due",seniorSecDue,"€"],["Dette senior NON SÉCURISÉE due (classe entière)",seniorUnsecDue,"€"],
+            ["Part du prêteur A dans cette classe",lenderA,"€"],["Part du prêteur B dans cette classe",lenderB,"€"],
+            ["Dette SUBORDONNÉE due",subDue,"€"],["Valeur d'entreprise disponible",veDisponible,"€"]],
+   questions:[
+    {q:"Quel montant la dette senior SÉCURISÉE récupère-t-elle ?", val:recupSec, unit:"€", tol:Math.max(50000,recupSec*.01),
+     calcul:`min(${eurX(veDisponible)}, ${eurX(seniorSecDue)}) = <b>${eurX(recupSec)}</b>`,
+     cle:"Le rang le plus protégé de la cascade — remboursé intégralement en premier, sans exception."},
+    {q:"Que reste-t-il pour la classe senior NON sécurisée ?", val:resteApresSec, unit:"€", tol:Math.max(50000,resteApresSec*.02),
+     calcul:`${eurX(veDisponible)} − ${eurX(recupSec)} = <b>${eurX(resteApresSec)}</b>`,
+     cle:"Ce montant est celui de TOUTE la classe — il va maintenant se répartir entre les prêteurs qui la composent."},
+    {q:"Quel est le taux de recouvrement de la classe senior non sécurisée, en % ?", val:tauxUnsec*100, unit:"%", tol:1.5,
+     calcul:`${eurX(resteApresSec)} ÷ ${eurX(seniorUnsecDue)} = <b>${(tauxUnsec*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"Un seul taux pour toute la classe — c'est ce taux, et lui seul, qui s'applique ensuite à chaque prêteur qui la compose, quelle que soit la taille de sa créance."},
+    {q:"Le prêteur A détient une part de cette classe. Combien récupère-t-il, au prorata (pari passu) ?", val:recupLenderA, unit:"€", tol:Math.max(30000,recupLenderA*.02),
+     calcul:`${eurX(lenderA)} × ${(tauxUnsec*100).toFixed(1).replace(".",",")} % = <b>${eurX(recupLenderA)}</b>`,
+     cle:"Le prorata s'applique à SA part de la créance, pas au total de la classe — c'est ça, le pari passu : une règle de proportion, pas d'égalité en euros."},
+    {q:"Et le prêteur B, sur sa propre part ?", val:recupLenderB, unit:"€", tol:Math.max(30000,recupLenderB*.02),
+     calcul:`${eurX(lenderB)} × ${(tauxUnsec*100).toFixed(1).replace(".",",")} % = <b>${eurX(recupLenderB)}</b>`,
+     cle:"Le même taux exactement que le prêteur A — c'est la définition même d'être dans la même classe : personne n'y est mieux traité qu'un autre, au prorata près."},
+    {q:"Combien la tranche SUBORDONNÉE récupère-t-elle, dans ce scénario ?", val:0, unit:"€",
+     calcul:`La classe senior non sécurisée n'a déjà pas été remboursée à 100 % : il ne reste <b>0 €</b> pour les rangs suivants.`,
+     cle:"Dès qu'un rang n'est pas intégralement servi, TOUS les rangs en dessous — subordonnée comme equity — sont mécaniquement à zéro. La cascade ne saute jamais un étage à moitié rempli."}
+   ]};}},
+
+/* ============ 47 · piste CASCADE ============ */
+{id:"e47", n:47, piste:"cascade", ic:"👑", titre:"Sûretés : pourquoi le collatéral change tout",
+ sujet:"Dette sécurisée, solde non couvert, et le retour au rang chirographaire",
+ rappel:`La dette SÉCURISÉE (secured) a un droit de premier rang sur un actif SPÉCIFIQUE — son collatéral. Elle se rembourse D'ABORD sur la vente de CET actif, indépendamment du reste de la cascade.
+   <br><br>Si le collatéral ne suffit PAS à couvrir toute la dette sécurisée, le SOLDE NON COUVERT perd son rang privilégié : il redevient une créance NON SÉCURISÉE ordinaire (chirographaire), qui rejoint la cascade générale au même rang que les autres créanciers ordinaires — ni plus, ni moins bien traité qu'eux.`,
+ gen:R=>{
+  const collateral=R.ent(20,60)*1000000;
+  const detteSecurisee=collateral+R.ent(5,40)*1000000;
+  const recupCollateral=Math.min(collateral,detteSecurisee);
+  const soldeNonCouvert=detteSecurisee-recupCollateral;
+  const veGenerale=R.ent(20,80)*1000000;
+  const detteOrdinaire=R.ent(20,60)*1000000;
+  const totalChiro=soldeNonCouvert+detteOrdinaire;
+  const recupChiroTotal=Math.min(veGenerale,totalChiro);
+  const tauxChiro=recupChiroTotal/totalChiro;
+  const recupSoldeNonCouvert=Math.round(soldeNonCouvert*tauxChiro);
+  const recupOrdinaire=Math.round(detteOrdinaire*tauxChiro);
+  const recupTotalSecurise=recupCollateral+recupSoldeNonCouvert;
+  return {contextes:[`Une dette sécurisée par un actif dont la valeur de revente ne couvre pas toute la créance.`,
+    `Un prêteur sécurisé, mais sur un collatéral qui s'est déprécié depuis l'octroi du prêt.`,
+    `Avant de traiter la cascade générale, il faut d'abord régler le sort du collatéral.`,
+    `Le liquidateur vend l'actif gagé séparément du reste de l'entreprise.`],
+   contexte:`Une dette sécurisée par un actif dont la valeur de revente ne couvre pas toute la créance.`,
+   donnees:[["Valeur de revente du collatéral",collateral,"€"],["Dette sécurisée par ce collatéral",detteSecurisee,"€"],
+            ["Valeur d'entreprise générale disponible (hors collatéral)",veGenerale,"€"],
+            ["Dette non sécurisée ordinaire (chirographaire)",detteOrdinaire,"€"]],
+   questions:[
+    {q:"Combien la dette sécurisée récupère-t-elle sur la vente de son collatéral ?", val:recupCollateral, unit:"€", tol:Math.max(30000,recupCollateral*.01),
+     calcul:`min(${eurX(collateral)}, ${eurX(detteSecurisee)}) = <b>${eurX(recupCollateral)}</b>`,
+     cle:"Le collatéral ne couvre pas toute la dette : le prêteur récupère au maximum sa valeur de revente, jamais plus."},
+    {q:"Quel solde de cette dette reste NON couvert par le collatéral ?", val:soldeNonCouvert, unit:"€", tol:Math.max(20000,soldeNonCouvert*.02),
+     calcul:`${eurX(detteSecurisee)} − ${eurX(recupCollateral)} = <b>${eurX(soldeNonCouvert)}</b>`,
+     cle:"Ce solde perd son statut privilégié : il ne rejoint PAS un rang senior général, il retombe au rang chirographaire ordinaire."},
+    {q:"Ce solde rejoint la cascade générale, au même rang que la dette non sécurisée ordinaire. Quel est le total des créances à ce rang ?", val:totalChiro, unit:"€", tol:Math.max(30000,totalChiro*.02),
+     calcul:`${eurX(soldeNonCouvert)} + ${eurX(detteOrdinaire)} = <b>${eurX(totalChiro)}</b>`,
+     cle:"Le solde non couvert et la dette ordinaire sont maintenant, exactement, dans la même classe — un seul et même taux de recouvrement va s'appliquer aux deux."},
+    {q:"Avec la valeur d'entreprise générale disponible, quel est le taux de recouvrement de ce rang, en % ?", val:tauxChiro*100, unit:"%", tol:2,
+     calcul:`${eurX(veGenerale)} ÷ ${eurX(totalChiro)} = <b>${(tauxChiro*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"Un prêteur « sécurisé » sur un collatéral insuffisant se retrouve, pour la partie non couverte, à espérer exactement le même taux qu'un créancier ordinaire — la sûreté ne le protège que jusqu'à la valeur de l'actif gagé."},
+    {q:"Au total (collatéral + part chirographaire), combien le prêteur sécurisé récupère-t-il ?", val:recupTotalSecurise, unit:"€", tol:Math.max(30000,recupTotalSecurise*.015),
+     calcul:`${eurX(recupCollateral)} + ${eurX(recupSoldeNonCouvert)} = <b>${eurX(recupTotalSecurise)}</b>`,
+     cle:"Le vrai recouvrement total d'une dette « sécurisée » n'est presque jamais 100 %, sauf collatéral surdimensionné — il faut toujours additionner les deux étages."},
+    {q:"Et la dette non sécurisée ordinaire, combien récupère-t-elle ?", val:recupOrdinaire, unit:"€", tol:Math.max(20000,recupOrdinaire*.02),
+     calcul:`${eurX(detteOrdinaire)} × ${(tauxChiro*100).toFixed(1).replace(".",",")} % = <b>${eurX(recupOrdinaire)}</b>`,
+     cle:"Exactement le même taux que le solde non couvert du prêteur « sécurisé » — au rang chirographaire, l'étiquette d'origine du prêt ne compte plus, seul le rang compte."}
+   ]};}},
+
+/* ============ 48 · piste CASCADE ============ */
+{id:"e48", n:48, piste:"cascade", ic:"👑", titre:"Le fulcrum — où la valeur casse",
+ sujet:"La tranche fulcrum : la plus senior qui n'est pas remboursée intégralement",
+ rappel:`La <b>tranche fulcrum</b> (« où casse la valeur ») est la tranche la PLUS SENIOR qui n'est PAS remboursée intégralement. C'est elle qui absorbe la perte résiduelle — et c'est elle qui, en restructuration, devient généralement la nouvelle propriétaire de l'entreprise, par conversion de sa créance en capital.
+   <br><br>Trouver le fulcrum : on descend la cascade rang par rang, on cumule les créances, et on s'arrête au premier rang où le cumul dépasse la valeur d'entreprise disponible.`,
+ gen:R=>{
+  const seniorSecDue=R.ent(20,50)*1000000;
+  const seniorUnsecDue=R.ent(30,70)*1000000;
+  const subDue=R.ent(20,60)*1000000;
+  const cumulUnsec=seniorSecDue+seniorUnsecDue;
+  const zoneUnsec=R.ent(0,1)===0;
+  const veDisponible=zoneUnsec
+    ? seniorSecDue+Math.round(seniorUnsecDue*R.ent(20,80)/100)
+    : cumulUnsec+Math.round(subDue*R.ent(20,80)/100);
+  const resteApresSec=veDisponible-seniorSecDue;
+  const recupUnsecTotal=Math.min(resteApresSec,seniorUnsecDue);
+  const tauxUnsec=recupUnsecTotal/seniorUnsecDue*100;
+  const resteApresUnsec=Math.max(0,resteApresSec-seniorUnsecDue);
+  const recupSubTotal=Math.min(resteApresUnsec,subDue);
+  const tauxSub=subDue>0?recupSubTotal/subDue*100:0;
+  const manquePourUnsec100=seniorUnsecDue-recupUnsecTotal;
+  return {contextes:[`Trois rangs de dette au-dessus de l'equity : sécurisée, non sécurisée, subordonnée.`,
+    `Le comité de restructuration cherche la tranche fulcrum avant toute négociation.`,
+    `Où la valeur casse-t-elle dans cette structure de capital ?`,
+    `Avant de parler de qui prend le contrôle, il faut localiser le fulcrum.`],
+   contexte:`Trois rangs de dette au-dessus de l'equity : sécurisée, non sécurisée, subordonnée.`,
+   donnees:[["Dette senior SÉCURISÉE due",seniorSecDue,"€"],["Dette senior NON SÉCURISÉE due",seniorUnsecDue,"€"],
+            ["Dette SUBORDONNÉE due",subDue,"€"],["Valeur d'entreprise disponible",veDisponible,"€"]],
+   questions:[
+    {q:"Quel est le cumul des créances senior sécurisées + senior non sécurisées ?", val:cumulUnsec, unit:"€", tol:Math.max(30000,cumulUnsec*.01),
+     calcul:`${eurX(seniorSecDue)} + ${eurX(seniorUnsecDue)} = <b>${eurX(cumulUnsec)}</b>`,
+     cle:"Le repère à comparer directement à la valeur d'entreprise disponible pour savoir si la casse se situe avant ou après ce rang."},
+    {q:"Que reste-t-il pour la tranche senior non sécurisée après le rang sécurisé ?", val:resteApresSec, unit:"€", tol:Math.max(30000,resteApresSec*.02),
+     calcul:`${eurX(veDisponible)} − ${eurX(seniorSecDue)} = <b>${eurX(resteApresSec)}</b>`,
+     cle:"Le sécurisé étant toujours couvert en premier, c'est ce reliquat qui décide du sort de tous les rangs suivants."},
+    {q:"Quel est le taux de recouvrement de la tranche senior NON sécurisée, en % ?", val:tauxUnsec, unit:"%", tol:2,
+     calcul:`${eurX(recupUnsecTotal)} ÷ ${eurX(seniorUnsecDue)} = <b>${tauxUnsec.toFixed(1).replace(".",",")} %</b>`,
+     cle:tauxUnsec<100?"En dessous de 100 % : c'est ELLE, la tranche fulcrum. Elle absorbe la casse, et c'est elle qui prendra le contrôle de l'entreprise restructurée par conversion de sa créance en capital.":"À 100 %, cette tranche est intégralement couverte — le fulcrum se trouve nécessairement plus bas dans la cascade."},
+    {q:"Combien la tranche SUBORDONNÉE récupère-t-elle au total ?", val:recupSubTotal, unit:"€",
+     calcul:tauxUnsec<100?`Le rang au-dessus n'est déjà pas couvert à 100 % : il ne reste <b>${eurX(recupSubTotal)}</b> pour la subordonnée.`:`${eurX(resteApresUnsec)} disponibles, dette due ${eurX(subDue)} : <b>${eurX(recupSubTotal)}</b>`,
+     cle:"Quand le fulcrum se situe plus haut dans la cascade, tout ce qui est en dessous — ici la subordonnée — est mécaniquement à zéro."},
+    {q:"Quel est le taux de recouvrement de la tranche subordonnée, en % ?", val:tauxSub, unit:"%", tol:2,
+     calcul:`${eurX(recupSubTotal)} ÷ ${eurX(subDue)} = <b>${tauxSub.toFixed(1).replace(".",",")} %</b>`,
+     cle:"Un second taux, presque toujours plus bas que celui du rang au-dessus — jamais plus haut : c'est la définition même de l'ordre de priorité."},
+    {q:"De quel montant la valeur d'entreprise disponible devrait-elle augmenter pour que la tranche senior non sécurisée soit remboursée à 100 % ?", val:manquePourUnsec100, unit:"€",
+     calcul:`${eurX(seniorUnsecDue)} − ${eurX(recupUnsecTotal)} = <b>${eurX(manquePourUnsec100)}</b>`,
+     cle:"C'est exactement ce montant qui sépare aujourd'hui la position de fulcrum de la tranche senior non sécurisée — au-delà, le fulcrum glisserait vers le rang suivant, la subordonnée."}
    ]};}}
 
 ];
