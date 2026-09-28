@@ -1938,6 +1938,260 @@ const EXOS = [
      val:deltaProfitCroissance, unit:"€", tol:Math.max(20000,deltaProfitCroissance*.02),
      calcul:`${croissanceRateePts} % × ${eurX(ebitdaEntree)} × ${multSortie.toFixed(1).replace(".",",")}× = <b>${eurX(deltaProfitCroissance)}</b>`,
      cle:"Un troisième risque, chiffré de la même façon que les deux autres — ce qui permet enfin de les COMPARER, plutôt que de les redouter au hasard."}
+   ]};}},
+
+/* ================================================================
+   PISTE ACCRÉTION / DILUTION — ajoutée le 2026-09-28, à la suite du
+   LBO. Le terme est dans le Lexique (« Relutif si P/E acquéreur >
+   P/E payé ») et dans les deals réels, mais nulle part ailleurs
+   l'app ne le fait vraiment CALCULER. Le mécanisme central d'une
+   acquisition — est-ce que ça enrichit ou dilue l'actionnaire de
+   l'acquéreur ? — mérite sa propre piste, comme le reste.
+   ================================================================ */
+
+/* ============ 40 · piste ACCRÉTION ============ */
+{id:"e40", n:40, piste:"accretion", ic:"📖", titre:"Le mécanisme, en une phrase",
+ sujet:"BPA avant/après, nouvelles actions émises, relutif ou dilutif",
+ rappel:`Une acquisition est <b>RELUTIVE</b> si le bénéfice par action (BPA) de l'acquéreur, une fois l'opération faite, est SUPÉRIEUR à son BPA d'avant. Elle est <b>DILUTIVE</b> dans le cas contraire.
+   <br><br><b>BPA pro forma = Résultat net combiné ÷ Nombre d'actions après l'opération.</b>
+   <br>En tout-actions, payer la cible crée des actions NOUVELLES — elles diluent tout le monde, y compris sur le résultat que la cible elle-même apporte.`,
+ gen:R=>{
+  const niA=R.ent(80,300)*1000000, actionsA=R.ent(40,150)*1000000;
+  const epsA=niA/actionsA;
+  const coursA=R.ent(15,60);
+  const niT=R.ent(15,60)*1000000;
+  const prixPaye=R.ent(300,1200)*1000000;
+  const nouvellesActions=prixPaye/coursA;
+  const niCombine=niA+niT;
+  const actionsApres=actionsA+nouvellesActions;
+  const epsProforma=niCombine/actionsApres;
+  const deltaEpsPct=(epsProforma/epsA-1)*100;
+  return {contextes:[`Un acquéreur coté rachète une cible, payée entièrement en actions nouvelles.`,
+    `Une opération de croissance externe, financée en tout-actions.`,
+    `Le comité veut savoir si ce rachat enrichit ou dilue l'actionnaire actuel.`,
+    `Avant d'annoncer le deal, il faut vérifier son effet sur le BPA.`],
+   contexte:`Un acquéreur coté rachète une cible, payée entièrement en actions nouvelles.`,
+   donnees:[["Résultat net de l'acquéreur",niA,"€"],["Actions en circulation de l'acquéreur",actionsA,""],
+            ["Cours de l'action de l'acquéreur",coursA,"€"],["Résultat net de la cible",niT,"€"],
+            ["Prix payé pour la cible (100 % actions)",prixPaye,"€"]],
+   questions:[
+    {q:"Quel est le BPA de l'acquéreur AVANT l'opération ?", val:epsA, unit:"€", tol:.15,
+     calcul:`${eurX(niA)} ÷ ${actionsA.toLocaleString("fr-FR")} = <b>${epsA.toFixed(2).replace(".",",")} €</b>`,
+     cle:"Le point de référence. Toute la question du palier est de savoir si ce chiffre monte ou descend après l'opération."},
+    {q:"Combien de nouvelles actions faut-il émettre pour payer la cible, au cours actuel ?", val:nouvellesActions, unit:"", tol:Math.max(500000,nouvellesActions*.01),
+     calcul:`${eurX(prixPaye)} ÷ ${coursA} € = <b>${Math.round(nouvellesActions).toLocaleString("fr-FR")}</b> actions`,
+     cle:"C'est le prix qui détermine le nombre d'actions à créer — pas l'inverse. Plus le cours de l'acquéreur est élevé, moins il doit en émettre pour le même prix."},
+    {q:"Quel est le résultat net combiné (avant synergies) ?", val:niCombine, unit:"€", tol:Math.max(500000,niCombine*.01),
+     calcul:`${eurX(niA)} + ${eurX(niT)} = <b>${eurX(niCombine)}</b>`,
+     cle:"On additionne simplement les deux résultats — la question des synergies viendra plus tard dans cette piste."},
+    {q:"Quel est le nombre d'actions total après l'opération ?", val:actionsApres, unit:"", tol:Math.max(500000,actionsApres*.01),
+     calcul:`${actionsA.toLocaleString("fr-FR")} + ${Math.round(nouvellesActions).toLocaleString("fr-FR")} = <b>${Math.round(actionsApres).toLocaleString("fr-FR")}</b>`,
+     cle:"Le dénominateur du BPA pro forma — c'est lui qui grossit à chaque action émise, quel que soit le résultat apporté en face."},
+    {q:"Quel est le BPA PRO FORMA après l'opération ?", val:epsProforma, unit:"€", tol:.15,
+     calcul:`${eurX(niCombine)} ÷ ${Math.round(actionsApres).toLocaleString("fr-FR")} = <b>${epsProforma.toFixed(2).replace(".",",")} €</b>`,
+     cle:"Le chiffre qui tranche tout : à comparer directement au BPA d'avant l'opération."},
+    {q:"De quel pourcentage le BPA varie-t-il ? (négatif si dilutif)", val:deltaEpsPct, unit:"%", tol:1,
+     calcul:`${epsProforma.toFixed(2).replace(".",",")} € ÷ ${epsA.toFixed(2).replace(".",",")} € − 1 = <b>${deltaEpsPct.toFixed(1).replace(".",",")} %</b>`,
+     cle:deltaEpsPct>=0?"Positif : l'opération est RELUTIVE. L'actionnaire de l'acquéreur gagne, en BPA, à ce que le deal se fasse.":"Négatif : l'opération est DILUTIVE. Même si elle a du sens stratégiquement, elle coûte du BPA à l'actionnaire actuel — il faudra le justifier autrement qu'en chiffres."}
+   ]};}},
+
+/* ============ 41 · piste ACCRÉTION ============ */
+{id:"e41", n:41, piste:"accretion", ic:"📖", titre:"La règle du P/E, en tout-actions",
+ sujet:"Relutif si P/E acquéreur > P/E payé — et pourquoi c'est un seuil EXACT",
+ rappel:`En tout-actions, un raccourci de tête : l'opération est <b>relutive si le P/E de l'acquéreur est SUPÉRIEUR au P/E PAYÉ pour la cible</b> (prix payé ÷ résultat net de la cible). Payer moins cher, en multiple, que ce sur quoi le marché te valorise toi-même, c'est mécaniquement relutif.
+   <br><br>Ce n'est pas qu'une intuition : sans synergies, le seuil de neutralité exacte tombe précisément au P/E de l'acquéreur — ni plus, ni moins.`,
+ gen:R=>{
+  const peA=R.ent(120,220)/10;
+  const niT=R.ent(15,60)*1000000;
+  const pePaye=R.ent(80,250)/10;
+  const prixPaye=Math.round(niT*pePaye);
+  const niA=R.ent(80,300)*1000000, actionsA=R.ent(40,150)*1000000;
+  const epsA=niA/actionsA;
+  const coursA=epsA*peA;
+  const nouvellesActions=prixPaye/coursA;
+  const niCombine=niA+niT;
+  const actionsApres=actionsA+nouvellesActions;
+  const epsProforma=niCombine/actionsApres;
+  const deltaEpsPct=(epsProforma/epsA-1)*100;
+  const ecartPE=peA-pePaye;
+  return {contextes:[`Un acquéreur se traite à ${peA.toFixed(1).replace(".",",")}× ses résultats. Il envisage de racheter une cible à ${pePaye.toFixed(1).replace(".",",")}× les siens, en tout-actions.`,
+    `Deux P/E à comparer avant même de sortir la calculatrice complète : ${peA.toFixed(1).replace(".",",")}× contre ${pePaye.toFixed(1).replace(".",",")}×.`,
+    `Le banquier annonce les deux multiples avant le prix : acquéreur ${peA.toFixed(1).replace(".",",")}×, cible payée ${pePaye.toFixed(1).replace(".",",")}×.`,
+    `Avant de modéliser, le comité veut un pronostic de tête : relutif ou dilutif ?`],
+   contexte:`Un acquéreur se traite à ${peA.toFixed(1).replace(".",",")}× ses résultats. Il envisage de racheter une cible à ${pePaye.toFixed(1).replace(".",",")}× les siens, en tout-actions.`,
+   donnees:[["P/E de l'acquéreur",peA,"×"],["P/E payé pour la cible",pePaye,"×"],
+            ["Résultat net de la cible",niT,"€"],["Résultat net de l'acquéreur",niA,"€"],
+            ["Actions en circulation de l'acquéreur",actionsA,""]],
+   questions:[
+    {q:"Quel est le cours de l'action de l'acquéreur (déduit du P/E et du BPA) ?", val:coursA, unit:"€", tol:1,
+     calcul:`BPA = ${eurX(niA)} ÷ ${actionsA.toLocaleString("fr-FR")} = ${epsA.toFixed(2).replace(".",",")} € · × ${peA.toFixed(1).replace(".",",")}× = <b>${coursA.toFixed(2).replace(".",",")} €</b>`,
+     cle:"Le P/E n'est jamais qu'un cours divisé par un BPA — on peut toujours retrouver l'un à partir des deux autres."},
+    {q:"Combien de nouvelles actions faut-il émettre pour payer la cible ?", val:nouvellesActions, unit:"", tol:Math.max(300000,nouvellesActions*.01),
+     calcul:`${eurX(prixPaye)} ÷ ${coursA.toFixed(2).replace(".",",")} € = <b>${Math.round(nouvellesActions).toLocaleString("fr-FR")}</b> actions`,
+     cle:"Le prix payé (P/E payé × résultat de la cible) divisé par le cours de l'acquéreur — toujours la même mécanique qu'au palier précédent."},
+    {q:"Quel est le BPA pro forma après l'opération ?", val:epsProforma, unit:"€", tol:.15,
+     calcul:`(${eurX(niA)} + ${eurX(niT)}) ÷ (${actionsA.toLocaleString("fr-FR")} + ${Math.round(nouvellesActions).toLocaleString("fr-FR")}) = <b>${epsProforma.toFixed(2).replace(".",",")} €</b>`,
+     cle:"Le calcul complet, qu'on va maintenant comparer au raccourci de tête pour vérifier qu'il donne bien le même verdict."},
+    {q:"De quel pourcentage le BPA varie-t-il ?", val:deltaEpsPct, unit:"%", tol:1,
+     calcul:`${epsProforma.toFixed(2).replace(".",",")} € ÷ ${epsA.toFixed(2).replace(".",",")} € − 1 = <b>${deltaEpsPct.toFixed(1).replace(".",",")} %</b>`,
+     cle:deltaEpsPct>=0?"Relutif — et le P/E de l'acquéreur était bien supérieur au P/E payé. Le raccourci de tête a vu juste.":"Dilutif — et le P/E de l'acquéreur était bien inférieur au P/E payé. Le raccourci de tête, encore une fois, a vu juste."},
+    {q:"Quel est l'écart entre le P/E de l'acquéreur et le P/E payé pour la cible, en points ?", val:ecartPE, unit:"×", tol:.3,
+     calcul:`${peA.toFixed(1).replace(".",",")}× − ${pePaye.toFixed(1).replace(".",",")}× = <b>${ecartPE.toFixed(1).replace(".",",")}×</b>`,
+     cle:"Le signe de cet écart suffit, à lui seul, à prédire le signe de la variation de BPA — sans construire tout le pont jusqu'au BPA pro forma."},
+    {q:"Sans aucune synergie, à quel P/E maximum aurait-il fallu payer la cible pour que l'opération reste tout juste NEUTRE sur le BPA ?", val:peA, unit:"×", tol:.15,
+     calcul:`Le seuil de neutralité exacte, sans synergies, tombe très précisément au P/E de l'acquéreur lui-même : <b>${peA.toFixed(1).replace(".",",")}×</b>`,
+     cle:"Ce n'est pas une coïncidence ni une approximation : c'est une égalité algébrique exacte. Le raccourci de tête n'est pas une intuition floue, c'est un seuil démontrable."}
+   ]};}},
+
+/* ============ 42 · piste ACCRÉTION ============ */
+{id:"e42", n:42, piste:"accretion", ic:"📖", titre:"Cash et dette : un autre test",
+ sujet:"Rendement de la cible contre coût du financement — le P/E ne s'applique plus",
+ rappel:`En cash ou en dette, le raccourci du P/E ne marche PLUS — il n'y a pas de nouvelles actions à comparer à un cours. Le bon test : le <b>rendement du résultat de la cible</b> (résultat net cible ÷ prix payé — l'inverse du P/E payé) dépasse-t-il le <b>coût après impôt du financement</b> utilisé ?
+   <br><br>Si le rendement de la cible dépasse le coût de la dette après impôt, l'opération est relutive — chaque euro emprunté rapporte plus qu'il ne coûte.`,
+ gen:R=>{
+  const niT=R.ent(15,60)*1000000;
+  const pePaye=R.ent(80,200)/10;
+  const prixPaye=Math.round(niT*pePaye);
+  const rendementCible=niT/prixPaye*100;
+  const kdPre=R.ent(4,7)/100, tx=.25;
+  const kdApres=kdPre*(1-tx);
+  const interetsApresImpot=Math.round(prixPaye*kdPre*(1-tx));
+  const niA=R.ent(80,300)*1000000, actionsA=R.ent(40,150)*1000000;
+  const epsA=niA/actionsA;
+  const niCombine=niA+niT-interetsApresImpot;
+  const epsProforma=niCombine/actionsA;
+  const deltaEpsPct=(epsProforma/epsA-1)*100;
+  return {contextes:[`Le même acquéreur, mais cette fois il finance intégralement le rachat par une nouvelle dette.`,
+    `Une acquisition payée 100 % en cash, elle-même financée par un emprunt bancaire.`,
+    `Aucune action émise cette fois : tout passe par la dette.`,
+    `Le comité de crédit valide le financement avant même de parler de BPA.`],
+   contexte:`Le même acquéreur, mais cette fois il finance intégralement le rachat par une nouvelle dette. Impôt à 25 %.`,
+   donnees:[["Résultat net de la cible",niT,"€"],["P/E payé pour la cible",pePaye,"×"],
+            ["Taux d'intérêt de la nouvelle dette",kdPre*100,"%"],
+            ["Résultat net de l'acquéreur",niA,"€"],["Actions en circulation de l'acquéreur",actionsA,""]],
+   questions:[
+    {q:"Quel est le rendement du résultat de la cible (résultat net ÷ prix payé), en % ?", val:rendementCible, unit:"%", tol:.5,
+     calcul:`1 ÷ ${pePaye.toFixed(1).replace(".",",")}× = <b>${rendementCible.toFixed(1).replace(".",",")} %</b>`,
+     cle:"L'inverse exact du P/E payé — c'est le rendement immédiat que la cible apporte pour chaque euro dépensé pour l'acheter."},
+    {q:"Quel est le coût de la dette utilisée, APRÈS impôt ?", val:kdApres*100, unit:"%", tol:.3,
+     calcul:`${(kdPre*100).toFixed(1).replace(".",",")} % × (1 − 25 %) = <b>${(kdApres*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"C'est ce chiffre-là qu'il faut comparer au rendement de la cible — jamais le taux facial, toujours le coût après le bouclier fiscal."},
+    {q:"Le rendement de la cible dépasse-t-il le coût de la dette ? De combien de points ?", val:rendementCible-kdApres*100, unit:"%", tol:.5,
+     calcul:`${rendementCible.toFixed(1).replace(".",",")} % − ${(kdApres*100).toFixed(2).replace(".",",")} % = <b>${(rendementCible-kdApres*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"Positif : chaque euro emprunté rapporte plus qu'il ne coûte — l'opération finance, en quelque sorte, sa propre rentabilité."},
+    {q:"Quels sont les intérêts APRÈS impôt sur la nouvelle dette ?", val:interetsApresImpot, unit:"€", tol:Math.max(50000,interetsApresImpot*.02),
+     calcul:`${eurX(prixPaye)} × ${(kdPre*100).toFixed(1).replace(".",",")} % × (1 − 25 %) = <b>${eurX(interetsApresImpot)}</b>`,
+     cle:"La seule charge nouvelle que l'opération impose au résultat combiné — pas de nouvelles actions, mais un coût de la dette à absorber."},
+    {q:"Quel est le résultat net combiné, après ces intérêts ?", val:niCombine, unit:"€", tol:Math.max(200000,niCombine*.015),
+     calcul:`${eurX(niA)} + ${eurX(niT)} − ${eurX(interetsApresImpot)} = <b>${eurX(niCombine)}</b>`,
+     cle:"À la différence du tout-actions, le nombre d'actions ne bouge pas ici — tout l'effet passe par le résultat, pas par le dénominateur."},
+    {q:"Quel est le BPA pro forma (nombre d'actions inchangé) ?", val:epsProforma, unit:"€", tol:.15,
+     calcul:`${eurX(niCombine)} ÷ ${actionsA.toLocaleString("fr-FR")} = <b>${epsProforma.toFixed(2).replace(".",",")} €</b>`,
+     cle:"Sans dilution du dénominateur, un rendement de cible supérieur au coût de la dette se traduit presque toujours en relution — c'est pour ça que le cash/dette est souvent plus relutif que le tout-actions, à prix égal."},
+    {q:"De quel pourcentage le BPA varie-t-il ?", val:deltaEpsPct, unit:"%", tol:1,
+     calcul:`${epsProforma.toFixed(2).replace(".",",")} € ÷ ${epsA.toFixed(2).replace(".",",")} € − 1 = <b>${deltaEpsPct.toFixed(1).replace(".",",")} %</b>`,
+     cle:"Le signe suit exactement celui de l'écart rendement-coût trouvé plus haut — les deux tests, P/E en actions et rendement contre coût en dette, sont le même raisonnement habillé différemment."}
+   ]};}},
+
+/* ============ 43 · piste ACCRÉTION ============ */
+{id:"e43", n:43, piste:"accretion", ic:"📖", titre:"Le seuil de synergies",
+ sujet:"Combien de synergies faut-il pour transformer une dilution en neutralité",
+ rappel:`Les <b>synergies</b> (économies de coûts ou revenus additionnels, toujours comptées APRÈS impôt) s'ajoutent directement au résultat net combiné — elles peuvent transformer une opération dilutive en relutive.
+   <br><br>Pour trouver le seuil : calcule le résultat net qu'il FAUDRAIT pour que le BPA pro forma égale exactement le BPA d'avant (actions après × BPA avant), compare-le au résultat combiné SANS synergies, et l'écart est le montant de synergies après impôt nécessaire.`,
+ gen:R=>{
+  const peA=R.ent(120,180)/10;
+  const pePaye=peA+R.ent(20,60)/10;
+  const niT=R.ent(15,60)*1000000;
+  const prixPaye=Math.round(niT*pePaye);
+  const niA=R.ent(80,300)*1000000, actionsA=R.ent(40,150)*1000000;
+  const epsA=niA/actionsA;
+  const coursA=epsA*peA;
+  const nouvellesActions=prixPaye/coursA;
+  const actionsApres=actionsA+nouvellesActions;
+  const niCombineSansSynergies=niA+niT;
+  const epsSansSynergies=niCombineSansSynergies/actionsApres;
+  const niRequisPourNeutre=epsA*actionsApres;
+  const synergiesApresImpot=niRequisPourNeutre-niCombineSansSynergies;
+  const tx=.25;
+  const synergiesAvantImpot=synergiesApresImpot/(1-tx);
+  return {contextes:[`Une opération en tout-actions, payée plus cher que le P/E de l'acquéreur — dilutive sur le papier.`,
+    `Le banquier promet des synergies : reste à savoir combien il en faut vraiment.`,
+    `Avant de vendre le deal au board comme relutif, il faut chiffrer le seuil à atteindre.`,
+    `L'opération est dilutive sans synergies — la question devient : combien en faut-il ?`],
+   contexte:`Une opération en tout-actions, payée plus cher que le P/E de l'acquéreur — dilutive sur le papier.`,
+   donnees:[["P/E de l'acquéreur",peA,"×"],["P/E payé pour la cible",pePaye,"×"],
+            ["Résultat net de la cible",niT,"€"],["Résultat net de l'acquéreur",niA,"€"],
+            ["Actions en circulation de l'acquéreur",actionsA,""]],
+   questions:[
+    {q:"Sans synergies, quel est le BPA pro forma ?", val:epsSansSynergies, unit:"€", tol:.15,
+     calcul:`(${eurX(niA)} + ${eurX(niT)}) ÷ ${Math.round(actionsApres).toLocaleString("fr-FR")} = <b>${epsSansSynergies.toFixed(2).replace(".",",")} €</b>`,
+     cle:"Le point de départ : une dilution, confirmée par le calcul complet — cohérent avec un P/E payé supérieur au P/E de l'acquéreur."},
+    {q:"De combien ce BPA est-il inférieur au BPA d'avant, en % ?", val:(epsA-epsSansSynergies)/epsA*100, unit:"%", tol:1,
+     calcul:`(${epsA.toFixed(2).replace(".",",")} € − ${epsSansSynergies.toFixed(2).replace(".",",")} €) ÷ ${epsA.toFixed(2).replace(".",",")} € = <b>${((epsA-epsSansSynergies)/epsA*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"C'est ce pourcentage-là, converti en euros de résultat net, que les synergies doivent combler pour que le deal redevienne défendable en BPA."},
+    {q:"Quel résultat net combiné faudrait-il pour que le BPA reste exactement inchangé (seuil de neutralité) ?", val:niRequisPourNeutre, unit:"€", tol:Math.max(500000,niRequisPourNeutre*.015),
+     calcul:`${epsA.toFixed(2).replace(".",",")} € × ${Math.round(actionsApres).toLocaleString("fr-FR")} = <b>${eurX(niRequisPourNeutre)}</b>`,
+     cle:"On part du dénominateur (déjà fixé par le nombre d'actions après l'opération) pour retrouver le numérateur qu'il faudrait."},
+    {q:"Quel montant de synergies APRÈS IMPÔT faut-il donc trouver ?", val:synergiesApresImpot, unit:"€", tol:Math.max(200000,Math.abs(synergiesApresImpot)*.02),
+     calcul:`${eurX(niRequisPourNeutre)} − ${eurX(niCombineSansSynergies)} = <b>${eurX(synergiesApresImpot)}</b>`,
+     cle:"Le seuil, en résultat net — c'est ce chiffre que le management doit être capable de justifier ligne par ligne devant le board pour vendre le deal."},
+    {q:"Et AVANT impôt, à quel montant de synergies cela correspond-il ?", val:synergiesAvantImpot, unit:"€", tol:Math.max(200000,Math.abs(synergiesAvantImpot)*.02),
+     calcul:`${eurX(synergiesApresImpot)} ÷ (1 − 25 %) = <b>${eurX(synergiesAvantImpot)}</b>`,
+     cle:"C'est ce chiffre-là, presque toujours, qu'on annonce en communiqué de presse — plus impressionnant que le montant après impôt, et pas incorrect, juste incomplet si on ne précise pas lequel des deux on cite."}
+   ]};}},
+
+/* ============ 44 · piste ACCRÉTION ============ */
+{id:"e44", n:44, piste:"accretion", ic:"📖", titre:"Le mix de financement",
+ sujet:"Cash, dette et actions combinés — décomposer tranche par tranche",
+ rappel:`La plupart des deals combinent plusieurs sources de financement. Le bon réflexe : décomposer le prix par tranche — ce qui est payé en actions DILUE par le nombre de titres nouveaux, ce qui est payé en cash/dette COÛTE le financement après impôt — et cumuler l'effet sur le BPA de chaque tranche séparément. Jamais en bloc.`,
+ gen:R=>{
+  const prixTotal=R.ent(400,1200)*1000000;
+  const partActions=R.ent(30,70)/100;
+  const niT=R.ent(15,60)*1000000;
+  const niA=R.ent(80,300)*1000000, actionsA=R.ent(40,150)*1000000;
+  const epsA=niA/actionsA;
+  const peA=R.ent(120,180)/10;
+  const coursA=epsA*peA;
+  const montantActions=Math.round(prixTotal*partActions);
+  const montantCash=prixTotal-montantActions;
+  const nouvellesActions=montantActions/coursA;
+  const kdPre=R.ent(4,7)/100, tx=.25;
+  const interetsApresImpot=Math.round(montantCash*kdPre*(1-tx));
+  const niCombine=niA+niT-interetsApresImpot;
+  const actionsApres=actionsA+nouvellesActions;
+  const epsProforma=niCombine/actionsApres;
+  const deltaEpsPct=(epsProforma/epsA-1)*100;
+  return {contextes:[`Un deal financé en partie actions, en partie cash et dette.`,
+    `Le montage final : une tranche actions, une tranche cash/dette.`,
+    `Avant de conclure, on décompose l'effet BPA tranche par tranche.`,
+    `Le CFO arbitre le mix de financement pour limiter la dilution.`],
+   contexte:`Un deal financé en partie actions, en partie cash et dette.`,
+   donnees:[["Prix total de la cible",prixTotal,"€"],["Part financée en actions",partActions*100,"%"],
+            ["Résultat net de la cible",niT,"€"],["Résultat net de l'acquéreur",niA,"€"],
+            ["Actions en circulation de l'acquéreur",actionsA,""],["P/E de l'acquéreur",peA,"×"],
+            ["Taux d'intérêt de la dette",kdPre*100,"%"]],
+   questions:[
+    {q:"Quel montant est financé en actions ?", val:montantActions, unit:"€", tol:Math.max(50000,montantActions*.01),
+     calcul:`${eurX(prixTotal)} × ${(partActions*100).toFixed(0)} % = <b>${eurX(montantActions)}</b>`,
+     cle:"La première tranche à isoler — celle qui va créer des actions nouvelles."},
+    {q:"Combien de nouvelles actions cela représente-t-il, au cours de l'acquéreur ?", val:nouvellesActions, unit:"", tol:Math.max(300000,nouvellesActions*.01),
+     calcul:`BPA × P/E = ${epsA.toFixed(2).replace(".",",")} € × ${peA.toFixed(1).replace(".",",")}× = ${coursA.toFixed(2).replace(".",",")} € · ${eurX(montantActions)} ÷ ${coursA.toFixed(2).replace(".",",")} € = <b>${Math.round(nouvellesActions).toLocaleString("fr-FR")}</b> actions`,
+     cle:"Seule la tranche actions dilue le dénominateur — la tranche cash/dette n'y touche pas."},
+    {q:"Quel montant est financé en cash / dette ?", val:montantCash, unit:"€", tol:Math.max(50000,montantCash*.01),
+     calcul:`${eurX(prixTotal)} − ${eurX(montantActions)} = <b>${eurX(montantCash)}</b>`,
+     cle:"La seconde tranche — celle qui va coûter un financement après impôt, sans toucher au nombre d'actions."},
+    {q:"Quels intérêts après impôt cette tranche génère-t-elle ?", val:interetsApresImpot, unit:"€", tol:Math.max(30000,interetsApresImpot*.02),
+     calcul:`${eurX(montantCash)} × ${(kdPre*100).toFixed(1).replace(".",",")} % × (1 − 25 %) = <b>${eurX(interetsApresImpot)}</b>`,
+     cle:"Le coût de la seule tranche cash/dette — à ne surtout pas appliquer au prix total, seulement à cette tranche-là."},
+    {q:"Quel est le résultat net combiné, une fois ces intérêts déduits ?", val:niCombine, unit:"€", tol:Math.max(300000,niCombine*.015),
+     calcul:`${eurX(niA)} + ${eurX(niT)} − ${eurX(interetsApresImpot)} = <b>${eurX(niCombine)}</b>`,
+     cle:"Un seul résultat combiné, mais construit à partir des DEUX tranches traitées séparément."},
+    {q:"Quel est le BPA pro forma final ?", val:epsProforma, unit:"€", tol:.15,
+     calcul:`${eurX(niCombine)} ÷ (${actionsA.toLocaleString("fr-FR")} + ${Math.round(nouvellesActions).toLocaleString("fr-FR")}) = <b>${epsProforma.toFixed(2).replace(".",",")} €</b>`,
+     cle:"Le résultat des deux tranches combinées — la dilution de la tranche actions et le coût de la tranche dette, dans un seul chiffre final."},
+    {q:"De quel pourcentage le BPA varie-t-il au total ?", val:deltaEpsPct, unit:"%", tol:1,
+     calcul:`${epsProforma.toFixed(2).replace(".",",")} € ÷ ${epsA.toFixed(2).replace(".",",")} € − 1 = <b>${deltaEpsPct.toFixed(1).replace(".",",")} %</b>`,
+     cle:"Le verdict final, après avoir traité chaque tranche de financement pour ce qu'elle est — jamais en bloc, toujours décomposée."}
    ]};}}
 
 ];
