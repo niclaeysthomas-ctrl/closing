@@ -504,7 +504,7 @@ const EXOS = [
     {q:"Combien vaut l'économie d'impôt procurée par les intérêts cette année (le bouclier fiscal) ?", val:int*.25, unit:"€",
      calcul:`${eurX(int)} × 25 % = <b>${eurX(int*.25)}</b>`,
      cle:"C'est cette économie-là qu'on a volontairement exclue du FCFF. Elle est déjà dans le WACC, via le coût de la dette APRÈS impôt : la compter ici aussi serait la compter deux fois. C'est l'erreur classique du DCF d'étudiant."},
-    {q:"En régime de croisière, les investissements égalent les dotations (on renouvelle l'outil, sans l'agrandir). Quel serait alors le FCFF ?",
+    {q:`En régime de croisière, les investissements égalent les dotations, soit ${eurX(dot)} (on renouvelle l'outil, sans l'agrandir). Quel serait alors le FCFF ?`,
      val:nopat-dbfr, unit:"€",
      calcul:`${eurX(nopat)} + ${eurX(dot)} − ${eurX(dbfr)} − ${eurX(dot)} = <b>${eurX(nopat-dbfr)}</b>`,
      cle:"Dotations et investissements s'annulent : c'est le flux « normalisé » d'une entreprise qui ne fait que se maintenir. C'est lui qu'on met dans la valeur terminale — jamais le flux d'une année d'investissement exceptionnel."}
