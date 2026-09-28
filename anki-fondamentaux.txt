@@ -1,0 +1,46 @@
+#separator:tab
+#html:true
+#columns:Recto	Verso	Tags
+#tags column:3
+#notetype:Basic (and reversed card)
+CAF (Capacité d'autofinancement)	CAF = Résultat net + Dotations aux amortissements et provisions. Le cash que l'exercice a généré, avant que le cycle d'exploitation ne s'en mêle.	Closing::Fondamentaux::Cash
+NOPAT	NOPAT = EBIT × (1 − taux d'IS). Le résultat d'exploitation après impôt, comme si l'entreprise n'avait aucune dette.	Closing::Fondamentaux::Cash
+FCFF (Free Cash Flow to Firm)	FCFF = NOPAT + Dotations − Variation du BFR − Investissements. Le flux disponible pour TOUS les apporteurs de capitaux — on l'actualise au WACC.	Closing::Fondamentaux::Cash
+FCFE (Free Cash Flow to Equity)	FCFE = FCFF − Intérêts après impôt − Remboursements + Nouveaux emprunts. Le flux qui revient aux SEULS actionnaires — on l'actualise au coût des fonds propres.	Closing::Fondamentaux::Cash
+BFR (Besoin en fonds de roulement)	BFR = Stocks + Créances clients − Dettes fournisseurs. L'argent immobilisé en permanence dans le cycle d'exploitation.	Closing::Fondamentaux::Cash
+BFR en jours de CA	BFR en jours = BFR ÷ CA mensuel × 30. Traduit le BFR en durée — plus parlant qu'un montant seul.	Closing::Fondamentaux::Cash
+DSO (Days Sales Outstanding)	DSO = Créances clients ÷ CA à crédit mensuel × 30. Le nombre de jours où tu finances tes clients — attention, seul le CA À CRÉDIT compte au dénominateur.	Closing::Fondamentaux::Cash
+DPO (Days Payable Outstanding)	DPO = Dettes fournisseurs ÷ Achats mensuels × 30. Le nombre de jours où tes fournisseurs te financent.	Closing::Fondamentaux::Cash
+Point mort (seuil de rentabilité)	Point mort = Charges fixes ÷ Marge sur coût variable unitaire. Le volume minimum pour ne rien perdre.	Closing::Fondamentaux::Cash
+Marge sur coût variable (unitaire)	Marge unitaire = Prix de vente − Coût variable unitaire. Ce que chaque unité vendue rapporte, avant de couvrir les charges fixes.	Closing::Fondamentaux::Cash
+Capitaux engagés	Capitaux engagés = Immobilisations + BFR. L'argent immobilisé dans l'outil ET dans le cycle d'exploitation.	Closing::Fondamentaux::Rentabilité
+ROCE (Return on Capital Employed)	ROCE = NOPAT ÷ Capitaux engagés. La rentabilité de l'OUTIL, indépendamment de qui l'a financé. ROCE > WACC = création de valeur.	Closing::Fondamentaux::Rentabilité
+ROE (Return on Equity)	ROE = Résultat net ÷ Capitaux propres. La rentabilité pour l'ACTIONNAIRE — elle dépend, elle, de la dette.	Closing::Fondamentaux::Rentabilité
+Décomposition du ROCE	ROCE = Marge opérationnelle × Rotation des capitaux, avec rotation = CA ÷ Capitaux engagés. Deux chemins vers la même rentabilité : vendre cher peu souvent, ou peu cher très souvent.	Closing::Fondamentaux::Rentabilité
+Valeur actuelle (actualisation)	VA = Flux futur ÷ (1 + taux)^n. Un euro futur vaut moins qu'un euro aujourd'hui — d'autant moins que le taux et l'horizon sont grands.	Closing::Fondamentaux::Valo
+VAN (Valeur actuelle nette)	VAN = Somme des flux actualisés − Investissement initial. Positive, le projet crée de la valeur au taux exigé.	Closing::Fondamentaux::Valo
+Rente perpétuelle	Valeur = Flux ÷ Taux. Avec une croissance g : Valeur = Flux ÷ (Taux − g). Le raccourci qui sert tous les jours en valorisation.	Closing::Fondamentaux::Valo
+Valeur terminale (Gordon Growth)	VT = FCF × (1+g) ÷ (WACC − g). La valeur de tout ce qui vient après l'horizon explicite d'un DCF — souvent 60 à 80 % du total.	Closing::Fondamentaux::Valo
+Coût de la dette après impôt	Kd après impôt = Taux d'intérêt × (1 − taux d'IS). Les intérêts sont déductibles : la dette coûte réellement moins que son taux affiché.	Closing::Fondamentaux::Valo
+WACC (coût moyen pondéré du capital)	WACC = Ke × (CP/V) + Kd après impôt × (D/V), avec V = CP + D en valeurs de MARCHÉ. Le taux plancher que tout projet doit dépasser pour créer de la valeur.	Closing::Fondamentaux::Valo
+Structure cible (WACC)	Pondérer sur une structure CIBLE (secteur, ou objectif de long terme) plutôt que sur la structure du jour, souvent transitoire — et sur laquelle le WACC se base pour vingt ans de flux.	Closing::Fondamentaux::Valo
+Notation synthétique (coût de la dette sans marché)	ICR = EBIT ÷ Intérêts financiers → spread de défaut (table) → Kd avant impôt = taux sans risque + spread. Reconstitue un coût de la dette sans obligation cotée à lire.	Closing::Fondamentaux::Valo
+MEDAF / CAPM	Ke = Taux sans risque + β × Prime de risque du marché. Le rendement qu'exige un actionnaire pour le risque SYSTÉMATIQUE qu'il porte.	Closing::Fondamentaux::Risque
+Bêta par régression	β = Cov(R action, R marché) ÷ Var(R marché) = ρ × (σ action ÷ σ marché). La pente d'une droite de régression — pas un chiffre qui tombe du ciel.	Closing::Fondamentaux::Risque
+R² (coefficient de détermination)	R² = ρ². La part du risque d'une action expliquée par le marché (systématique). Le reste, 1 − R², est spécifique — la diversification l'élimine, le MEDAF ne le rémunère pas.	Closing::Fondamentaux::Risque
+Ajustement de Blume	β ajusté = (2/3) × β brut + (1/3) × 1. Les bêtas mesurés reviennent vers 1 dans le temps — la plupart des terminaux l'appliquent par défaut.	Closing::Fondamentaux::Risque
+Bêta désendetté → réendetté (Hamada)	β levered = β unlevered × [1 + (1 − IS) × D/CP]. Pour comparer deux entreprises d'endettements différents : on désendette, puis on réendette à la structure voulue.	Closing::Fondamentaux::Risque
+Bêta bottom-up	Moyenne des bêtas désendettés de plusieurs comparables purs, puis réendettée à la structure de la cible. La bonne pratique quand la cible n'a pas de bêta de régression fiable.	Closing::Fondamentaux::Risque
+Gearing (levier financier)	Gearing = Dette nette ÷ Capitaux propres. Plus il est élevé, plus le risque financier — donc le bêta et le coût des fonds propres — grimpe.	Closing::Fondamentaux::Risque
+Dette nette / EBITDA	Dette nette ÷ EBITDA. Le covenant le plus courant : le nombre d'années d'EBITDA qu'il faudrait pour rembourser toute la dette.	Closing::Fondamentaux::Risque
+Valeur d'entreprise (par un multiple)	VE = Multiple (VE/EBITDA) × EBITDA. La valeur de l'outil économique, indépendamment de qui l'a financé.	Closing::Fondamentaux::Multiples
+Capitaux propres (pont simplifié)	Capitaux propres = VE − Dette nette. Ce que tu paies réellement aux actionnaires — le pont complet retire aussi minoritaires et provisions sous-financées.	Closing::Fondamentaux::Multiples
+PER (Price Earnings Ratio)	PER = Capitalisation ÷ Résultat net. Porte sur le résultat NET, donc après intérêts : contrairement au VE/EBITDA, il dépend de la structure financière.	Closing::Fondamentaux::Multiples
+Prime de contrôle	Multiple de transaction ≈ Multiple boursier × (1 + prime de contrôle, ~20-40 %). Le surprix payé pour le droit de décider, absent d'un simple achat minoritaire en bourse.	Closing::Fondamentaux::Multiples
+Multiple LTM vs NTM	LTM : EBITDA des 12 derniers mois (réalisé). NTM : EBITDA des 12 prochains mois (prévu). Même prix, deux multiples différents — à préciser toujours.	Closing::Fondamentaux::Multiples
+Multiple comme DCF raccourci	VE/EBITDA ≈ (1 + g) ÷ (WACC − g). Un multiple élevé n'est pas cher : il reflète une forte croissance ou un risque faible — jamais l'un sans l'autre.	Closing::Fondamentaux::Multiples
+Élasticité-prix	e = (%Δ Volume) ÷ (%Δ Prix). Presque toujours négative. |e| > 1 : élastique. |e| < 1 : inélastique.	Closing::Fondamentaux::Prix
+Élasticité d'arc (point milieu)	e = [(Q2−Q1)/moyenne(Q)] ÷ [(P2−P1)/moyenne(P)]. Donne le même résultat dans les deux sens de lecture — contrairement à la méthode naïve.	Closing::Fondamentaux::Prix
+Volume de compensation d'une remise	Volume nécessaire (%) = r ÷ (m − r), avec r la remise et m le taux de marge initial. Le volume qu'il FAUT gagner pour qu'une remise ne coûte rien à la marge.	Closing::Fondamentaux::Prix
+Règle de Lerner (marge optimale)	(P − c) ÷ P = 1 ÷ |e|. Le taux de marge optimal est l'inverse de l'élasticité — valable seulement si |e| > 1.	Closing::Fondamentaux::Prix
+Prix optimal	P* = c × |e| ÷ (|e| − 1). Le prix qui maximise le profit, à coût variable et élasticité donnés.	Closing::Fondamentaux::Prix

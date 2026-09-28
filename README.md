@@ -17,6 +17,7 @@ Ouvrir `index.html` dans un navigateur, ou servir le dossier (`python3 -m http.s
 | `data-drills.js` | 8 cascades comptables, 6 paper LBO, 16 missions terrain, 24 questions d'entretien en anglais |
 | `data-lexique.js` | ~90 termes FR/EN du deal-maker |
 | `anki-closing.txt` | Deck Anki de 178 cartes (lexique, multiples sectoriels, IPO, LBO, vérités du métier) |
+| `anki-fondamentaux.txt` | Deck Anki de 41 cartes — les formules seules (CAF, FCFF, FCFE, WACC, bêta, multiples, élasticité), téléchargeable depuis Les exos |
 | `sw.js`, `manifest.webmanifest` | Hors-ligne + installation PWA |
 
 ## Mécaniques

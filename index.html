@@ -3062,6 +3062,7 @@ function exosRoom(){
   const faits=EXOS.filter(p=>exoEtat(p.n).valide).length;
   openOv(ovTop("🧮 Les exos")+`
     <p class="sub">Je te donne les chiffres, tu calcules. Cinq pistes, chacune montée marche par marche : <b>Le socle</b>, du compte de résultat au bêta de Hamada, <b>Le prix</b> (l'élasticité), <b>Le bêta</b>, <b>Le WACC</b> — circularité, structure cible, WACC par division — et <b>Les multiples</b>, du bon comparable au multiple comme DCF raccourci.</p>
+    <a class="btn ghost" href="anki-fondamentaux.txt" download="anki-fondamentaux.txt" style="display:block;text-decoration:none;text-align:center;margin-bottom:10px">📥 Le deck Anki des formules (41 cartes — CAF, FCFF, FCFE, WACC, bêta, multiples…)</a>
     <div class="crit" style="margin:10px 0"><b>${faits}/${EXOS.length} paliers validés.</b> ${faits===0?"Commence par le 1 du socle. Même si tu crois le savoir — surtout si tu crois le savoir.":faits<EXOS.length?"Il t'en reste "+(EXOS.length-faits)+".":"Tout est tombé — et c'est maintenant que la reprise compte."}</div>
     ${(()=>{ const dus=exoDus(), pf=exoPointFaible(), nd=exoProchaine();
       let h='';
