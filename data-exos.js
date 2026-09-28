@@ -919,6 +919,291 @@ const EXOS = [
      val:1.25, unit:"", tol:.06,
      calcul:`m = 1 ÷ |e| donc |e| = 1 ÷ 80 % = <b>1,25</b>`,
      cle:"Les marges très élevées ne signalent pas la cupidité mais une demande peu sensible au prix : marque forte, brevet, coût de changement, ou absence d'alternative. Toute la stratégie consiste à faire baisser son propre |e|."}
+   ]};}},
+
+/* ================================================================
+   PISTE BÊTA — ajoutée le 2026-09-28, sur « l'élasticité n'est pas
+   le seul fondamental, fais le bêta sur la même méthode : à quoi ça
+   sert (niveau 1), subtilités, comment on le mesure, bons trucs ».
+
+   Le palier 12 (dans LE SOCLE) enseignait déjà Hamada — désendetter,
+   réendetter, en repartant d'un bêta DÉJÀ DONNÉ. Cette piste ne le
+   répète pas : elle descend EN DESSOUS, exactement comme la piste
+   PRIX descend sous l'élasticité déjà utilisée dans LA BOÎTE. D'où
+   vient un bêta (la régression), ce qu'il explique vraiment (R²,
+   risque systématique contre spécifique), les choix qui changent le
+   résultat (fenêtre, fréquence, ajustement de Blume), le geste du
+   praticien (bêta bottom-up, moyenne de comparables — Hamada refait
+   surface, mais en le CONSTRUISANT au lieu de le recevoir), et enfin
+   la sensibilité : pourquoi une erreur de bêta coûte cher en DCF.
+   ================================================================ */
+
+/* ============ 19 · piste BÊTA ============ */
+{id:"e19", n:19, piste:"beta", ic:"🧭", titre:"À quoi sert un bêta",
+ sujet:"MEDAF en une ligne, lire un bêta, rendement attendu",
+ rappel:`Le bêta répond à une seule question : <b>si le marché bouge de 1 %, de combien mon action bouge-t-elle, en moyenne ?</b>
+   <br><br><b>MEDAF (CAPM) : rendement attendu = taux sans risque + β × prime de risque du marché.</b>
+   <br>β = 1 : l'action suit le marché au point près. β = 1,5 : elle amplifie de moitié, dans les deux sens. β = 0,5 : elle n'en fait que la moitié. β négatif (rare) : elle bouge à contre-courant du marché.
+   <br><br>Ne confonds pas le bêta avec la VOLATILITÉ totale d'une action : le bêta ne mesure QUE la part de ses mouvements qui suit le marché. Le reste — ce qui lui est propre — c'est le sujet du palier suivant.`,
+ gen:R=>{
+  const rf=R.ent(2,4)/100, prm=R.ent(5,8)/100;
+  const beta=R.ent(40,220)/100, betaB=R.ent(40,220)/100;
+  const ke=rf+beta*prm, rm=rf+prm;
+  const mv1=R.ent(3,12), mv2=R.ent(3,12);
+  const target=R.ent(8,16)/100;
+  return {contextes:[`Une action a un bêta de ${beta.toFixed(2).replace(".",",")}.`,
+    `Tu regardes la fiche d'une valeur : bêta ${beta.toFixed(2).replace(".",",")}.`,
+    `Un gérant te donne le bêta d'une ligne de portefeuille : ${beta.toFixed(2).replace(".",",")}.`,
+    `Sur ta feuille de valorisation, une seule donnée de risque pour l'instant : bêta = ${beta.toFixed(2).replace(".",",")}.`],
+   contexte:`Une action a un bêta de ${beta.toFixed(2).replace(".",",")}.`,
+   donnees:[["Taux sans risque",rf*100,"%"],["Prime de risque du marché",prm*100,"%"],
+            ["Bêta de l'action",beta,""],["Bêta d'une seconde action, à comparer",betaB,""]],
+   questions:[
+    {q:"Quel est le rendement attendu de l'action selon le MEDAF ?", val:ke*100, unit:"%", tol:.3,
+     calcul:`${(rf*100).toFixed(1).replace(".",",")} % + ${beta.toFixed(2).replace(".",",")} × ${(prm*100).toFixed(1).replace(".",",")} % = <b>${(ke*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"Le MEDAF ne dit rien d'autre : un taux sans risque, plus une prime proportionnelle au bêta. Toute la mécanique du coût des fonds propres tient dans ces trois chiffres."},
+    {q:"Quel est le rendement attendu du marché lui-même (β = 1) ?", val:rm*100, unit:"%", tol:.3,
+     calcul:`${(rf*100).toFixed(1).replace(".",",")} % + ${(prm*100).toFixed(1).replace(".",",")} % = <b>${(rm*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"La prime de risque du marché EST, par définition, l'écart entre le rendement attendu du marché et le taux sans risque. Un bêta de 1 redonne donc exactement le rendement du marché — ni plus, ni moins."},
+    {q:`Si le marché monte de ${mv1} %, de combien l'action devrait-elle bouger, au premier ordre ?`, val:beta*mv1, unit:"%", tol:.4,
+     calcul:`${beta.toFixed(2).replace(".",",")} × ${mv1} % = <b>${(beta*mv1).toFixed(1).replace(".",",")} %</b>`,
+     cle:"Le bêta convertit un mouvement de marché en mouvement attendu de l'action — exactement comme l'élasticité convertit un mouvement de prix en mouvement de volume."},
+    {q:`Et si le marché baisse de ${mv2} % cette fois, quel mouvement attendre de l'action ?`, val:-beta*mv2, unit:"%", tol:.4,
+     calcul:`−${beta.toFixed(2).replace(".",",")} × ${mv2} % = <b>${(-beta*mv2).toFixed(1).replace(".",",")} %</b>`,
+     cle:"Le bêta garde le même signe que le marché (sauf s'il est lui-même négatif) : une action à bêta élevé amplifie AUSSI les baisses. Ce n'est pas un outil qui ne joue que dans un sens."},
+    {q:"Quelle prime de risque, en points au-dessus du taux sans risque, cette action exige-t-elle ?", val:beta*prm*100, unit:"%", tol:.3,
+     calcul:`${beta.toFixed(2).replace(".",",")} × ${(prm*100).toFixed(1).replace(".",",")} % = <b>${(beta*prm*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"C'est la rémunération du risque que le marché accepte de payer pour cette action précise — β fois la prime de marché, rien de plus."},
+    {q:"Quelle est la différence de rendement attendu entre les deux actions, en points ?", val:(beta-betaB)*prm*100, unit:"%", tol:.3,
+     calcul:`(${beta.toFixed(2).replace(".",",")} − ${betaB.toFixed(2).replace(".",",")}) × ${(prm*100).toFixed(1).replace(".",",")} % = <b>${((beta-betaB)*prm*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"Deux actions, même marché, même taux sans risque : tout l'écart de rendement exigé vient du bêta. C'est la SEULE variable qui différencie deux lignes dans un cadre MEDAF strict."},
+    {q:`Quel bêta faudrait-il pour viser un rendement attendu de ${(target*100).toFixed(0)} % ?`, val:(target-rf)/prm, unit:"", tol:.06,
+     calcul:`(${(target*100).toFixed(1).replace(".",",")} % − ${(rf*100).toFixed(1).replace(".",",")} %) ÷ ${(prm*100).toFixed(1).replace(".",",")} % = <b>${((target-rf)/prm).toFixed(2).replace(".",",")}</b>`,
+     cle:"La formule se lit dans les deux sens : d'un objectif de rendement, on déduit le niveau de risque systématique qu'il faut accepter pour espérer l'atteindre."}
+   ]};}},
+
+/* ============ 20 · piste BÊTA ============ */
+{id:"e20", n:20, piste:"beta", ic:"📊", titre:"Le mesurer proprement",
+ sujet:"Covariance, corrélation, volatilités — la vraie formule derrière le bêta",
+ rappel:`Un bêta ne s'invente pas : c'est la PENTE de la droite de régression des rendements de l'action sur ceux du marché. Deux formules, rigoureusement équivalentes.
+   <br><br><b>β = Cov(R_action, R_marché) ÷ Var(R_marché)</b> — la définition statistique brute.
+   <br><b>β = ρ × (σ_action ÷ σ_marché)</b> — la même chose, réécrite avec la corrélation ρ et les écarts-types (volatilités) σ. C'est souvent la plus lisible : le bêta est la corrélation au marché, AJUSTÉE par le rapport des deux volatilités.
+   <br><br>Cas particulier à retenir : si l'action est exactement aussi volatile que le marché (σ_action = σ_marché), alors <b>β = ρ</b>, tout simplement.`,
+ gen:R=>{
+  const corr=R.ent(30,90)/100, sigI=R.ent(20,45)/100, sigM=R.ent(12,22)/100;
+  const sigIp=sigI*100, sigMp=sigM*100;
+  const beta=corr*(sigI/sigM);
+  const covp=corr*sigIp*sigMp, varMp=sigMp*sigMp;      /* covariance et variance exprimées en %² — mêmes unités que ce que montre la table de données, pas de conversion cachée */
+  const corr2=R.ent(30,90)/100, betaCorr2=corr2*(sigI/sigM);
+  const sigI2=R.ent(20,45)/100, betaSig2=corr*(sigI2/sigM);
+  const betaEqVol=R.ent(30,120)/100;
+  return {contextes:[`Une action et son marché de référence, observés sur plusieurs années de rendements.`,
+    `Tu reconstitues un bêta à partir d'une sortie de régression.`,
+    `Un data provider te donne la corrélation et les volatilités, pas le bêta directement.`,
+    `Avant de faire confiance à un bêta affiché, tu vérifies d'où il vient.`],
+   contexte:`Une action et son marché de référence, observés sur plusieurs années de rendements.`,
+   donnees:[["Corrélation action / marché (ρ)",corr,""],["Volatilité (écart-type) de l'action",sigIp,"%"],
+            ["Volatilité (écart-type) du marché",sigMp,"%"]],
+   questions:[
+    {q:"Quel est le bêta de l'action (ρ × ratio des volatilités) ?", val:beta, unit:"", tol:.06,
+     calcul:`${corr.toFixed(2).replace(".",",")} × (${sigIp.toFixed(0)} % ÷ ${sigMp.toFixed(0)} %) = <b>${beta.toFixed(2).replace(".",",")}</b>`,
+     cle:"La corrélation dit SI l'action suit le marché ; le rapport des volatilités dit avec quelle AMPLITUDE. Le bêta est le produit des deux — jamais l'un sans l'autre."},
+    {q:"Quelle est la covariance entre les rendements de l'action et ceux du marché, en %² ?", val:covp, unit:"%²", tol:Math.max(3,covp*.04),
+     calcul:`${corr.toFixed(2).replace(".",",")} × ${sigIp.toFixed(0)} % × ${sigMp.toFixed(0)} % = <b>${covp.toFixed(0)} %²</b>`,
+     cle:"On reste dans les mêmes unités que le tableau — pas besoin de repasser en décimal. La covariance mélange le degré de coïncidence (corrélation) ET l'ampleur des deux mouvements (volatilités) ; seule, elle ne se lit pas — il faut la rapporter à la variance du marché."},
+    {q:"Quelle est la variance du marché, en %² (σ_marché²) ?", val:varMp, unit:"%²", tol:Math.max(3,varMp*.03),
+     calcul:`${sigMp.toFixed(0)} %² = <b>${varMp.toFixed(0)} %²</b>`,
+     cle:"La variance est le carré de l'écart-type — c'est elle, pas la volatilité elle-même, qui entre dans la définition statistique du bêta."},
+    {q:"En repartant de la covariance et de la variance du marché (toutes deux en %²), quel bêta retrouves-tu ?", val:covp/varMp, unit:"", tol:.06,
+     calcul:`${covp.toFixed(0)} %² ÷ ${varMp.toFixed(0)} %² = <b>${(covp/varMp).toFixed(2).replace(".",",")}</b>`,
+     cle:"Le même chiffre que par l'autre formule — ce n'est pas une coïncidence, ce sont deux écritures de la même définition. Les %² s'annulent dans le rapport : c'est pour ça que le bêta n'a pas d'unité. Un bêta qui « tombe juste » par les deux calculs, c'est la preuve qu'on l'a compris."},
+    {q:`Si la corrélation au marché montait à ${corr2.toFixed(2).replace(".",",")} (volatilités inchangées), quel serait le nouveau bêta ?`,
+     val:betaCorr2, unit:"", tol:.06,
+     calcul:`${corr2.toFixed(2).replace(".",",")} × (${(sigI*100).toFixed(0)} % ÷ ${(sigM*100).toFixed(0)} %) = <b>${betaCorr2.toFixed(2).replace(".",",")}</b>`,
+     cle:"Une entreprise peut devenir plus corrélée au marché sans devenir plus volatile — un secteur qui se banalise, par exemple. Le bêta bouge alors sans que rien ne change dans le risque PROPRE de l'entreprise."},
+    {q:`Et si la volatilité de l'action montait à ${(sigI2*100).toFixed(0)} % sans que sa corrélation au marché ne change, quel serait le nouveau bêta ?`,
+     val:betaSig2, unit:"", tol:.06,
+     calcul:`${corr.toFixed(2).replace(".",",")} × (${(sigI2*100).toFixed(0)} % ÷ ${(sigM*100).toFixed(0)} %) = <b>${betaSig2.toFixed(2).replace(".",",")}</b>`,
+     cle:"Cette fois c'est l'inverse : plus de volatilité propre, même corrélation. Deux chemins totalement différents peuvent faire monter un bêta — un bon analyste demande toujours LEQUEL avant de commenter le chiffre."},
+    {q:`Une autre action a exactement la même volatilité que le marché. Si son bêta vaut ${betaEqVol.toFixed(2).replace(".",",")}, quelle est sa corrélation au marché ?`,
+     val:betaEqVol, unit:"", tol:.03,
+     calcul:`Quand σ_action = σ_marché, le ratio des volatilités vaut 1, donc β = ρ × 1 = ρ = <b>${betaEqVol.toFixed(2).replace(".",",")}</b>`,
+     cle:"Le cas particulier du rappel, à l'envers : dès que les deux volatilités sont égales, le bêta EST la corrélation, sans aucun calcul supplémentaire. Un raccourci à reconnaître, pas à démontrer à chaque fois."}
+   ]};}},
+
+/* ============ 21 · piste BÊTA ============ */
+{id:"e21", n:21, piste:"beta", ic:"🧩", titre:"Ce qu'il explique, ce qu'il n'explique pas",
+ sujet:"R², risque systématique contre risque spécifique, ce que la diversification élimine",
+ rappel:`Un bêta ne raconte jamais toute l'histoire du risque d'une action. Le <b>R² (coefficient de détermination) = ρ²</b> dit quelle PART de ses mouvements le marché explique réellement.
+   <br><br><b>R² élevé</b> : l'essentiel du risque de l'action est SYSTÉMATIQUE — lié au marché, donc capturé par le bêta.
+   <br><b>R² faible</b> : l'essentiel est SPÉCIFIQUE (idiosyncratique) — propre à l'entreprise (un procès, un dirigeant, un produit) et SANS RAPPORT avec le marché.
+   <br><br>Pourquoi ça compte : dans un portefeuille bien diversifié, le risque SPÉCIFIQUE de chaque ligne s'annule statistiquement avec celui des autres — il disparaît presque gratuitement. Le MEDAF ne rémunère donc QUE le risque systématique, celui qu'aucune diversification ne peut effacer. Un bêta élevé sur un R² famélique n'est pas un bon diagnostic : c'est un bêta mesuré sur du bruit.`,
+ gen:R=>{
+  const corr=R.ent(25,85)/100, r2=corr*corr;
+  const sigI=R.ent(20,45)/100, sigIp=sigI*100, varTotalP=sigIp*sigIp;   /* variance en %² — mêmes unités que la volatilité affichée, pas de conversion cachée */
+  const varSysP=r2*varTotalP, varSpecP=varTotalP-varSysP;
+  const sigSpecP=Math.sqrt(varSpecP);
+  return {contextes:[`Une action affiche une corrélation de ${corr.toFixed(2).replace(".",",")} avec le marché.`,
+    `Sortie de régression : corrélation au marché ${corr.toFixed(2).replace(".",",")}.`,
+    `Tu veux savoir si le bêta de cette action est fiable — tu regardes d'abord sa corrélation, ${corr.toFixed(2).replace(".",",")}.`,
+    `Avant de rémunérer un risque, il faut savoir lequel : corrélation au marché de ${corr.toFixed(2).replace(".",",")}.`],
+   contexte:`Une action affiche une corrélation de ${corr.toFixed(2).replace(".",",")} avec le marché.`,
+   donnees:[["Corrélation action / marché (ρ)",corr,""],["Volatilité (écart-type) totale de l'action",sigIp,"%"]],
+   questions:[
+    {q:"Quel est le R² (coefficient de détermination) de cette action par rapport au marché ?", val:r2*100, unit:"%", tol:.8,
+     calcul:`${corr.toFixed(2).replace(".",",")}² = <b>${(r2*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"Le R² se lit directement comme un pourcentage de variance expliquée. C'est le carré de la corrélation — jamais la corrélation elle-même."},
+    {q:"Quelle part de la variance de l'action est donc SPÉCIFIQUE (idiosyncratique), en % ?", val:(1-r2)*100, unit:"%", tol:.8,
+     calcul:`100 % − ${(r2*100).toFixed(1).replace(".",",")} % = <b>${((1-r2)*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"C'est la part du risque que le MEDAF ne rémunère PAS — parce qu'un portefeuille diversifié peut, en théorie, l'éliminer sans rien sacrifier de rendement."},
+    {q:"Quelle est la variance TOTALE des rendements de cette action, en %² ?", val:varTotalP, unit:"%²", tol:Math.max(5,varTotalP*.03),
+     calcul:`${sigIp.toFixed(0)} %² = <b>${varTotalP.toFixed(0)} %²</b>`,
+     cle:"Le point de départ de toute la décomposition : la variance totale, celle qu'un actionnaire non diversifié subit dans son intégralité — le carré de la volatilité affichée, dans les mêmes unités."},
+    {q:"Quelle est la variance SYSTÉMATIQUE (celle qu'explique le marché), en %² ?", val:varSysP, unit:"%²", tol:Math.max(5,varSysP*.05),
+     calcul:`${(r2*100).toFixed(1).replace(".",",")} % × ${varTotalP.toFixed(0)} %² = <b>${varSysP.toFixed(0)} %²</b>`,
+     cle:"C'est la seule part du risque de l'action qui bouge AVEC le marché — celle que le bêta capture, et celle que le MEDAF rémunère."},
+    {q:"Quelle est la variance SPÉCIFIQUE (celle que la diversification peut éliminer), en %² ?", val:varSpecP, unit:"%²", tol:Math.max(5,varSpecP*.05),
+     calcul:`${varTotalP.toFixed(0)} %² − ${varSysP.toFixed(0)} %² = <b>${varSpecP.toFixed(0)} %²</b>`,
+     cle:"Le reliquat : tout ce qui, dans les mouvements de l'action, n'a RIEN à voir avec le marché. C'est cette part-là qu'un portefeuille de trente lignes bien choisies fait disparaître."},
+    {q:"Quel est l'écart-type du risque spécifique seul, en % ?", val:sigSpecP, unit:"%", tol:.6,
+     calcul:`√${varSpecP.toFixed(0)} %² = <b>${sigSpecP.toFixed(1).replace(".",",")} %</b>`,
+     cle:"On repasse en écart-type pour comparer à quelque chose de lisible : c'est l'ampleur du risque qu'un actionnaire NON diversifié porte pour rien — que le marché ne lui paie jamais."}
+   ]};}},
+
+/* ============ 22 · piste BÊTA ============ */
+{id:"e22", n:22, piste:"beta", ic:"🎛️", titre:"Les subtilités du calcul",
+ sujet:"Fenêtre d'observation, fréquence des rendements, l'ajustement de Blume",
+ rappel:`Un bêta « mesuré » dépend de choix qu'on oublie de questionner. <b>La fenêtre</b> : deux ans de données hebdomadaires (le standard Bloomberg) captent un risque récent mais peu de points ; cinq ans de données mensuelles lissent le bruit mais peuvent inclure une période où l'entreprise n'avait plus le même profil. <b>La fréquence</b> : des rendements quotidiens sont bruités (écarts de cotation, titres peu liquides) — l'hebdomadaire ou le mensuel donnent souvent un bêta plus stable.
+   <br><br>Et un fait empirique majeur : les bêtas mesurés par régression ont tendance à <b>revenir vers 1</b> dans le temps — une entreprise très risquée devient rarement AUSSI risquée indéfiniment, et l'inverse. D'où <b>l'ajustement de Blume</b>, utilisé par défaut par la plupart des terminaux financiers :
+   <br><br><b>β ajusté = (2/3) × β brut + (1/3) × 1</b>`,
+ gen:R=>{
+  const rf=R.ent(2,4)/100, prm=R.ent(5,8)/100;
+  const betaRaw=R.ent(140,250)/100, betaAdj=(2/3)*betaRaw+(1/3);
+  const keRaw=rf+betaRaw*prm, keAdj=rf+betaAdj*prm;
+  const betaRaw2=R.ent(30,70)/100, betaAdj2=(2/3)*betaRaw2+(1/3);
+  const betaAdjTarget=R.ent(70,160)/100, betaRawSolved=1.5*betaAdjTarget-0.5;
+  return {contextes:[`Une régression sur deux ans de rendements hebdomadaires donne un bêta brut de ${betaRaw.toFixed(2).replace(".",",")}.`,
+    `Le terminal affiche un bêta brut de ${betaRaw.toFixed(2).replace(".",",")}, avant tout ajustement.`,
+    `Une action au comportement récent agité : bêta de régression ${betaRaw.toFixed(2).replace(".",",")}.`,
+    `Avant de le mettre dans ton MEDAF, tu regardes le bêta tel qu'il sort de la régression : ${betaRaw.toFixed(2).replace(".",",")}.`],
+   contexte:`Une régression sur deux ans de rendements hebdomadaires donne un bêta brut de ${betaRaw.toFixed(2).replace(".",",")}.`,
+   donnees:[["Taux sans risque",rf*100,"%"],["Prime de risque du marché",prm*100,"%"],
+            ["Bêta brut (régression)",betaRaw,""]],
+   questions:[
+    {q:"Quel est le bêta ajusté de Blume ?", val:betaAdj, unit:"", tol:.03,
+     calcul:`(2/3) × ${betaRaw.toFixed(2).replace(".",",")} + (1/3) × 1 = <b>${betaAdj.toFixed(2).replace(".",",")}</b>`,
+     cle:"L'ajustement tire toujours le bêta VERS 1, jamais plus loin de 1. Un bêta brut agressif redescend ; un bêta brut défensif remonte — c'est la même formule dans les deux cas."},
+    {q:"Quel est le coût des fonds propres calculé avec le bêta BRUT ?", val:keRaw*100, unit:"%", tol:.3,
+     calcul:`${(rf*100).toFixed(1).replace(".",",")} % + ${betaRaw.toFixed(2).replace(".",",")} × ${(prm*100).toFixed(1).replace(".",",")} % = <b>${(keRaw*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"Le point de comparaison : ce que donnerait le MEDAF si on faisait une confiance totale à la régression brute, sans aucun ajustement."},
+    {q:"Quel est le coût des fonds propres calculé avec le bêta AJUSTÉ ?", val:keAdj*100, unit:"%", tol:.3,
+     calcul:`${(rf*100).toFixed(1).replace(".",",")} % + ${betaAdj.toFixed(2).replace(".",",")} × ${(prm*100).toFixed(1).replace(".",",")} % = <b>${(keAdj*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"Systématiquement plus proche du coût des fonds propres du marché moyen que la version brute — c'est tout l'effet, et tout le but, de l'ajustement."},
+    {q:"De combien de points l'ajustement de Blume change-t-il le coût des fonds propres ?", val:keRaw*100-keAdj*100, unit:"%", tol:.3,
+     calcul:`${(keRaw*100).toFixed(2).replace(".",",")} % − ${(keAdj*100).toFixed(2).replace(".",",")} % = <b>${(keRaw*100-keAdj*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"Sur un bêta déjà proche de 1, l'ajustement ne change presque rien. Plus le bêta brut est extrême, plus l'écart se creuse — c'est un correctif de queue de distribution, pas un réglage fin permanent."},
+    {q:`Pour une action DÉFENSIVE, bêta brut de ${betaRaw2.toFixed(2).replace(".",",")}, quel est le bêta ajusté ?`, val:betaAdj2, unit:"", tol:.03,
+     calcul:`(2/3) × ${betaRaw2.toFixed(2).replace(".",",")} + (1/3) × 1 = <b>${betaAdj2.toFixed(2).replace(".",",")}</b>`,
+     cle:"Cette fois l'ajustement pousse le bêta VERS LE HAUT, pas vers le bas. La même formule mécanique fait remonter un bêta défensif comme elle fait redescendre un bêta agressif : elle ne connaît qu'un seul point d'attraction, 1."},
+    {q:`Quel bêta BRUT donnerait, après ajustement de Blume, un bêta de ${betaAdjTarget.toFixed(2).replace(".",",")} ?`, val:betaRawSolved, unit:"", tol:.05,
+     calcul:`${betaAdjTarget.toFixed(2).replace(".",",")} = (2/3) × β brut + 1/3 · β brut = (${betaAdjTarget.toFixed(2).replace(".",",")} − 1/3) ÷ (2/3) = <b>${betaRawSolved.toFixed(2).replace(".",",")}</b>`,
+     cle:"Retourner la formule permet de vérifier un chiffre publié : si un terminal affiche un bêta ajusté, on peut reconstituer le bêta brut sous-jacent sans avoir la régression sous les yeux."}
+   ]};}},
+
+/* ============ 23 · piste BÊTA ============ */
+{id:"e23", n:23, piste:"beta", ic:"🏗️", titre:"Le bêta bottom-up",
+ sujet:"Désendetter plusieurs comparables, faire la moyenne, réendetter à la cible",
+ rappel:`Le geste que fait vraiment un analyste, la plupart du temps : une cible privée, une petite capitalisation peu liquide, ou une DIVISION d'un grand groupe n'a tout simplement <b>pas de bêta de régression fiable</b> — parfois pas de cotation du tout.
+   <br><br>La solution standard (méthode Damodaran) : prendre PLUSIEURS comparables cotés du même métier, <b>désendetter</b> chacun de leur bêta (palier 12 — on retire l'effet de LEUR propre dette), faire la <b>MOYENNE</b> de ces bêtas désendettés — c'est elle qui représente le risque du MÉTIER, débarrassé du bruit d'une seule structure financière — puis <b>réendetter</b> cette moyenne à la structure de la cible.
+   <br><br>Pourquoi la moyenne et pas un seul comparable ? Parce qu'un bêta individuel reste une mesure bruitée (palier précédent). En moyenner plusieurs, on fait exactement ce que fait la diversification : le bruit spécifique à chaque mesure s'annule, et ce qui reste ressemble davantage au vrai risque du métier.`,
+ gen:R=>{
+  const tx=.25, rf=R.ent(2,4)/100, prm=R.ent(5,8)/100;
+  const bl1=R.ent(80,160)/100, d1=R.ent(20,80)/100, bu1=bl1/(1+(1-tx)*d1);
+  const bl2=R.ent(90,180)/100, d2=R.ent(40,120)/100, bu2=bl2/(1+(1-tx)*d2);
+  const bl3=R.ent(70,150)/100, d3=R.ent(10,60)/100, bu3=bl3/(1+(1-tx)*d3);
+  const buAvg=(bu1+bu2+bu3)/3;
+  const dTarget=R.ent(30,100)/100;
+  const blTarget=buAvg*(1+(1-tx)*dTarget);
+  const keTarget=rf+blTarget*prm;
+  const bl2Solo=bu2*(1+(1-tx)*dTarget), ke2Solo=rf+bl2Solo*prm;
+  const ecart=(ke2Solo-keTarget)*100;
+  return {contextes:[`Trois sociétés cotées du même métier que ta cible non cotée. Impôt à 25 %.`,
+    `Ta cible n'a pas de cotation : tu construis son bêta à partir de trois comparables. IS 25 %.`,
+    `Une division sans bêta propre — trois comparables purs servent de référence. IS 25 %.`,
+    `Le comité veut un coût des fonds propres défendable pour une cible non cotée. Trois comparables, IS 25 %.`],
+   contexte:`Trois sociétés cotées du même métier que ta cible non cotée. Impôt à 25 %.`,
+   donnees:[["Bêta endetté, comparable 1",bl1,""],["Dette / capitaux propres, comparable 1",d1,"×"],
+            ["Bêta endetté, comparable 2",bl2,""],["Dette / capitaux propres, comparable 2",d2,"×"],
+            ["Bêta endetté, comparable 3",bl3,""],["Dette / capitaux propres, comparable 3",d3,"×"],
+            ["Dette / capitaux propres visée pour la cible",dTarget,"×"]],
+   questions:[
+    {q:"Quel est le bêta désendetté du comparable 1 ?", val:bu1, unit:"", tol:.03,
+     calcul:`${bl1.toFixed(2).replace(".",",")} ÷ [1 + (1 − 25 %) × ${d1.toFixed(2).replace(".",",")}] = <b>${bu1.toFixed(3).replace(".",",")}</b>`,
+     cle:"Même geste qu'au palier 12, répété comparable par comparable : on retire l'effet de SA dette pour isoler le risque du métier seul."},
+    {q:"Quel est le bêta désendetté du comparable 2 ?", val:bu2, unit:"", tol:.03,
+     calcul:`${bl2.toFixed(2).replace(".",",")} ÷ [1 + (1 − 25 %) × ${d2.toFixed(2).replace(".",",")}] = <b>${bu2.toFixed(3).replace(".",",")}</b>`,
+     cle:"Un comparable plus endetté a un bêta endetté plus élevé pour un risque de métier comparable — le désendettement remet les trois sur un pied d'égalité."},
+    {q:"Quel est le bêta désendetté du comparable 3 ?", val:bu3, unit:"", tol:.03,
+     calcul:`${bl3.toFixed(2).replace(".",",")} ÷ [1 + (1 − 25 %) × ${d3.toFixed(2).replace(".",",")}] = <b>${bu3.toFixed(3).replace(".",",")}</b>`,
+     cle:"Trois désendettements, trois mesures indépendantes du même risque de métier — la matière première de la moyenne qui vient ensuite."},
+    {q:"Quelle est la moyenne des trois bêtas désendettés — le bêta bottom-up du métier ?", val:buAvg, unit:"", tol:.03,
+     calcul:`(${bu1.toFixed(3).replace(".",",")} + ${bu2.toFixed(3).replace(".",",")} + ${bu3.toFixed(3).replace(".",",")}) ÷ 3 = <b>${buAvg.toFixed(3).replace(".",",")}</b>`,
+     cle:"C'est LE chiffre du palier. Il ne dépend plus de la structure financière d'AUCUNE des trois sociétés — seulement de la nature du métier qu'elles partagent."},
+    {q:"Réendetté à la structure visée de la cible, quel est son bêta ?", val:blTarget, unit:"", tol:.03,
+     calcul:`${buAvg.toFixed(3).replace(".",",")} × [1 + (1 − 25 %) × ${dTarget.toFixed(2).replace(".",",")}] = <b>${blTarget.toFixed(3).replace(".",",")}</b>`,
+     cle:"Le même Hamada qu'au palier 12, mais appliqué à un bêta de métier moyenné — pas au bêta d'une seule entreprise choisie un peu au hasard."},
+    {q:"Quel est le coût des fonds propres de la cible avec ce bêta bottom-up ?", val:keTarget*100, unit:"%", tol:.3,
+     calcul:`${(rf*100).toFixed(1).replace(".",",")} % + ${blTarget.toFixed(3).replace(".",",")} × ${(prm*100).toFixed(1).replace(".",",")} % = <b>${(keTarget*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"Le chiffre final, défendable devant un comité — parce qu'il repose sur trois mesures indépendantes, pas sur le bêta d'une seule société qui aurait pu avoir un trimestre agité."},
+    {q:"Si tu avais utilisé SEULEMENT le comparable 2, réendetté à la même structure cible, de combien de points le coût des fonds propres aurait-il différé du bêta bottom-up ?",
+     val:ecart, unit:"%", tol:.3,
+     calcul:`Comparable 2 seul, réendetté : ${(ke2Solo*100).toFixed(2).replace(".",",")} % · bottom-up : ${(keTarget*100).toFixed(2).replace(".",",")} % · écart <b>${ecart.toFixed(2).replace(".",",")} %</b>`,
+     cle:"Voilà le prix de ne PAS moyenner : un seul comparable, aussi bien choisi soit-il, reste une mesure bruitée. C'est exactement pour ça que la pratique standard en utilise plusieurs."}
+   ]};}},
+
+/* ============ 24 · piste BÊTA ============ */
+{id:"e24", n:24, piste:"beta", ic:"🔭", titre:"Bêta et le reste du MEDAF",
+ sujet:"Sensibilité de la valeur au bêta, repères sectoriels, signaux d'alerte",
+ rappel:`Le point d'arrivée. Un bêta n'est jamais une fin en soi : il entre dans le coût des fonds propres, qui entre dans le WACC, qui entre dans un DÉNOMINATEUR de valorisation — et une petite erreur, là, produit un GROS écart de valeur.
+   <br><br><b>Repères de bêta, à connaître sans les réciter :</b> biens de consommation courante et utilities, plutôt défensifs, 0,5 à 0,8. Le marché dans son ensemble, 1. Technologie, luxe, cycliques, plutôt 1,3 à 1,8. Compagnies aériennes, matières premières, très endettées : souvent au-delà de 2.
+   <br><br>⚠️ <b>Signal d'alerte</b> : un bêta très élevé (> 2,5) ou négatif accompagné d'un R² faible n'est presque jamais un vrai signal de risque — c'est presque toujours une régression mesurée sur du bruit (palier 21). On vérifie le R² AVANT de croire le bêta, jamais après.`,
+ gen:R=>{
+  const rf=R.ent(2,4)/100, prm=R.ent(5,8)/100;
+  const betaLow=R.ent(45,75)/100, betaHigh=R.ent(140,220)/100;
+  const keLow=rf+betaLow*prm, keHigh=rf+betaHigh*prm;
+  const g=R.ent(15,25)/1000;
+  const fcf=100;
+  const vLow=fcf/(keLow-g), vHigh=fcf/(keHigh-g);
+  const ratio=vLow/vHigh;
+  return {contextes:[`Deux entreprises, même flux de trésorerie, secteurs différents.`,
+    `Un comparatif sectoriel : une valeur défensive contre une valeur cyclique.`,
+    `Tu compares deux profils de risque avant d'arbitrer un portefeuille.`,
+    `Le comité veut voir, en euros, ce que change un bêta différent.`],
+   contexte:`Deux entreprises, même flux de trésorerie perpétuel de ${fcf} €, mais deux profils de risque très différents.`,
+   donnees:[["Taux sans risque",rf*100,"%"],["Prime de risque du marché",prm*100,"%"],
+            ["Bêta — secteur défensif",betaLow,""],["Bêta — secteur cyclique",betaHigh,""],
+            ["Croissance perpétuelle (g)",g*100,"%"]],
+   questions:[
+    {q:"Coût des fonds propres pour le secteur DÉFENSIF ?", val:keLow*100, unit:"%", tol:.3,
+     calcul:`${(rf*100).toFixed(1).replace(".",",")} % + ${betaLow.toFixed(2).replace(".",",")} × ${(prm*100).toFixed(1).replace(".",",")} % = <b>${(keLow*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"Un bêta bas, hérité d'une demande peu sensible au cycle économique (biens de consommation courante, énergie régulée), donne un coût des fonds propres proche du taux sans risque."},
+    {q:"Coût des fonds propres pour le secteur CYCLIQUE ?", val:keHigh*100, unit:"%", tol:.3,
+     calcul:`${(rf*100).toFixed(1).replace(".",",")} % + ${betaHigh.toFixed(2).replace(".",",")} × ${(prm*100).toFixed(1).replace(".",",")} % = <b>${(keHigh*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"Un bêta élevé n'est pas une faute : c'est le prix normal d'une activité dont les résultats amplifient le cycle économique."},
+    {q:"Écart de coût des fonds propres entre les deux, en points ?", val:(keHigh-keLow)*100, unit:"%", tol:.3,
+     calcul:`${(keHigh*100).toFixed(2).replace(".",",")} % − ${(keLow*100).toFixed(2).replace(".",",")} % = <b>${((keHigh-keLow)*100).toFixed(2).replace(".",",")} %</b>`,
+     cle:"Quelques points d'écart de taux d'actualisation seulement — et regarde ce que ça produit sur la valeur dans les deux questions suivantes."},
+    {q:`Avec un flux perpétuel identique de ${fcf} € et une croissance de ${(g*100).toFixed(1).replace(".",",")} %, quelle valeur obtient l'entreprise DÉFENSIVE (modèle de Gordon) ?`,
+     val:vLow, unit:"€", tol:Math.max(20,vLow*.02),
+     calcul:`${fcf} € ÷ (${(keLow*100).toFixed(2).replace(".",",")} % − ${(g*100).toFixed(1).replace(".",",")} %) = <b>${vLow.toFixed(0)} €</b>`,
+     cle:"Le taux d'actualisation est au DÉNOMINATEUR : plus il est bas, plus la valeur explose. Un bêta faible ne fait pas qu'économiser un peu de risque — il multiplie la valeur."},
+    {q:`Et l'entreprise CYCLIQUE, au même flux et à la même croissance ?`, val:vHigh, unit:"€", tol:Math.max(20,vHigh*.02),
+     calcul:`${fcf} € ÷ (${(keHigh*100).toFixed(2).replace(".",",")} % − ${(g*100).toFixed(1).replace(".",",")} %) = <b>${vHigh.toFixed(0)} €</b>`,
+     cle:"Le même flux, la même croissance — et une valeur nettement plus basse. Le marché ne paie jamais que le risque, il paie la CERTITUDE d'encaisser le flux."},
+    {q:"De quel FACTEUR la valeur de l'entreprise défensive dépasse-t-elle celle de la cyclique, à flux identique ?",
+     val:ratio, unit:"×", tol:.1,
+     calcul:`${vLow.toFixed(0)} € ÷ ${vHigh.toFixed(0)} € = <b>${ratio.toFixed(2).replace(".",",")}×</b>`,
+     cle:"Voilà pourquoi une erreur de bêta est une des fautes les plus coûteuses d'une valorisation : elle ne se voit presque pas dans l'hypothèse, et elle se voit ÉNORMÉMENT dans le résultat."}
    ]};}}
 
 ];

@@ -533,7 +533,7 @@ function missItems(){
 
 // ================= MENU DU JOUR =================
 function nextUndone(list,doneIds){ return list.find(x=>!doneIds.includes(x.id))||list[Math.floor(Math.random()*list.length)]; }
-/* Si les deux pistes de l'échelle sont closes et que rien n'est dû, le
+/* Si toutes les pistes de l'échelle sont closes et que rien n'est dû, le
    bloc « exos » du menu du jour s'efface (voir vJour) — il ne doit donc
    jamais bloquer la validation de la journée. Sans ce garde-fou, finir
    l'échelle un jour reviendrait à ne plus jamais pouvoir valider. */
@@ -2360,7 +2360,7 @@ function vJour(){
      aucune invite à continuer l'échelle depuis le menu du jour. Une
      seule tuile, priorité à la reprise (une base due qu'on ne revoit
      pas n'est plus une base), sinon le prochain palier ouvert — jusqu'à
-     ce que les deux pistes soient closes. exoContinuer() fait le choix ;
+     ce que toutes les pistes soient closes. exoContinuer() fait le choix ;
      ici on ne fait que décrire où il mène. */
   const dusExo=(typeof exoDus==="function")?exoDus():[];
   const exoFaits=(typeof exosFaits==="function")?exosFaits():0;
@@ -2552,7 +2552,8 @@ function exoPointFaible(){
    mais on ne monte plus un seul escalier. */
 const PISTES={
   socle:{nom:"Le socle",ic:"🧮",intro:"Je te donne les chiffres, tu calcules. Chaque palier ouvre le suivant : on ne saute pas une marche. Le premier est une soustraction, le dernier désendette un bêta."},
-  prix:{nom:"Le prix",ic:"🎚️",intro:"L'élasticité, de « à quoi ça sert » jusqu'au prix optimal. Tu l'as vue décider à ta place dans LA BOÎTE — ici tu apprends à la lire, à la mesurer, et à savoir quand elle ment."}
+  prix:{nom:"Le prix",ic:"🎚️",intro:"L'élasticité, de « à quoi ça sert » jusqu'au prix optimal. Tu l'as vue décider à ta place dans LA BOÎTE — ici tu apprends à la lire, à la mesurer, et à savoir quand elle ment."},
+  beta:{nom:"Le bêta",ic:"🧭",intro:"Le socle t'a fait désendetter un bêta déjà donné. Ici tu descends sous la formule : d'où il vient, ce qu'il explique vraiment, ses subtilités de mesure, et le geste du praticien — le bêta bottom-up."}
 };
 function exoPiste(n){ const p=exoPal(n); return (p&&p.piste)||"socle"; }
 function exoPistes(){ const v=[]; EXOS.forEach(p=>{ const k=p.piste||"socle"; if(v.indexOf(k)<0) v.push(k); }); return v; }
@@ -3058,7 +3059,7 @@ function exosRoom(){
   }).join("");
   const faits=EXOS.filter(p=>exoEtat(p.n).valide).length;
   openOv(ovTop("🧮 Les exos")+`
-    <p class="sub">Je te donne les chiffres, tu calcules. Deux pistes, chacune montée marche par marche : <b>Le socle</b>, du compte de résultat au bêta de Hamada, et <b>Le prix</b>, entièrement consacré à l'élasticité.</p>
+    <p class="sub">Je te donne les chiffres, tu calcules. Trois pistes, chacune montée marche par marche : <b>Le socle</b>, du compte de résultat au bêta de Hamada, <b>Le prix</b>, entièrement consacré à l'élasticité, et <b>Le bêta</b>, qui descend sous la formule — d'où il vient, ce qu'il explique, comment on le mesure en vrai.</p>
     <div class="crit" style="margin:10px 0"><b>${faits}/${EXOS.length} paliers validés.</b> ${faits===0?"Commence par le 1 du socle. Même si tu crois le savoir — surtout si tu crois le savoir.":faits<EXOS.length?"Il t'en reste "+(EXOS.length-faits)+".":"Tout est tombé — et c'est maintenant que la reprise compte."}</div>
     ${(()=>{ const dus=exoDus(), pf=exoPointFaible(), nd=exoProchaine();
       let h='';
@@ -3264,7 +3265,7 @@ function vAcad(){
   const cd=cardsDue().length, cm=cardsMastered();
   return `<h1 class="page">Académie</h1><div class="sub">${S.done.lessons.length}/${LESSONS.length} leçons. Du bilan au SPA — le juridique n'est pas en option.</div>
   <div class="mod gold" onclick="exosRoom()" style="border-color:#453a20">
-    <div class="ico">${exoDus().length?"🔁":"🧮"}</div><div class="t"><b>Les exos — les calculs, depuis le début</b><small>${exosFaits()}/${EXOS.length} paliers validés${exoDus().length?` · <b style="color:var(--acc)">${exoDus().length} à reprendre</b>`:""}. Deux pistes : <b>le socle</b> (marge, EBITDA, BFR, point mort… jusqu'au FCFF, au WACC et aux bêtas) et <b>le prix</b> (l'élasticité, de sa lecture au prix optimal). Chaque marche ouvre la suivante.</small></div>
+    <div class="ico">${exoDus().length?"🔁":"🧮"}</div><div class="t"><b>Les exos — les calculs, depuis le début</b><small>${exosFaits()}/${EXOS.length} paliers validés${exoDus().length?` · <b style="color:var(--acc)">${exoDus().length} à reprendre</b>`:""}. Trois pistes : <b>le socle</b> (marge, EBITDA, BFR, point mort… jusqu'au FCFF, au WACC et aux bêtas), <b>le prix</b> (l'élasticité, de sa lecture au prix optimal) et <b>le bêta</b> (d'où il vient, comment on le mesure, le geste du bottom-up). Chaque marche ouvre la suivante.</small></div>
     <div class="pc">${exoDus().length||exosFaits()||"›"}</div>
   </div>
   <div class="mod gold" onclick="chifRoom()" style="border-color:#453a20">
