@@ -2558,7 +2558,8 @@ const PISTES={
   multiples:{nom:"Les multiples",ic:"🔍",intro:"Le socle t'a fait calculer le pont VE ↔ titres avec un multiple fourni. Ici, choisir les bons comparables, ne pas confondre boursier et transaction, LTM contre NTM, le vrai pont, et pourquoi un multiple n'est jamais qu'un DCF raccourci."},
   lbo:{nom:"Le LBO",ic:"🎯",intro:"Le Paper LBO (dans Sparring) te fait dérouler le mécanisme à chiffres fixes. Ici, les mêmes gestes — levier, création de valeur, MOIC/TRI, cash sweep, sensibilité — mais randomisés à chaque série."},
   accretion:{nom:"Accrétion / dilution",ic:"📖",intro:"Le Lexique te donne la règle en une phrase (« relutif si P/E acquéreur > P/E payé »). Ici tu la calcules : le BPA avant/après, la règle du P/E prouvée, cash contre dette, le seuil de synergies, et le mix de financement."},
-  cascade:{nom:"La cascade",ic:"👑",intro:"La leçon de Restructuring pose le vocabulaire — priorité absolue, waterfall, fulcrum security. Ici tu la calcules : qui récupère quoi, le pari passu, le sort d'une dette sous-collatéralisée, et où la valeur casse vraiment."}
+  cascade:{nom:"La cascade",ic:"👑",intro:"La leçon de Restructuring pose le vocabulaire — priorité absolue, waterfall, fulcrum security. Ici tu la calcules : qui récupère quoi, le pari passu, le sort d'une dette sous-collatéralisée, et où la valeur casse vraiment."},
+  compta:{nom:"Cascades comptables",ic:"🥊",intro:"Le Sparring a huit drills « Cascades comptables » à chiffres fixes. Ici, les quatre mécaniques les plus subtiles — le bouclier fiscal d'un amortissement, le décalage d'une provision, le goodwill non déductible, IFRS 16 — randomisées, et l'équilibre du bilan vérifié à chaque fois."}
 };
 function exoPiste(n){ const p=exoPal(n); return (p&&p.piste)||"socle"; }
 function exoPistes(){ const v=[]; EXOS.forEach(p=>{ const k=p.piste||"socle"; if(v.indexOf(k)<0) v.push(k); }); return v; }
@@ -3064,7 +3065,7 @@ function exosRoom(){
   }).join("");
   const faits=EXOS.filter(p=>exoEtat(p.n).valide).length;
   openOv(ovTop("🧮 Les exos")+`
-    <p class="sub">Je te donne les chiffres, tu calcules. Huit pistes, chacune montée marche par marche : <b>Le socle</b>, <b>Le prix</b>, <b>Le bêta</b>, <b>Le WACC</b>, <b>Les multiples</b>, <b>Le LBO</b>, <b>Accrétion / dilution</b> — et <b>La cascade</b>, qui récupère quoi en restructuration.</p>
+    <p class="sub">Je te donne les chiffres, tu calcules. Neuf pistes, chacune montée marche par marche : <b>Le socle</b>, <b>Le prix</b>, <b>Le bêta</b>, <b>Le WACC</b>, <b>Les multiples</b>, <b>Le LBO</b>, <b>Accrétion / dilution</b>, <b>La cascade</b> — et <b>Cascades comptables</b>, le P&L → flux → bilan des cas d'entretien classiques.</p>
     <a class="btn ghost" href="anki-fondamentaux.txt" download="anki-fondamentaux.txt" style="display:block;text-decoration:none;text-align:center;margin-bottom:10px">📥 Le deck Anki des formules (41 cartes — CAF, FCFF, FCFE, WACC, bêta, multiples…)</a>
     <div class="crit" style="margin:10px 0"><b>${faits}/${EXOS.length} paliers validés.</b> ${faits===0?"Commence par le 1 du socle. Même si tu crois le savoir — surtout si tu crois le savoir.":faits<EXOS.length?"Il t'en reste "+(EXOS.length-faits)+".":"Tout est tombé — et c'est maintenant que la reprise compte."}</div>
     ${(()=>{ const dus=exoDus(), pf=exoPointFaible(), nd=exoProchaine();
@@ -3271,7 +3272,7 @@ function vAcad(){
   const cd=cardsDue().length, cm=cardsMastered();
   return `<h1 class="page">Académie</h1><div class="sub">${S.done.lessons.length}/${LESSONS.length} leçons. Du bilan au SPA — le juridique n'est pas en option.</div>
   <div class="mod gold" onclick="exosRoom()" style="border-color:#453a20">
-    <div class="ico">${exoDus().length?"🔁":"🧮"}</div><div class="t"><b>Les exos — les calculs, depuis le début</b><small>${exosFaits()}/${EXOS.length} paliers validés${exoDus().length?` · <b style="color:var(--acc)">${exoDus().length} à reprendre</b>`:""}. Huit pistes : <b>le socle</b>, <b>le prix</b>, <b>le bêta</b>, <b>le WACC</b>, <b>les multiples</b>, <b>le LBO</b>, <b>accrétion/dilution</b> et <b>la cascade</b> (waterfall, fulcrum security). Chaque marche ouvre la suivante.</small></div>
+    <div class="ico">${exoDus().length?"🔁":"🧮"}</div><div class="t"><b>Les exos — les calculs, depuis le début</b><small>${exosFaits()}/${EXOS.length} paliers validés${exoDus().length?` · <b style="color:var(--acc)">${exoDus().length} à reprendre</b>`:""}. Neuf pistes : <b>le socle</b>, <b>le prix</b>, <b>le bêta</b>, <b>le WACC</b>, <b>les multiples</b>, <b>le LBO</b>, <b>accrétion/dilution</b>, <b>la cascade</b> et <b>cascades comptables</b> (P&L → flux → bilan). Chaque marche ouvre la suivante.</small></div>
     <div class="pc">${exoDus().length||exosFaits()||"›"}</div>
   </div>
   <div class="mod gold" onclick="chifRoom()" style="border-color:#453a20">

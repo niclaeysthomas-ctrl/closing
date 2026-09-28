@@ -2381,6 +2381,166 @@ const EXOS = [
     {q:"De quel montant la valeur d'entreprise disponible devrait-elle augmenter pour que la tranche senior non sécurisée soit remboursée à 100 % ?", val:manquePourUnsec100, unit:"€",
      calcul:`${eurX(seniorUnsecDue)} − ${eurX(recupUnsecTotal)} = <b>${eurX(manquePourUnsec100)}</b>`,
      cle:"C'est exactement ce montant qui sépare aujourd'hui la position de fulcrum de la tranche senior non sécurisée — au-delà, le fulcrum glisserait vers le rang suivant, la subordonnée."}
+   ]};}},
+
+/* ================================================================
+   PISTE CASCADES COMPTABLES — ajoutée le 2026-09-28, sur « continue
+   sur la compta et tout ». Le Sparring a déjà huit drills « Cascades
+   comptables » (data-drills.js, k1 à k8) qui déroulent P&L → flux →
+   bilan sur des cas précis — mais à chiffres FIXES et auto-évalués.
+   Cette piste reprend les quatre mécaniques les plus subtiles et les
+   moins couvertes ailleurs dans l'échelle (le socle couvre déjà le
+   BFR et le cycle stock/créances en profondeur) : le bouclier fiscal
+   d'un amortissement, le décalage temporel d'une provision, la
+   dépréciation de goodwill non déductible, et IFRS 16 — randomisées,
+   auto-corrigées, et avec l'équilibre du bilan vérifié à chaque fois.
+   ================================================================ */
+
+/* ============ 49 · piste COMPTA ============ */
+{id:"e49", n:49, piste:"compta", ic:"🥊", titre:"L'amortissement, un bouclier fiscal",
+ sujet:"Une charge non-cash qui détruit du résultat mais crée du cash",
+ rappel:`La question d'entretien la plus posée au monde. Une charge d'amortissement supplémentaire réduit le résultat AVANT impôt intégralement — mais l'IMPÔT baisse aussi, et lui seul est réellement décaissé. Sur le tableau de flux, on repart du résultat net et on RÉINTÈGRE l'amortissement (non-cash) : ce qui reste, c'est l'économie d'impôt, et rien d'autre.
+   <br><br><b>Résultat net = −Amortissement × (1 − IS). Flux de trésorerie opérationnel = +Amortissement × IS.</b> Une charge peut détruire du résultat ET créer du cash, en même temps.`,
+ gen:R=>{
+  const amortSupp=R.ent(4,40)*1000000, tx=.25;
+  const economieImpot=amortSupp*tx;
+  const baisseResultatNet=amortSupp-economieImpot;
+  const impactBilanActif=-baisseResultatNet;
+  const economieCible=R.ent(2,15)*1000000;
+  const amortRequis=economieCible/tx;
+  return {contextes:[`L'entreprise passe un amortissement supplémentaire cette année. IS à 25 %. Tout le reste est constant.`,
+    `Un changement de méthode d'amortissement fait bouger la charge de l'exercice. IS à 25 %.`,
+    `Le CFO teste l'impact d'un amortissement accéléré sur les trois états. IS à 25 %.`,
+    `Question classique d'entretien : dérouler l'effet d'un amortissement supplémentaire. IS à 25 %.`],
+   contexte:`L'entreprise passe ${eurX(amortSupp)} d'amortissement supplémentaire cette année. Impôt à 25 %.`,
+   donnees:[["Amortissement supplémentaire",amortSupp,"€"]],
+   questions:[
+    {q:"De combien le résultat AVANT impôt baisse-t-il ?", val:amortSupp, unit:"€", tol:Math.max(20000,amortSupp*.01),
+     calcul:`L'amortissement est une charge opérationnelle, intégralement : <b>${eurX(amortSupp)}</b>`,
+     cle:"Aucune subtilité à cette étape — c'est la charge elle-même, en entier, qui grève le résultat avant impôt."},
+    {q:"Quelle économie d'impôt cette charge supplémentaire génère-t-elle ?", val:economieImpot, unit:"€", tol:Math.max(5000,economieImpot*.02),
+     calcul:`${eurX(amortSupp)} × 25 % = <b>${eurX(economieImpot)}</b>`,
+     cle:"On paie 25 % de moins sur un résultat plus bas — c'est la seule partie de cette charge qui va réellement bouger la trésorerie."},
+    {q:"De combien le résultat NET baisse-t-il ?", val:baisseResultatNet, unit:"€", tol:Math.max(15000,baisseResultatNet*.02),
+     calcul:`${eurX(amortSupp)} − ${eurX(economieImpot)} = <b>${eurX(baisseResultatNet)}</b>`,
+     cle:"Le résultat net absorbe la charge, nette de l'économie d'impôt — jamais la charge brute."},
+    {q:"Quel est l'impact sur le flux de trésorerie opérationnel (résultat net + amortissement réintégré) ?", val:economieImpot, unit:"€", tol:Math.max(5000,economieImpot*.02),
+     calcul:`−${eurX(baisseResultatNet)} + ${eurX(amortSupp)} = <b>+${eurX(economieImpot)}</b>`,
+     cle:"Positif. Oui, PLUS de cash : l'économie d'impôt est bien réelle, la charge, elle, ne l'est pas. C'est la phrase de synthèse attendue en entretien, mot pour mot."},
+    {q:"Pour vérifier l'équilibre du bilan : de combien le total de l'actif varie-t-il (immobilisations amorties, trésorerie en plus) ?", val:impactBilanActif, unit:"€", tol:Math.max(15000,Math.abs(impactBilanActif)*.02),
+     calcul:`−${eurX(amortSupp)} (immobilisations) + ${eurX(economieImpot)} (trésorerie) = <b>${eurX(impactBilanActif)}</b>`,
+     cle:"Exactement l'opposé de la baisse des capitaux propres (via le résultat net) : l'équilibre du bilan EST la preuve que le calcul est juste."},
+    {q:`Pour viser une économie d'impôt de ${eurX(economieCible)}, quel montant d'amortissement supplémentaire faudrait-il passer ?`, val:amortRequis, unit:"€", tol:Math.max(15000,amortRequis*.02),
+     calcul:`${eurX(economieCible)} ÷ 25 % = <b>${eurX(amortRequis)}</b>`,
+     cle:"La formule se lit dans les deux sens — utile pour cadrer, par exemple, un choix de méthode d'amortissement en fonction d'un objectif de trésorerie."}
+   ]};}},
+
+/* ============ 50 · piste COMPTA ============ */
+{id:"e50", n:50, piste:"compta", ic:"🥊", titre:"La provision, un décalage dans le temps",
+ sujet:"Pourquoi le résultat peut MONTER l'année où l'entreprise paie enfin",
+ rappel:`Une provision pour litige N'EST PAS déductible fiscalement tant qu'elle n'est pas décaissée. Deux temps, et la symétrie est le piège.
+   <br><br><b>Année de la provision :</b> charge comptable intégrale, mais l'impôt ne bouge pas (non déductible) — flux de trésorerie opérationnel NUL, aucun cash n'a bougé.
+   <br><b>Année du décaissement :</b> aucune nouvelle charge comptable (elle s'impute sur la provision), mais la somme devient enfin déductible fiscalement — le résultat NET monte, contre toute intuition, précisément l'année où l'entreprise paie.`,
+ gen:R=>{
+  const montant=R.ent(5,40)*1000000, tx=.25;
+  const economieImpotAn2=montant*tx;
+  const fluxAn2=economieImpotAn2-montant;
+  const coutTotalApresImpot=montant-economieImpotAn2;
+  return {contextes:[`Année 1 : l'entreprise provisionne un litige, non déductible tant que non décaissé. Année 2 : elle perd le procès et paie. IS à 25 %.`,
+    `Un contentieux commercial provisionné puis réglé l'année suivante. IS à 25 %.`,
+    `Le commissaire aux comptes valide une provision pour risque, décaissée l'exercice suivant. IS à 25 %.`,
+    `Deux exercices, un seul litige : à dérouler dans l'ordre. IS à 25 %.`],
+   contexte:`Année 1 : l'entreprise provisionne un litige de ${eurX(montant)}, non déductible tant que non décaissé. Année 2 : elle perd le procès et paie exactement ce montant. Impôt à 25 %.`,
+   donnees:[["Montant du litige provisionné",montant,"€"]],
+   questions:[
+    {q:"Année 1 : de combien le résultat NET baisse-t-il (la provision n'est pas déductible) ?", val:montant, unit:"€", tol:Math.max(20000,montant*.01),
+     calcul:`Aucune économie d'impôt cette année-là : la charge grève le résultat net en entier, <b>${eurX(montant)}</b>`,
+     cle:"Contrairement à l'amortissement du palier précédent, cette charge non-cash ne crée AUCUN bouclier fiscal — elle n'est pas encore déductible."},
+    {q:"Année 1 : quel est l'impact sur le flux de trésorerie opérationnel ?", val:0, unit:"€",
+     calcul:`Résultat net −${eurX(montant)}, on réintègre la provision non-cash +${eurX(montant)} → <b>0 €</b>`,
+     cle:"Aucun cash n'a bougé cette année-là — la provision n'est qu'une écriture, en attendant le vrai décaissement."},
+    {q:"Année 2 : le litige est perdu et payé. Quelle économie d'impôt apparaît, maintenant que la charge est déductible ?", val:economieImpotAn2, unit:"€", tol:Math.max(5000,economieImpotAn2*.02),
+     calcul:`${eurX(montant)} × 25 % = <b>${eurX(economieImpotAn2)}</b>`,
+     cle:"C'est cette année-là, et seulement cette année-là, que le bouclier fiscal se matérialise — décalé d'un exercice entier par rapport à la charge elle-même."},
+    {q:"Année 2 : quel est le résultat NET de cette année (attention, contre-intuitif) ?", val:economieImpotAn2, unit:"€", tol:Math.max(5000,economieImpotAn2*.02),
+     calcul:`Le décaissement s'impute sur la provision (aucune nouvelle charge), seule l'économie d'impôt apparaît : résultat net <b>+${eurX(economieImpotAn2)}</b>`,
+     cle:"Le résultat MONTE l'année où l'entreprise paie enfin — c'est LA subtilité de ce cas, et une question piège classique en entretien avancé."},
+    {q:"Année 2 : quel est l'impact sur le flux de trésorerie opérationnel ?", val:fluxAn2, unit:"€", tol:Math.max(15000,Math.abs(fluxAn2)*.02),
+     calcul:`Résultat net +${eurX(economieImpotAn2)}, reprise de provision non-cash −${eurX(montant)} (le vrai décaissement) = <b>${eurX(fluxAn2)}</b>`,
+     cle:"Le vrai coût en cash n'arrive que maintenant — un exercice entier après que le résultat comptable a déjà encaissé le choc."},
+    {q:"Sur les deux années cumulées, quel est le coût total APRÈS impôt de ce litige pour la trésorerie ?", val:coutTotalApresImpot, unit:"€", tol:Math.max(15000,coutTotalApresImpot*.02),
+     calcul:`${eurX(montant)} − ${eurX(economieImpotAn2)} = <b>${eurX(coutTotalApresImpot)}</b>`,
+     cle:"Le total sur les deux ans ne dépend pas du décalage — seul le TIMING a changé. C'est justement ce qui rend les provisions si utiles pour lisser un résultat sans jamais mentir sur le total final."}
+   ]};}},
+
+/* ============ 51 · piste COMPTA ============ */
+{id:"e51", n:51, piste:"compta", ic:"🥊", titre:"Le goodwill : le pire des deux mondes",
+ sujet:"Non-cash ET non déductible — pourquoi ce n'est pas « juste un amortissement »",
+ rappel:`Une dépréciation de goodwill (suite à un test d'impairment raté) N'EST PAS déductible fiscalement — à la différence d'un amortissement classique (palier 49). Elle grève le résultat net EN ENTIER, sans le moindre bouclier fiscal.
+   <br><br>« Non-cash » ne veut pas dire « sans importance » : c'est la reconnaissance différée d'un cash déjà dépensé, à l'acquisition, qui ne reviendra jamais.`,
+ gen:R=>{
+  const depreciation=R.ent(10,80)*1000000, tx=.25;
+  const economieSiDeductible=depreciation*tx;
+  return {contextes:[`Suite à un test d'impairment raté, le groupe déprécie du goodwill. IS à 25 %.`,
+    `Une acquisition qui tourne mal : le goodwill doit être déprécié. IS à 25 %.`,
+    `Le commissaire aux comptes impose une dépréciation de goodwill à la clôture. IS à 25 %.`,
+    `Un avertissement sur résultat, dont l'essentiel vient d'une charge de dépréciation. IS à 25 %.`],
+   contexte:`Suite à un test d'impairment raté, le groupe déprécie ${eurX(depreciation)} de goodwill. Impôt à 25 %.`,
+   donnees:[["Dépréciation de goodwill",depreciation,"€"]],
+   questions:[
+    {q:"De combien le résultat NET baisse-t-il (la dépréciation de goodwill n'est PAS déductible) ?", val:depreciation, unit:"€", tol:Math.max(20000,depreciation*.01),
+     calcul:`L'impôt ne bouge pas : le résultat net encaisse la charge plein pot, <b>${eurX(depreciation)}</b>`,
+     cle:"Aucune économie d'impôt, contrairement à l'amortissement — c'est la différence clé à verbaliser face à un bon interviewer."},
+    {q:"Quel est l'impact sur le flux de trésorerie opérationnel ?", val:0, unit:"€",
+     calcul:`Résultat net −${eurX(depreciation)}, réintégration de la charge non-cash +${eurX(depreciation)} → <b>0 €</b>`,
+     cle:"Pas un euro n'a bougé aujourd'hui — mais l'impairment avoue que le cash dépensé À L'ACQUISITION ne reviendra pas."},
+    {q:"Si cette même charge avait été un amortissement classique DÉDUCTIBLE, quelle économie d'impôt (donc quel cash) aurait-elle générée ?", val:economieSiDeductible, unit:"€", tol:Math.max(5000,economieSiDeductible*.02),
+     calcul:`${eurX(depreciation)} × 25 % = <b>${eurX(economieSiDeductible)}</b>`,
+     cle:"Le contrefactuel qui rend la comparaison concrète : voilà exactement ce que le goodwill NE rapporte PAS, contrairement à un amortissement ordinaire."},
+    {q:"Quel est donc le manque à gagner en cash, comparé à une charge non-cash classique de même montant ?", val:economieSiDeductible, unit:"€", tol:Math.max(5000,economieSiDeductible*.02),
+     calcul:`Exactement l'économie d'impôt manquante : <b>${eurX(economieSiDeductible)}</b>`,
+     cle:"Résultat massacré, cash intact aujourd'hui, mais aucun bouclier fiscal pour amortir le choc — le pire des deux mondes comptables, à retenir mot pour mot."},
+    {q:"De combien le goodwill au bilan diminue-t-il ?", val:depreciation, unit:"€", tol:Math.max(20000,depreciation*.01),
+     calcul:`Le goodwill à l'actif baisse exactement du montant déprécié : <b>${eurX(depreciation)}</b>`,
+     cle:"Et les capitaux propres baissent d'autant, via le résultat net — l'équilibre du bilan, encore une fois, ferme la boucle."}
+   ]};}},
+
+/* ============ 52 · piste COMPTA ============ */
+{id:"e52", n:52, piste:"compta", ic:"🥊", titre:"IFRS 16 : le bail qui devient une dette",
+ sujet:"Même cash, même bail — mais l'EBITDA et la dette n'ont plus rien à voir",
+ rappel:`Depuis IFRS 16, un bail ferme ne reste plus dans les annexes : il s'inscrit au bilan. À la signature, la VALEUR ACTUALISÉE des loyers futurs devient un <b>droit d'usage à l'actif</b> ET une <b>dette de loyers au passif</b>, à l'identique.
+   <br><br>Chaque année, le loyer disparaît du compte de résultat — remplacé par un AMORTISSEMENT du droit d'usage et des INTÉRÊTS sur la dette. Ni l'un ni l'autre n'entre dans l'EBITDA : il grimpe mécaniquement, sans qu'un euro de plus n'ait été gagné.`,
+ gen:R=>{
+  const loyerAnnuel=R.ent(3,20)*1000000, dureeBail=R.ent(5,12), taux=R.ent(3,7)/100;
+  const va=loyerAnnuel*(1-Math.pow(1+taux,-dureeBail))/taux;
+  const amortissementAn1=va/dureeBail;
+  const interetsAn1=va*taux;
+  const chargeAn1=amortissementAn1+interetsAn1;
+  return {contextes:[`L'entreprise signe un bail de bureaux, ferme, sur plusieurs années.`,
+    `Une nouvelle location d'entrepôt, comptabilisée sous IFRS 16.`,
+    `Le CFO doit expliquer au comité pourquoi la dette bondit sans qu'un banquier ne soit intervenu.`,
+    `Avant de comparer deux entreprises, l'une locataire, l'autre propriétaire, il faut retraiter IFRS 16.`],
+   contexte:`L'entreprise signe un bail ferme de ${dureeBail} ans, à ${eurX(loyerAnnuel)} de loyer annuel. Taux d'actualisation : ${(taux*100).toFixed(1).replace(".",",")} %.`,
+   donnees:[["Loyer annuel",loyerAnnuel,"€"],["Durée ferme du bail",dureeBail,""],["Taux d'actualisation",taux*100,"%"]],
+   questions:[
+    {q:"Quelle est la valeur actualisée des loyers — le montant qui s'inscrit à l'actif ET au passif à la signature ?", val:va, unit:"€", tol:Math.max(50000,va*.02),
+     calcul:`${eurX(loyerAnnuel)} × [1 − (1+${(taux*100).toFixed(1).replace(".",",")} %)⁻${dureeBail}] ÷ ${(taux*100).toFixed(1).replace(".",",")} % = <b>${eurX(va)}</b>`,
+     cle:"Une dette qui vient de bondir de plusieurs dizaines de millions sans qu'un banquier ne soit entré dans la pièce — juste la signature d'un bail."},
+    {q:"Année 1 : quel est l'amortissement du droit d'usage ?", val:amortissementAn1, unit:"€", tol:Math.max(20000,amortissementAn1*.02),
+     calcul:`${eurX(va)} ÷ ${dureeBail} ans = <b>${eurX(amortissementAn1)}</b>`,
+     cle:"Le droit d'usage s'amortit linéairement sur la durée ferme du bail — comme n'importe quelle autre immobilisation."},
+    {q:"Année 1 : quels sont les intérêts sur la dette de loyers ?", val:interetsAn1, unit:"€", tol:Math.max(20000,interetsAn1*.02),
+     calcul:`${eurX(va)} × ${(taux*100).toFixed(1).replace(".",",")} % = <b>${eurX(interetsAn1)}</b>`,
+     cle:"Comme toute dette, elle porte intérêt — et ces intérêts, comme l'amortissement, ne touchent jamais l'EBITDA."},
+    {q:"Année 1 : quelle est la charge totale au compte de résultat (amortissement + intérêts) ?", val:chargeAn1, unit:"€", tol:Math.max(30000,chargeAn1*.02),
+     calcul:`${eurX(amortissementAn1)} + ${eurX(interetsAn1)} = <b>${eurX(chargeAn1)}</b>`,
+     cle:"Souvent plus lourd que le loyer d'origine en début de bail (le profil est frontloadé par les intérêts), plus léger en fin de bail — mais jamais dans l'EBITDA."},
+    {q:"De combien l'EBITDA est-il désormais plus élevé qu'avant IFRS 16, à cash identique ?", val:loyerAnnuel, unit:"€", tol:Math.max(20000,loyerAnnuel*.01),
+     calcul:`Le loyer entier a disparu de l'EBITDA, remplacé par de l'amortissement et des intérêts qui n'en font pas partie : <b>+${eurX(loyerAnnuel)}</b>`,
+     cle:"Même bail, même cash décaissé — mais un EBITDA gonflé exactement du montant du loyer. Toute comparaison de multiples entre un locataire et un propriétaire exige un retraitement."},
+    {q:"De combien la dette apparente de l'entreprise augmente-t-elle à la signature ?", val:va, unit:"€", tol:Math.max(50000,va*.02),
+     calcul:`Exactement la valeur actualisée des loyers, inscrite au passif : <b>${eurX(va)}</b>`,
+     cle:"Le levier (dette / EBITDA) bouge donc des deux côtés à la fois avec IFRS 16 — la dette monte, et l'EBITDA aussi. Aucun des deux effets ne s'annule automatiquement."}
    ]};}}
 
 ];
