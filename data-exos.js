@@ -32,7 +32,7 @@ function vf(x){ return String(Math.round(x*100)/100).replace(".",","); }
 const EXOS = [
 
 /* ============ 1 ============ */
-{id:"e1", n:1, ic:"🧾", titre:"Lire un compte de résultat",
+{id:"e1", n:1, ic:"🧮", titre:"Lire un compte de résultat",
  sujet:"Chiffre d'affaires, coût des ventes, marge brute, taux de marge",
  rappel:`Un compte de résultat se lit <b>de haut en bas</b>, et chaque ligne se déduit de la précédente.
    <br><br><b>Marge brute = chiffre d'affaires − coût des ventes.</b> Le coût des ventes, ce sont les achats <i>consommés</i> pour produire ce que tu as vendu — la matière, pas le loyer.
@@ -78,7 +78,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 2 ============ */
-{id:"e2", n:2, ic:"📊", titre:"Les soldes intermédiaires",
+{id:"e2", n:2, ic:"🧮", titre:"Les soldes intermédiaires",
  sujet:"EBITDA, EBIT, résultat net, marge nette",
  rappel:`La cascade complète, dans l'ordre, et chaque ligne enlève quelque chose :
    <br><br><b>EBITDA</b> = marge brute − charges fixes décaissées (salaires, loyer, frais). C'est ce que le métier produit <i>avant</i> toute décision comptable ou financière. C'est le chiffre du banquier.
@@ -128,7 +128,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 3 ============ */
-{id:"e3", n:3, ic:"⚖️", titre:"Le point mort",
+{id:"e3", n:3, ic:"🧮", titre:"Le point mort",
  sujet:"Marge sur coût variable, seuil de rentabilité, marge de sécurité",
  rappel:`Il y a deux natures de charges, et tout part de là.
    <br><br>Les <b>charges variables</b> suivent le volume (la matière). Les <b>charges fixes</b> tombent que tu vendes ou non (le loyer).
@@ -175,7 +175,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 4 ============ */
-{id:"e4", n:4, ic:"🔄", titre:"Le besoin en fonds de roulement",
+{id:"e4", n:4, ic:"🧮", titre:"Le besoin en fonds de roulement",
  sujet:"BFR, BFR en jours de CA, DSO, DPO",
  rappel:`Le BFR, c'est <b>l'argent que ton cycle immobilise en permanence</b> — de l'argent qui t'appartient et que tu n'as pas.
    <br><br><b>BFR = stock + créances clients − dettes fournisseurs.</b> Tes clients te financent quand ils paient d'avance, tes fournisseurs te financent quand ils attendent.
@@ -223,7 +223,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 5 ============ */
-{id:"e5", n:5, ic:"🌊", titre:"Du résultat à la trésorerie",
+{id:"e5", n:5, ic:"🧮", titre:"Du résultat à la trésorerie",
  sujet:"Flux d'exploitation, variation de trésorerie",
  rappel:`Un mois peut être bénéficiaire et vider ta caisse. La réconciliation tient en une ligne :
    <br><br><b>Flux d'exploitation = résultat net + dotations − variation du BFR.</b>
@@ -267,7 +267,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 6 ============ */
-{id:"e6", n:6, ic:"🏛️", titre:"La structure du bilan",
+{id:"e6", n:6, ic:"🧮", titre:"La structure du bilan",
  sujet:"Dette nette, gearing, dette nette / EBITDA, couverture des intérêts",
  rappel:`Quatre ratios qu'un prêteur regarde avant toi.
    <br><br><b>Dette nette = dettes financières − trésorerie.</b> Ce que tu dois VRAIMENT, une fois ton cash déduit.
@@ -316,7 +316,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 7 ============ */
-{id:"e7", n:7, ic:"📈", titre:"La rentabilité",
+{id:"e7", n:7, ic:"🧮", titre:"La rentabilité",
  sujet:"ROCE, ROE, et la décomposition marge × rotation",
  rappel:`Gagner de l'argent ne suffit pas : il faut savoir <b>avec combien de capital</b> tu l'as gagné.
    <br><br><b>Capitaux engagés = immobilisations + BFR.</b> L'argent immobilisé dans l'outil et dans le cycle.
@@ -362,7 +362,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 8 ============ */
-{id:"e8", n:8, ic:"⏳", titre:"La valeur du temps",
+{id:"e8", n:8, ic:"🧮", titre:"La valeur du temps",
  sujet:"Actualisation, valeur actuelle nette, taux de rendement",
  rappel:`Un euro dans un an vaut moins qu'un euro aujourd'hui — parce qu'aujourd'hui tu peux le placer.
    <br><br><b>Valeur actuelle d'un flux = flux ÷ (1 + t)^n</b>, où t est le taux d'actualisation et n le nombre d'années.
@@ -411,7 +411,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 9 ============ */
-{id:"e9", n:9, ic:"🔍", titre:"Les multiples",
+{id:"e9", n:9, ic:"🧮", titre:"Les multiples",
  sujet:"VE/EBITDA, PER, passage valeur d'entreprise ↔ prix des titres",
  rappel:`Le piège le plus coûteux de toute la finance d'entreprise tient en une ligne.
    <br><br><b>Valeur d'entreprise (VE) = multiple × EBITDA.</b> C'est la valeur de l'OUTIL, indépendamment de qui l'a financé.
@@ -461,7 +461,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 10 ============ */
-{id:"e10", n:10, ic:"💧", titre:"Le flux de trésorerie disponible",
+{id:"e10", n:10, ic:"🧮", titre:"Le flux de trésorerie disponible",
  sujet:"NOPAT, FCFF, FCFE",
  rappel:`Le <b>FCFF</b> (free cash flow to firm) est le flux disponible pour <b>tous</b> les apporteurs de capitaux — banquiers et actionnaires. C'est lui qu'on actualise pour valoriser une entreprise.
    <br><br><b>NOPAT = EBIT × (1 − taux d'impôt).</b> Le résultat d'exploitation après impôt, comme si l'entreprise n'avait aucune dette.
@@ -511,7 +511,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 11 ============ */
-{id:"e11", n:11, ic:"🏦", titre:"Le coût du capital",
+{id:"e11", n:11, ic:"🧮", titre:"Le coût du capital",
  sujet:"Coût de la dette après impôt, coût des fonds propres, WACC",
  rappel:`Tout capital a un prix, y compris celui que tu crois gratuit.
    <br><br><b>Coût de la dette après impôt = taux × (1 − taux d'impôt).</b> Les intérêts sont déductibles : un emprunt à 5 % avec un IS à 25 % te coûte réellement 3,75 %.
@@ -561,7 +561,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 12 ============ */
-{id:"e12", n:12, ic:"🧬", titre:"Bêta et structure financière",
+{id:"e12", n:12, ic:"🧮", titre:"Bêta et structure financière",
  sujet:"MEDAF, bêta désendetté et réendetté, effet de la dette sur le risque",
  rappel:`Le dernier palier, et celui qui ferme la boucle.
    <br><br><b>MEDAF : coût des fonds propres = taux sans risque + β × prime de risque du marché.</b> Le bêta mesure la sensibilité de l'action au marché : β = 1, elle bouge comme le marché ; β = 1,5, elle amplifie de moitié.
@@ -615,7 +615,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 13 · piste PRIX ============ */
-{id:"e13", n:13, piste:"prix", ic:"🎚️", titre:"Lire une élasticité",
+{id:"e13", n:13, piste:"prix", ic:"💰", titre:"Lire une élasticité",
  sujet:"Variation en %, élasticité-prix, élastique ou non",
  rappel:`L'élasticité-prix répond à une seule question : <b>si je bouge mon prix de 1 %, de combien bouge mon volume ?</b>
    <br><br><b>Élasticité = (variation du volume en %) ÷ (variation du prix en %).</b>
@@ -665,7 +665,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 14 · piste PRIX ============ */
-{id:"e14", n:14, piste:"prix", ic:"📐", titre:"La mesurer proprement",
+{id:"e14", n:14, piste:"prix", ic:"💰", titre:"La mesurer proprement",
  sujet:"Élasticité d'arc, point de référence, écart entre les deux méthodes",
  rappel:`Un piège apparaît dès qu'on mesure pour de vrai : <b>le résultat dépend du point de départ choisi</b>. De 20 € à 18 €, c'est −10 %. De 18 € à 20 €, c'est +11,1 %. Même mouvement, deux chiffres.
    <br><br>D'où la méthode standard, dite <b>élasticité d'arc</b> (ou du point milieu) : on divise par la <b>moyenne</b> des deux valeurs, pas par celle de départ.
@@ -765,7 +765,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 16 · piste PRIX ============ */
-{id:"e16", n:16, piste:"prix", ic:"⚔️", titre:"Élasticité et MARGE",
+{id:"e16", n:16, piste:"prix", ic:"💰", titre:"Élasticité et MARGE",
  sujet:"Volume de compensation, quand une remise se paie vraiment",
  rappel:`Voici le palier qui compte, et celui que presque personne ne calcule avant de solder.
    <br><br>Une remise ne se prend pas sur le prix : <b>elle se prend entièrement sur la marge</b>. Si tu vends 100 € un produit qui t'en coûte 60, ta marge est de 40. Une remise de 10 % te fait vendre à 90 : ta marge tombe à 30, soit <b>−25 %</b>, pour −10 % de prix seulement.
@@ -820,7 +820,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 17 · piste PRIX ============ */
-{id:"e17", n:17, piste:"prix", ic:"🔬", titre:"La mesurer dans la vraie vie",
+{id:"e17", n:17, piste:"prix", ic:"💰", titre:"La mesurer dans la vraie vie",
  sujet:"Biais de mesure, effets parasites, élasticité croisée et élasticité-revenu",
  rappel:`Dans un exercice, l'élasticité se lit. Dans une entreprise, elle se <b>déduit</b> — et mal, si on n'y prend pas garde.
    <br><br><b>Le biais principal : on ne baisse pas les prix au hasard.</b> On les baisse quand les ventes faiblissent. Comparer naïvement deux périodes mélange donc deux choses : l'effet de ton prix, et la raison pour laquelle tu l'as bougé. Le chiffre qui sort est presque toujours <b>sous-estimé</b>.
@@ -872,7 +872,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 18 · piste PRIX ============ */
-{id:"e18", n:18, piste:"prix", ic:"🏭", titre:"Par secteur, et le prix optimal",
+{id:"e18", n:18, piste:"prix", ic:"💰", titre:"Par secteur, et le prix optimal",
  sujet:"Règle de Lerner, marge optimale, pourquoi les secteurs ne se tarifient pas pareil",
  rappel:`Le point d'arrivée. On sait mesurer l'élasticité ; on va maintenant s'en servir pour <b>fixer un prix</b>.
    <br><br><b>Règle de Lerner : au prix qui maximise le profit, (P − c) ÷ P = 1 ÷ |e|.</b>
@@ -983,7 +983,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 20 · piste BÊTA ============ */
-{id:"e20", n:20, piste:"beta", ic:"📊", titre:"Le mesurer proprement",
+{id:"e20", n:20, piste:"beta", ic:"🧭", titre:"Le mesurer proprement",
  sujet:"Covariance, corrélation, volatilités — la vraie formule derrière le bêta",
  rappel:`Un bêta ne s'invente pas : c'est la PENTE de la droite de régression des rendements de l'action sur ceux du marché. Deux formules, rigoureusement équivalentes.
    <br><br><b>β = Cov(R_action, R_marché) ÷ Var(R_marché)</b> — la définition statistique brute.
@@ -1032,7 +1032,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 21 · piste BÊTA ============ */
-{id:"e21", n:21, piste:"beta", ic:"🧩", titre:"Ce qu'il explique, ce qu'il n'explique pas",
+{id:"e21", n:21, piste:"beta", ic:"🧭", titre:"Ce qu'il explique, ce qu'il n'explique pas",
  sujet:"R², risque systématique contre risque spécifique, ce que la diversification élimine",
  rappel:`Un bêta ne raconte jamais toute l'histoire du risque d'une action. Le <b>R² (coefficient de détermination) = ρ²</b> dit quelle PART de ses mouvements le marché explique réellement.
    <br><br><b>R² élevé</b> : l'essentiel du risque de l'action est SYSTÉMATIQUE — lié au marché, donc capturé par le bêta.
@@ -1071,7 +1071,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 22 · piste BÊTA ============ */
-{id:"e22", n:22, piste:"beta", ic:"🎛️", titre:"Les subtilités du calcul",
+{id:"e22", n:22, piste:"beta", ic:"🧭", titre:"Les subtilités du calcul",
  sujet:"Fenêtre d'observation, fréquence des rendements, l'ajustement de Blume",
  rappel:`Un bêta « mesuré » dépend de choix qu'on oublie de questionner. <b>La fenêtre</b> : deux ans de données hebdomadaires (le standard Bloomberg) captent un risque récent mais peu de points ; cinq ans de données mensuelles lissent le bruit mais peuvent inclure une période où l'entreprise n'avait plus le même profil. <b>La fréquence</b> : des rendements quotidiens sont bruités (écarts de cotation, titres peu liquides) — l'hebdomadaire ou le mensuel donnent souvent un bêta plus stable.
    <br><br>Et un fait empirique majeur : les bêtas mesurés par régression ont tendance à <b>revenir vers 1</b> dans le temps — une entreprise très risquée devient rarement AUSSI risquée indéfiniment, et l'inverse. D'où <b>l'ajustement de Blume</b>, utilisé par défaut par la plupart des terminaux financiers :
@@ -1111,7 +1111,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 23 · piste BÊTA ============ */
-{id:"e23", n:23, piste:"beta", ic:"🏗️", titre:"Le bêta bottom-up",
+{id:"e23", n:23, piste:"beta", ic:"🧭", titre:"Le bêta bottom-up",
  sujet:"Désendetter plusieurs comparables, faire la moyenne, réendetter à la cible",
  rappel:`Le geste que fait vraiment un analyste, la plupart du temps : une cible privée, une petite capitalisation peu liquide, ou une DIVISION d'un grand groupe n'a tout simplement <b>pas de bêta de régression fiable</b> — parfois pas de cotation du tout.
    <br><br>La solution standard (méthode Damodaran) : prendre PLUSIEURS comparables cotés du même métier, <b>désendetter</b> chacun de leur bêta (palier 12 — on retire l'effet de LEUR propre dette), faire la <b>MOYENNE</b> de ces bêtas désendettés — c'est elle qui représente le risque du MÉTIER, débarrassé du bruit d'une seule structure financière — puis <b>réendetter</b> cette moyenne à la structure de la cible.
@@ -1162,7 +1162,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 24 · piste BÊTA ============ */
-{id:"e24", n:24, piste:"beta", ic:"🔭", titre:"Bêta et le reste du MEDAF",
+{id:"e24", n:24, piste:"beta", ic:"🧭", titre:"Bêta et le reste du MEDAF",
  sujet:"Sensibilité de la valeur au bêta, repères sectoriels, signaux d'alerte",
  rappel:`Le point d'arrivée. Un bêta n'est jamais une fin en soi : il entre dans le coût des fonds propres, qui entre dans le WACC, qui entre dans un DÉNOMINATEUR de valorisation — et une petite erreur, là, produit un GROS écart de valeur.
    <br><br><b>Repères de bêta, à connaître sans les réciter :</b> biens de consommation courante et utilities, plutôt défensifs, 0,5 à 0,8. Le marché dans son ensemble, 1. Technologie, luxe, cycliques, plutôt 1,3 à 1,8. Compagnies aériennes, matières premières, très endettées : souvent au-delà de 2.
@@ -1219,7 +1219,7 @@ const EXOS = [
    ================================================================ */
 
 /* ============ 25 · piste WACC ============ */
-{id:"e25", n:25, piste:"wacc", ic:"🔁", titre:"La circularité, et comment la casser",
+{id:"e25", n:25, piste:"wacc", ic:"🏦", titre:"La circularité, et comment la casser",
  sujet:"Le WACC a besoin de la valeur des fonds propres — que le DCF n'a pas encore calculée",
  rappel:`Un piège que personne ne voit avant de construire son premier DCF : le WACC pondère par la valeur de MARCHÉ des fonds propres (palier 11). Mais dans une valorisation par DCF, cette valeur est précisément ce qu'on cherche — <b>elle sort du DCF, elle n'y entre pas</b>. Le WACC a besoin d'un résultat qu'il n'a pas encore.
    <br><br>Deux façons d'en sortir, les deux légitimes. <b>Itérer</b> : partir d'une valeur de départ (comptable, ou un multiple de comparable), calculer un WACC, en déduire une valeur, recalculer le WACC avec cette nouvelle valeur, et répéter — ça converge en général en trois à cinq passages. <b>Ou trancher directement</b> : pondérer sur une structure financière CIBLE (celle que vise l'entreprise, ou la moyenne du secteur) plutôt que sur une valeur de marché qu'on n'a pas encore. C'est la méthode la plus utilisée en pratique — elle évite la boucle en posant l'hypothèse plutôt qu'en la résolvant.`,
@@ -1263,7 +1263,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 26 · piste WACC ============ */
-{id:"e26", n:26, piste:"wacc", ic:"🪜", titre:"Le coût de la dette sans marché obligataire",
+{id:"e26", n:26, piste:"wacc", ic:"🏦", titre:"Le coût de la dette sans marché obligataire",
  sujet:"Ratio de couverture des intérêts, notation synthétique, spread de défaut",
  rappel:`Le coût de la dette (palier 11) suppose un taux observable — un emprunt en cours, une obligation cotée. La plupart des entreprises, notamment privées, n'en ont pas. La méthode standard (Damodaran) : reconstituer une <b>notation synthétique</b> à partir du <b>ratio de couverture des intérêts (ICR = EBIT ÷ intérêts financiers)</b>, lui associer un <b>spread de défaut</b>, puis <b>coût de la dette avant impôt = taux sans risque + spread</b>.
    <br><br><b>Table simplifiée (à utiliser telle quelle) :</b>
@@ -1307,7 +1307,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 27 · piste WACC ============ */
-{id:"e27", n:27, piste:"wacc", ic:"🧭", titre:"Structure cible, pas structure du jour",
+{id:"e27", n:27, piste:"wacc", ic:"🏦", titre:"Structure cible, pas structure du jour",
  sujet:"Pourquoi on pondère souvent sur la structure financière VISÉE plutôt que sur celle d'aujourd'hui",
  rappel:`Une entreprise qui sort d'un LBO, qui vient de faire un rachat d'actions massif, ou qui traverse une année atypique, a une structure financière du moment qui ne dit rien de sa trajectoire de long terme. Or un WACC sert à actualiser des flux sur dix, vingt ans — figer la structure d'AUJOURD'HUI reviendrait à parier qu'elle ne bougera jamais.
    <br><br>La pratique standard : pondérer (et réendetter le bêta — palier 23) sur une structure <b>CIBLE</b> — celle que vise l'entreprise, ou la moyenne durable du secteur — plutôt que sur la structure ACTUELLE, souvent transitoire. Le bêta désendetté du métier ne change pas ; ce qui change, c'est à QUELLE structure on le réendette.`,
@@ -1351,7 +1351,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 28 · piste WACC ============ */
-{id:"e28", n:28, piste:"wacc", ic:"🏢", titre:"Le WACC par division",
+{id:"e28", n:28, piste:"wacc", ic:"🏦", titre:"Le WACC par division",
  sujet:"Pourquoi un groupe à plusieurs métiers n'a pas UN SEUL WACC — la somme des parties",
  rappel:`Un groupe qui possède à la fois une activité stable (régulée, défensive) et une activité risquée (technologique, cyclique) commet une faute classique en les actualisant TOUTES LES DEUX au même WACC consolidé.
    <br><br>Un WACC unique, moyenné sur l'ensemble du groupe, <b>SUR-évalue systématiquement la division risquée</b> (ses flux, dangereux, sont actualisés à un taux trop doux) et <b>SOUS-évalue la division stable</b> (ses flux, sûrs, sont actualisés à un taux trop dur). La bonne pratique — la <b>somme des parties</b> (sum-of-the-parts) — actualise chaque division à SON PROPRE WACC, dérivé de comparables purs de son métier (palier 23), puis additionne les valeurs.`,
@@ -1397,7 +1397,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 29 · piste WACC ============ */
-{id:"e29", n:29, piste:"wacc", ic:"📡", titre:"Sensibilité — pourquoi une erreur coûte cher",
+{id:"e29", n:29, piste:"wacc", ic:"🏦", titre:"Sensibilité — pourquoi une erreur coûte cher",
  sujet:"L'effet d'une petite erreur de WACC sur un DCF complet, valeur terminale comprise",
  rappel:`Un WACC ne se contente pas d'actualiser un flux : il actualise TOUS les flux futurs, y compris la valeur terminale — qui pèse souvent 60 à 80 % d'un DCF. Une erreur de WACC ne coûte donc pas qu'une fois : elle se compose sur tout l'horizon ET sur la valeur terminale, qui l'amplifie encore.
    <br><br>C'est très différent d'une erreur sur UN flux de trésorerie : celle-là ne coûte que ce qu'elle vaut, actualisée une fois. Une erreur de WACC, elle, se propage à TOUT le modèle à la fois — c'est pour ça qu'elle est, ligne pour ligne, l'hypothèse la plus dangereuse d'un DCF.`,
@@ -1456,7 +1456,7 @@ const EXOS = [
    ================================================================ */
 
 /* ============ 30 · piste MULTIPLES ============ */
-{id:"e30", n:30, piste:"multiples", ic:"🔎", titre:"Choisir les bons comparables",
+{id:"e30", n:30, piste:"multiples", ic:"🔍", titre:"Choisir les bons comparables",
  sujet:"Moyenne, médiane, et le coût d'un comparable qui ne devrait pas être là",
  rappel:`Un bon comparable partage le métier, la taille, la zone géographique — et surtout un profil de CROISSANCE et de MARGE proche de la cible. Un comparable mal choisi (une pépite technologique en hyper-croissance glissée dans un échantillon d'entreprises matures) ne se contente pas de fausser un peu la moyenne : il peut la faire dériver de plusieurs points.
    <br><br>C'est pourquoi la pratique préfère souvent la <b>MÉDIANE</b> à la moyenne : elle résiste aux valeurs extrêmes, alors qu'une seule moyenne mal nettoyée peut suffire à surpayer — ou sous-évaluer — une cible entière.`,
@@ -1498,7 +1498,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 31 · piste MULTIPLES ============ */
-{id:"e31", n:31, piste:"multiples", ic:"👑", titre:"Comparables boursiers ou transactions",
+{id:"e31", n:31, piste:"multiples", ic:"🔍", titre:"Comparables boursiers ou transactions",
  sujet:"La prime de contrôle : pourquoi un multiple de transaction n'est jamais un multiple boursier",
  rappel:`Deux familles de multiples ne se substituent JAMAIS l'une à l'autre. Les <b>comparables boursiers (trading comps)</b> reflètent le prix d'un petit paquet d'actions échangé en bourse — une participation MINORITAIRE, sans aucun pouvoir de décision. Les <b>transactions précédentes (precedent transactions)</b> reflètent des rachats de CONTRÔLE, et embarquent une <b>prime de contrôle</b> — 20 à 40 % de plus, payés pour le droit de changer la stratégie, remplacer le management, capter des synergies.
    <br><br>Utiliser un multiple boursier pour valoriser une prise de contrôle SOUS-évalue la cible. Utiliser un multiple de transaction pour valoriser un simple achat d'actions minoritaires SURÉVALUE l'opération. Le bon réflexe : faire correspondre le type de multiple au type de participation visée.`,
@@ -1541,7 +1541,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 32 · piste MULTIPLES ============ */
-{id:"e32", n:32, piste:"multiples", ic:"📅", titre:"Multiple LTM ou NTM",
+{id:"e32", n:32, piste:"multiples", ic:"🔍", titre:"Multiple LTM ou NTM",
  sujet:"Trailing contre forward : le même prix donne deux multiples très différents",
  rappel:`Un multiple n'a de sens que rapporté à UN EBITDA précis. <b>LTM (last twelve months)</b> : l'EBITDA déjà réalisé, sur les douze derniers mois — du passé certain. <b>NTM (next twelve months)</b> : l'EBITDA attendu sur les douze prochains mois — une prévision.
    <br><br>Pour une entreprise qui croît vite, l'EBITDA NTM est sensiblement plus élevé que le LTM — donc, au MÊME prix, le multiple NTM est plus BAS que le multiple LTM. Comparer le multiple LTM d'une entreprise au multiple NTM d'une autre, c'est comparer deux choses qui ne se ressemblent pas — l'erreur la plus fréquente dans un tableau de comparables mal construit.`,
@@ -1583,7 +1583,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 33 · piste MULTIPLES ============ */
-{id:"e33", n:33, piste:"multiples", ic:"🌉", titre:"Le vrai pont VE → capitaux propres",
+{id:"e33", n:33, piste:"multiples", ic:"🔍", titre:"Le vrai pont VE → capitaux propres",
  sujet:"Minoritaires, provisions sous-financées, dilution des stock-options",
  rappel:`Le pont simplifié (palier 9) — VE moins dette nette — suffit pour un premier chiffrage. Un pont complet retire aussi tout ce qui ressemble à une dette sans en porter le nom. Les <b>intérêts minoritaires</b> : si tu ne détiens pas 100 % d'une filiale mais que son EBITDA est consolidé en entier dans la VE, il faut retirer la part qui revient aux autres actionnaires. Les <b>provisions sous-financées</b> (retraites, litiges) : des engagements réels, à retirer comme une dette.
    <br><br>Et les actions ne se comptent pas non plus telles quelles : des <b>stock-options dans la monnaie</b> ajoutent des actions nouvelles. La méthode du rachat d'actions (treasury stock method) : le cash reçu à l'exercice sert à racheter des actions au cours actuel — seule la DIFFÉRENCE entre les options exercées et les actions rachetables dilue vraiment le capital.`,
@@ -1626,7 +1626,7 @@ const EXOS = [
    ]};}},
 
 /* ============ 34 · piste MULTIPLES ============ */
-{id:"e34", n:34, piste:"multiples", ic:"🪞", titre:"Le multiple est un DCF raccourci",
+{id:"e34", n:34, piste:"multiples", ic:"🔍", titre:"Le multiple est un DCF raccourci",
  sujet:"Le lien entre multiple, croissance et WACC — pourquoi cher et bon marché ne veulent rien dire seuls",
  rappel:`Un multiple n'est jamais qu'un raccourci pour ne pas refaire un DCF entier. Version simplifiée, à flux perpétuel : <b>VE/EBITDA ≈ (1 + g) ÷ (WACC − g)</b>. Un multiple ÉLEVÉ n'est pas cher : il reflète une croissance forte, un WACC bas (risque faible), ou les deux. Un multiple BAS n'est pas une affaire : il reflète souvent une croissance faible ou un risque élevé.
    <br><br>Comparer deux multiples bruts sans regarder ce qu'ils IMPLIQUENT sur la croissance et le risque, c'est comparer deux prix sans savoir ce qu'ils achètent.`,

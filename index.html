@@ -1647,7 +1647,7 @@ function calcBlock(){
   const vars=calcVars();
   const pad=[["7"],["8"],["9"],["÷","op"],["4"],["5"],["6"],["×","op"],
              ["1"],["2"],["3"],["−","op"],["0"],[","],["%","op"],["+","op"],
-             ["(","op"],[")","op"],["⌫","del"],["=","eq"],["^","op"],["ln","op"]];
+             ["(","op"],[")","op"],["←","del"],["=","eq"],["^","op"],["ln","op"]];
   return `<div class="calcw${S.calcOpen?" open":""}" id="calcw">
     <div class="calch" onclick="calcToggle()"><span>🧮</span><b>La calculatrice</b>
       <span class="xptxt">estime avant de trancher</span><span class="ar">›</span></div>
@@ -1706,7 +1706,7 @@ function calcUse(){
 }
 function calcKey(t){
   const i=document.getElementById("calcin"); if(!i) return;
-  if(t==="⌫"){ i.value=i.value.slice(0,-1); calcLive(); i.focus(); return; }
+  if(t==="←"){ i.value=i.value.slice(0,-1); calcLive(); i.focus(); return; }
   if(t==="="){ calcEq(); return; }
   if(t==="ln"){ i.value+="ln("; calcLive(); i.focus(); return; }
   i.value+=({"×":"*","÷":"/","−":"-"})[t]||t;
@@ -2552,10 +2552,10 @@ function exoPointFaible(){
    mais on ne monte plus un seul escalier. */
 const PISTES={
   socle:{nom:"Le socle",ic:"🧮",intro:"Je te donne les chiffres, tu calcules. Chaque palier ouvre le suivant : on ne saute pas une marche. Le premier est une soustraction, le dernier désendette un bêta."},
-  prix:{nom:"Le prix",ic:"🎚️",intro:"L'élasticité, de « à quoi ça sert » jusqu'au prix optimal. Tu l'as vue décider à ta place dans LA BOÎTE — ici tu apprends à la lire, à la mesurer, et à savoir quand elle ment."},
+  prix:{nom:"Le prix",ic:"💰",intro:"L'élasticité, de « à quoi ça sert » jusqu'au prix optimal. Tu l'as vue décider à ta place dans LA BOÎTE — ici tu apprends à la lire, à la mesurer, et à savoir quand elle ment."},
   beta:{nom:"Le bêta",ic:"🧭",intro:"Le socle t'a fait désendetter un bêta déjà donné. Ici tu descends sous la formule : d'où il vient, ce qu'il explique vraiment, ses subtilités de mesure, et le geste du praticien — le bêta bottom-up."},
-  wacc:{nom:"Le WACC",ic:"🔁",intro:"Le socle t'a fait calculer un WACC avec des chiffres fournis. Ici, les problèmes qu'un praticien affronte vraiment : la circularité, une dette sans marché coté, la structure cible, le WACC par division, et pourquoi une petite erreur dessus coûte plus cher que partout ailleurs."},
-  multiples:{nom:"Les multiples",ic:"🔎",intro:"Le socle t'a fait calculer le pont VE ↔ titres avec un multiple fourni. Ici, choisir les bons comparables, ne pas confondre boursier et transaction, LTM contre NTM, le vrai pont, et pourquoi un multiple n'est jamais qu'un DCF raccourci."}
+  wacc:{nom:"Le WACC",ic:"🏦",intro:"Le socle t'a fait calculer un WACC avec des chiffres fournis. Ici, les problèmes qu'un praticien affronte vraiment : la circularité, une dette sans marché coté, la structure cible, le WACC par division, et pourquoi une petite erreur dessus coûte plus cher que partout ailleurs."},
+  multiples:{nom:"Les multiples",ic:"🔍",intro:"Le socle t'a fait calculer le pont VE ↔ titres avec un multiple fourni. Ici, choisir les bons comparables, ne pas confondre boursier et transaction, LTM contre NTM, le vrai pont, et pourquoi un multiple n'est jamais qu'un DCF raccourci."}
 };
 function exoPiste(n){ const p=exoPal(n); return (p&&p.piste)||"socle"; }
 function exoPistes(){ const v=[]; EXOS.forEach(p=>{ const k=p.piste||"socle"; if(v.indexOf(k)<0) v.push(k); }); return v; }
