@@ -1443,6 +1443,230 @@ const EXOS = [
      val:impactFcf1, unit:"€", tol:Math.max(500,impactFcf1*.02),
      calcul:`${eurX(fcf1Err)} ÷ (1+${(wacc*100).toFixed(1).replace(".",",")} %) = <b>${eurX(impactFcf1)}</b>`,
      cle:"Comparé à l'écart trouvé plus haut, l'impact est minuscule. Une erreur de flux ne coûte qu'UNE année, actualisée une fois. Une erreur de WACC recalcule tout le modèle, valeur terminale comprise : ce n'est pas la même catégorie de risque de modélisation."}
+   ]};}},
+
+/* ================================================================
+   PISTE MULTIPLES — ajoutée le 2026-09-28, à la suite du WACC. Le
+   palier 9 (LE SOCLE) donne déjà le pont VE ↔ titres et le PER, avec
+   un multiple FOURNI. Cette piste va sous ce qui est donné : choisir
+   les bons comparables, ne pas confondre un multiple boursier et un
+   multiple de transaction, LTM contre NTM, le vrai pont (minoritaires,
+   provisions, dilution), et pourquoi un multiple n'est jamais qu'un
+   DCF raccourci — le lien avec le WACC et la croissance.
+   ================================================================ */
+
+/* ============ 30 · piste MULTIPLES ============ */
+{id:"e30", n:30, piste:"multiples", ic:"🔎", titre:"Choisir les bons comparables",
+ sujet:"Moyenne, médiane, et le coût d'un comparable qui ne devrait pas être là",
+ rappel:`Un bon comparable partage le métier, la taille, la zone géographique — et surtout un profil de CROISSANCE et de MARGE proche de la cible. Un comparable mal choisi (une pépite technologique en hyper-croissance glissée dans un échantillon d'entreprises matures) ne se contente pas de fausser un peu la moyenne : il peut la faire dériver de plusieurs points.
+   <br><br>C'est pourquoi la pratique préfère souvent la <b>MÉDIANE</b> à la moyenne : elle résiste aux valeurs extrêmes, alors qu'une seule moyenne mal nettoyée peut suffire à surpayer — ou sous-évaluer — une cible entière.`,
+ gen:R=>{
+  const m1=R.ent(55,70)/10, m2=R.ent(60,75)/10, m3=R.ent(65,80)/10, m4=R.ent(58,85)/10;
+  const mOut=R.ent(150,220)/10;
+  const arr=[m1,m2,m3,m4,mOut].slice().sort((a,b)=>a-b);
+  const medianAll=arr[2];
+  const meanAll=(m1+m2+m3+m4+mOut)/5, meanClean=(m1+m2+m3+m4)/4;
+  const ebitdaT=R.ent(300,1200)*1000;
+  const veAll=meanAll*ebitdaT, veClean=meanClean*ebitdaT;
+  return {contextes:[`Cinq comparables observés sur le secteur de la cible.`,
+    `Un banquier te transmet cinq multiples de transactions récentes.`,
+    `Avant de retenir un multiple, tu regardes l'échantillon qui le compose.`,
+    `Cinq sociétés « du même secteur » — à vérifier si elles le sont vraiment.`],
+   contexte:`Cinq comparables observés sur le secteur de la cible.`,
+   donnees:[["Comparable 1",m1,"×"],["Comparable 2",m2,"×"],["Comparable 3",m3,"×"],
+            ["Comparable 4",m4,"×"],["Comparable 5 (forte croissance, hors profil)",mOut,"×"],
+            ["EBITDA de la cible",ebitdaT,"€"]],
+   questions:[
+    {q:"Quelle est la moyenne des cinq multiples observés ?", val:meanAll, unit:"×", tol:.15,
+     calcul:`(${m1.toFixed(1).replace(".",",")}+${m2.toFixed(1).replace(".",",")}+${m3.toFixed(1).replace(".",",")}+${m4.toFixed(1).replace(".",",")}+${mOut.toFixed(1).replace(".",",")}) ÷ 5 = <b>${meanAll.toFixed(2).replace(".",",")}×</b>`,
+     cle:"Une seule valeur très éloignée du reste de l'échantillon suffit à tirer la moyenne loin de ce que 4 comparables sur 5 racontent vraiment."},
+    {q:"Quelle est la MÉDIANE des cinq multiples ?", val:medianAll, unit:"×", tol:.1,
+     calcul:`Classés dans l'ordre : ${arr.map(x=>x.toFixed(1).replace(".",",")).join(" · ")} → la valeur du milieu = <b>${medianAll.toFixed(1).replace(".",",")}×</b>`,
+     cle:"La médiane reste dans le cœur de l'échantillon, presque insensible au comparable extrême. C'est pour ça qu'elle est souvent préférée en pratique."},
+    {q:"En écartant le comparable hors profil, quelle est la moyenne des 4 restants ?", val:meanClean, unit:"×", tol:.15,
+     calcul:`(${m1.toFixed(1).replace(".",",")}+${m2.toFixed(1).replace(".",",")}+${m3.toFixed(1).replace(".",",")}+${m4.toFixed(1).replace(".",",")}) ÷ 4 = <b>${meanClean.toFixed(2).replace(".",",")}×</b>`,
+     cle:"Très proche de la médiane trouvée juste avant — ce n'est pas un hasard : les deux méthodes convergent dès qu'on retire ce qui n'aurait jamais dû être comparé."},
+    {q:"En appliquant la moyenne BRUTE (avec l'outlier) à l'EBITDA de la cible, quelle valeur d'entreprise obtient-on ?", val:veAll, unit:"€", tol:Math.max(3000,veAll*.02),
+     calcul:`${meanAll.toFixed(2).replace(".",",")}× × ${eurX(ebitdaT)} = <b>${eurX(veAll)}</b>`,
+     cle:"Le chiffre qu'obtiendrait un analyste pressé, sans regarder d'où vient chaque multiple de l'échantillon."},
+    {q:"Et en appliquant la moyenne NETTOYÉE ?", val:veClean, unit:"€", tol:Math.max(3000,veClean*.02),
+     calcul:`${meanClean.toFixed(2).replace(".",",")}× × ${eurX(ebitdaT)} = <b>${eurX(veClean)}</b>`,
+     cle:"Le chiffre défendable — celui qu'on peut justifier comparable par comparable devant un comité."},
+    {q:"Quel est l'écart de valeur d'entreprise, en euros, entre les deux approches ?", val:veAll-veClean, unit:"€", tol:Math.max(2000,Math.abs(veAll-veClean)*.03),
+     calcul:`${eurX(veAll)} − ${eurX(veClean)} = <b>${eurX(veAll-veClean)}</b>`,
+     cle:"Un seul comparable mal choisi, dans un échantillon de cinq, et l'écart se compte déjà en centaines de milliers d'euros. À l'échelle d'un vrai deal, en millions."}
+   ]};}},
+
+/* ============ 31 · piste MULTIPLES ============ */
+{id:"e31", n:31, piste:"multiples", ic:"👑", titre:"Comparables boursiers ou transactions",
+ sujet:"La prime de contrôle : pourquoi un multiple de transaction n'est jamais un multiple boursier",
+ rappel:`Deux familles de multiples ne se substituent JAMAIS l'une à l'autre. Les <b>comparables boursiers (trading comps)</b> reflètent le prix d'un petit paquet d'actions échangé en bourse — une participation MINORITAIRE, sans aucun pouvoir de décision. Les <b>transactions précédentes (precedent transactions)</b> reflètent des rachats de CONTRÔLE, et embarquent une <b>prime de contrôle</b> — 20 à 40 % de plus, payés pour le droit de changer la stratégie, remplacer le management, capter des synergies.
+   <br><br>Utiliser un multiple boursier pour valoriser une prise de contrôle SOUS-évalue la cible. Utiliser un multiple de transaction pour valoriser un simple achat d'actions minoritaires SURÉVALUE l'opération. Le bon réflexe : faire correspondre le type de multiple au type de participation visée.`,
+ gen:R=>{
+  const tradingMult=R.ent(55,90)/10, premium=R.ent(20,40)/100;
+  const transMultImplied=tradingMult*(1+premium);
+  const ebitdaT=R.ent(300,1200)*1000;
+  const veMinority=tradingMult*ebitdaT, veControl=transMultImplied*ebitdaT;
+  const transMultGiven=R.ent(70,120)/10;
+  const primeImplied=(transMultGiven/tradingMult-1)*100;
+  const perteEnPct=(veControl-veMinority)/veControl*100;
+  return {contextes:[`Un acheteur hésite entre viser une participation minoritaire ou le contrôle total d'une cible.`,
+    `Deux dossiers sur le même secteur : l'un est un achat en bourse, l'autre un rachat total.`,
+    `Le comité compare un multiple boursier et un multiple de transaction sans faire la différence.`,
+    `Avant de citer un multiple, il faut savoir de quel type de participation il parle.`],
+   contexte:`Un acheteur hésite entre viser une participation minoritaire ou le contrôle total d'une cible.`,
+   donnees:[["Multiple boursier moyen du secteur (trading comps)",tradingMult,"×"],
+            ["Prime de contrôle observée sur le secteur",premium*100,"%"],
+            ["EBITDA de la cible",ebitdaT,"€"],["Multiple d'une transaction récente, observée",transMultGiven,"×"]],
+   questions:[
+    {q:"Pour une participation MINORITAIRE, quelle valeur d'entreprise donne le multiple boursier moyen ?", val:veMinority, unit:"€", tol:Math.max(3000,veMinority*.02),
+     calcul:`${tradingMult.toFixed(1).replace(".",",")}× × ${eurX(ebitdaT)} = <b>${eurX(veMinority)}</b>`,
+     cle:"La base de référence : ce que vaut la cible sur la base de ce qui s'échange réellement en bourse, sans aucune prime."},
+    {q:"Pour viser le CONTRÔLE, à quel multiple équivalent cela correspond-il avec cette prime ?", val:transMultImplied, unit:"×", tol:.2,
+     calcul:`${tradingMult.toFixed(1).replace(".",",")}× × (1 + ${(premium*100).toFixed(0)} %) = <b>${transMultImplied.toFixed(2).replace(".",",")}×</b>`,
+     cle:"La prime de contrôle ne s'ajoute pas en euros, elle se multiplie sur le multiple lui-même — c'est ce qui la rend si significative sur des cibles déjà chères."},
+    {q:"Quelle valeur d'entreprise cela donne-t-il pour une prise de contrôle ?", val:veControl, unit:"€", tol:Math.max(3000,veControl*.02),
+     calcul:`${transMultImplied.toFixed(2).replace(".",",")}× × ${eurX(ebitdaT)} = <b>${eurX(veControl)}</b>`,
+     cle:"C'est ce chiffre-là, et non le premier, qu'un acheteur qui veut décider seul doit être prêt à payer."},
+    {q:"Quel est l'écart de valeur, en euros, entre les deux bases (minoritaire contre contrôle) ?", val:veControl-veMinority, unit:"€", tol:Math.max(3000,(veControl-veMinority)*.03),
+     calcul:`${eurX(veControl)} − ${eurX(veMinority)} = <b>${eurX(veControl-veMinority)}</b>`,
+     cle:"Exactement la prime de contrôle, en euros. Elle n'est pas un arrondi de négociation : elle a une justification économique précise — le pouvoir de décider."},
+    {q:"Une transaction récente s'est faite à ce multiple observé. Quelle prime de contrôle cela implique-t-il par rapport au multiple boursier moyen ?", val:primeImplied, unit:"%", tol:2,
+     calcul:`${transMultGiven.toFixed(1).replace(".",",")}× ÷ ${tradingMult.toFixed(1).replace(".",",")}× − 1 = <b>${primeImplied.toFixed(1).replace(".",",")} %</b>`,
+     cle:"On peut retourner la logique : à partir d'une transaction réelle et du multiple boursier du secteur, on reconstitue la prime que l'acheteur a effectivement payée."},
+    {q:"Si un vendeur, en pleine négociation de contrôle, acceptait par erreur le multiple BOURSIER au lieu du multiple de transaction, quel pourcentage de la valeur de contrôle perdrait-il ?",
+     val:perteEnPct, unit:"%", tol:2,
+     calcul:`(${eurX(veControl)} − ${eurX(veMinority)}) ÷ ${eurX(veControl)} = <b>${perteEnPct.toFixed(1).replace(".",",")} %</b>`,
+     cle:"Confondre les deux familles de multiples n'est jamais un détail théorique : c'est exactement ce pourcentage-là qui change de camp, dans un sens ou dans l'autre selon qui se trompe."}
+   ]};}},
+
+/* ============ 32 · piste MULTIPLES ============ */
+{id:"e32", n:32, piste:"multiples", ic:"📅", titre:"Multiple LTM ou NTM",
+ sujet:"Trailing contre forward : le même prix donne deux multiples très différents",
+ rappel:`Un multiple n'a de sens que rapporté à UN EBITDA précis. <b>LTM (last twelve months)</b> : l'EBITDA déjà réalisé, sur les douze derniers mois — du passé certain. <b>NTM (next twelve months)</b> : l'EBITDA attendu sur les douze prochains mois — une prévision.
+   <br><br>Pour une entreprise qui croît vite, l'EBITDA NTM est sensiblement plus élevé que le LTM — donc, au MÊME prix, le multiple NTM est plus BAS que le multiple LTM. Comparer le multiple LTM d'une entreprise au multiple NTM d'une autre, c'est comparer deux choses qui ne se ressemblent pas — l'erreur la plus fréquente dans un tableau de comparables mal construit.`,
+ gen:R=>{
+  const ebitdaLTM=R.ent(200,800)*1000, croissance=R.ent(15,45)/100;
+  const ebitdaNTM=Math.round(ebitdaLTM*(1+croissance));
+  const veFixe=R.ent(3000,9000)*1000;
+  const multLTM=veFixe/ebitdaLTM, multNTM=veFixe/ebitdaNTM;
+  const multNTMcible=R.ent(60,90)/10;
+  const veImplied=multNTMcible*ebitdaNTM;
+  const multLTMimplied=veImplied/ebitdaLTM;
+  return {contextes:[`Une offre de rachat est sur la table, à un prix fixe.`,
+    `Une cible en forte croissance : le choix de l'EBITDA change beaucoup le multiple affiché.`,
+    `Le vendeur communique en LTM ; l'acheteur, lui, raisonne en NTM.`,
+    `Avant de citer « on a payé X fois l'EBITDA », il faut préciser lequel.`],
+   contexte:`Une offre de rachat de ${eurX(veFixe)} est sur la table pour une cible en forte croissance.`,
+   donnees:[["Valeur d'entreprise offerte (fixe)",veFixe,"€"],["EBITDA des 12 derniers mois (LTM)",ebitdaLTM,"€"],
+            ["Croissance attendue de l'EBITDA sur 12 mois",croissance*100,"%"]],
+   questions:[
+    {q:"À quel multiple LTM (sur l'EBITDA déjà réalisé) ce prix correspond-il ?", val:multLTM, unit:"×", tol:.2,
+     calcul:`${eurX(veFixe)} ÷ ${eurX(ebitdaLTM)} = <b>${multLTM.toFixed(2).replace(".",",")}×</b>`,
+     cle:"Le multiple qu'annoncerait un vendeur pressé de montrer un chiffre flatteur : le plus élevé des deux, puisqu'il divise par le plus petit EBITDA."},
+    {q:"Quel est l'EBITDA prévisionnel (NTM), avec cette croissance ?", val:ebitdaNTM, unit:"€", tol:Math.max(2000,ebitdaNTM*.01),
+     calcul:`${eurX(ebitdaLTM)} × (1 + ${(croissance*100).toFixed(0)} %) = <b>${eurX(ebitdaNTM)}</b>`,
+     cle:"L'EBITDA que la cible devrait atteindre dans un an — l'hypothèse qui justifie, aux yeux de l'acheteur, de payer autant aujourd'hui."},
+    {q:"À quel multiple NTM (sur l'EBITDA prévisionnel) ce même prix correspond-il ?", val:multNTM, unit:"×", tol:.2,
+     calcul:`${eurX(veFixe)} ÷ ${eurX(ebitdaNTM)} = <b>${multNTM.toFixed(2).replace(".",",")}×</b>`,
+     cle:"Le multiple que citerait l'acheteur, pour justifier que le prix est raisonnable RAPPORTÉ à ce que la cible va bientôt produire."},
+    {q:"De combien de points le multiple affiché change-t-il selon qu'on le calcule en LTM ou en NTM ?", val:multLTM-multNTM, unit:"×", tol:.15,
+     calcul:`${multLTM.toFixed(2).replace(".",",")}× − ${multNTM.toFixed(2).replace(".",",")}× = <b>${(multLTM-multNTM).toFixed(2).replace(".",",")}×</b>`,
+     cle:"Même prix, même cible, et pourtant deux chiffres très différents dans une salle de négociation — selon qui a intérêt à mettre en avant lequel."},
+    {q:`Un acheteur vise plutôt un multiple NTM de ${multNTMcible.toFixed(1).replace(".",",")}× pour cette cible. Quelle valeur d'entreprise cela représente-t-il ?`,
+     val:veImplied, unit:"€", tol:Math.max(3000,veImplied*.02),
+     calcul:`${multNTMcible.toFixed(1).replace(".",",")}× × ${eurX(ebitdaNTM)} = <b>${eurX(veImplied)}</b>`,
+     cle:"On part cette fois du multiple souhaité pour retrouver le prix qu'il faudrait proposer — la démarche inverse, utile pour cadrer une offre AVANT de la faire."},
+    {q:"Et à quel multiple LTM cela correspond-il, une fois remonté sur l'EBITDA déjà réalisé ?", val:multLTMimplied, unit:"×", tol:.2,
+     calcul:`${eurX(veImplied)} ÷ ${eurX(ebitdaLTM)} = <b>${multLTMimplied.toFixed(2).replace(".",",")}×</b>`,
+     cle:"Un multiple LTM qui peut sembler élevé, voire déraisonnable au premier regard — et qui redevient parfaitement défendable une fois qu'on précise sur quel EBITDA il porte vraiment."}
+   ]};}},
+
+/* ============ 33 · piste MULTIPLES ============ */
+{id:"e33", n:33, piste:"multiples", ic:"🌉", titre:"Le vrai pont VE → capitaux propres",
+ sujet:"Minoritaires, provisions sous-financées, dilution des stock-options",
+ rappel:`Le pont simplifié (palier 9) — VE moins dette nette — suffit pour un premier chiffrage. Un pont complet retire aussi tout ce qui ressemble à une dette sans en porter le nom. Les <b>intérêts minoritaires</b> : si tu ne détiens pas 100 % d'une filiale mais que son EBITDA est consolidé en entier dans la VE, il faut retirer la part qui revient aux autres actionnaires. Les <b>provisions sous-financées</b> (retraites, litiges) : des engagements réels, à retirer comme une dette.
+   <br><br>Et les actions ne se comptent pas non plus telles quelles : des <b>stock-options dans la monnaie</b> ajoutent des actions nouvelles. La méthode du rachat d'actions (treasury stock method) : le cash reçu à l'exercice sert à racheter des actions au cours actuel — seule la DIFFÉRENCE entre les options exercées et les actions rachetables dilue vraiment le capital.`,
+ gen:R=>{
+  const ve=R.ent(2000,8000)*1000, detteFin=R.ent(400,2000)*1000, tresorerie=R.ent(100,900)*1000;
+  const minoritaires=R.ent(50,400)*1000, provisions=R.ent(30,300)*1000;
+  const dn=detteFin-tresorerie;
+  const cpSimple=ve-dn, cpComplet=ve-dn-minoritaires-provisions;
+  const optionsITM=R.ent(50,300)*1000, strike=R.ent(10,20), prix=R.ent(22,40);
+  const produitExercice=optionsITM*strike;
+  const actionsRachetables=Math.round(produitExercice/prix);
+  const dilutionNette=optionsITM-actionsRachetables;
+  return {contextes:[`Une cible dont tu ne détiens qu'une partie d'une filiale — et qui porte des engagements de retraite sous-financés.`,
+    `Avant de conclure sur le prix des titres, tu vérifies ce que le pont simplifié a oublié.`,
+    `Le vendeur communique un pont VE → capitaux propres qui s'arrête à la dette nette. Trop tôt.`,
+    `Un management doté de stock-options dans la monnaie : le nombre d'actions n'est pas figé.`],
+   contexte:`Une cible dont tu ne détiens qu'une partie d'une filiale — et qui porte des engagements de retraite sous-financés.`,
+   donnees:[["Valeur d'entreprise",ve,"€"],["Dette financière",detteFin,"€"],["Trésorerie",tresorerie,"€"],
+            ["Intérêts minoritaires",minoritaires,"€"],["Provisions sous-financées",provisions,"€"],
+            ["Stock-options dans la monnaie",optionsITM,""],["Prix d'exercice",strike,"€"],["Cours actuel de l'action",prix,"€"]],
+   questions:[
+    {q:"Avec le pont simplifié (VE − dette nette seulement), quels capitaux propres obtiens-tu ?", val:cpSimple, unit:"€", tol:Math.max(3000,Math.abs(cpSimple)*.015),
+     calcul:`${eurX(ve)} − (${eurX(detteFin)} − ${eurX(tresorerie)}) = <b>${eurX(cpSimple)}</b>`,
+     cle:"Le calcul du palier 9 — juste, mais incomplet dès qu'il existe des minoritaires ou des provisions non financées."},
+    {q:"En intégrant aussi les minoritaires et les provisions sous-financées, quels capitaux propres obtiens-tu réellement ?", val:cpComplet, unit:"€", tol:Math.max(3000,Math.abs(cpComplet)*.015),
+     calcul:`${eurX(cpSimple)} − ${eurX(minoritaires)} − ${eurX(provisions)} = <b>${eurX(cpComplet)}</b>`,
+     cle:"Ces deux postes ne sont pas de la dette financière au sens strict, mais ce sont des créances sur la valeur de l'entreprise qui ne reviennent pas à l'actionnaire ordinaire — elles se traitent donc comme elle."},
+    {q:"De combien le pont simplifié SURESTIME-t-il les capitaux propres ?", val:minoritaires+provisions, unit:"€", tol:Math.max(2000,(minoritaires+provisions)*.02),
+     calcul:`${eurX(minoritaires)} + ${eurX(provisions)} = <b>${eurX(minoritaires+provisions)}</b>`,
+     cle:"L'écart exact entre les deux ponts — ce que le pont simplifié promet à l'actionnaire alors que ça ne lui revient pas."},
+    {q:"Si tous les détenteurs de stock-options dans la monnaie les exerçaient, combien de cash l'entreprise recevrait-elle ?", val:produitExercice, unit:"€", tol:Math.max(1000,produitExercice*.01),
+     calcul:`${(optionsITM/1000).toFixed(0)} 000 options × ${strike} € = <b>${eurX(produitExercice)}</b>`,
+     cle:"C'est ce cash-là, précisément, que la méthode du rachat d'actions utilise ensuite pour limiter la dilution."},
+    {q:"Selon la méthode du rachat d'actions, combien d'actions ce cash permettrait-il de racheter au cours actuel ?", val:actionsRachetables, unit:"", tol:Math.max(500,actionsRachetables*.01),
+     calcul:`${eurX(produitExercice)} ÷ ${prix} € = <b>${actionsRachetables.toLocaleString("fr-FR")}</b> actions`,
+     cle:"L'entreprise « rend » une partie de la dilution en rachetant des actions avec le cash reçu — c'est ce qui évite de compter les options exercées comme une dilution brute."},
+    {q:"Quelle est la dilution NETTE réelle — le nombre d'actions nouvelles qui s'ajoutent vraiment ?", val:dilutionNette, unit:"", tol:Math.max(500,dilutionNette*.02),
+     calcul:`${optionsITM.toLocaleString("fr-FR")} − ${actionsRachetables.toLocaleString("fr-FR")} = <b>${dilutionNette.toLocaleString("fr-FR")}</b> actions`,
+     cle:"Bien moins que le nombre brut d'options : c'est cette dilution nette, et seulement elle, qu'il faut ajouter au nombre d'actions pour calculer un prix par action juste."}
+   ]};}},
+
+/* ============ 34 · piste MULTIPLES ============ */
+{id:"e34", n:34, piste:"multiples", ic:"🪞", titre:"Le multiple est un DCF raccourci",
+ sujet:"Le lien entre multiple, croissance et WACC — pourquoi cher et bon marché ne veulent rien dire seuls",
+ rappel:`Un multiple n'est jamais qu'un raccourci pour ne pas refaire un DCF entier. Version simplifiée, à flux perpétuel : <b>VE/EBITDA ≈ (1 + g) ÷ (WACC − g)</b>. Un multiple ÉLEVÉ n'est pas cher : il reflète une croissance forte, un WACC bas (risque faible), ou les deux. Un multiple BAS n'est pas une affaire : il reflète souvent une croissance faible ou un risque élevé.
+   <br><br>Comparer deux multiples bruts sans regarder ce qu'ils IMPLIQUENT sur la croissance et le risque, c'est comparer deux prix sans savoir ce qu'ils achètent.`,
+ gen:R=>{
+  const waccLow=R.ent(70,90)/1000, gLow=R.ent(15,25)/1000;
+  const waccHigh=R.ent(110,150)/1000, gHigh=R.ent(50,90)/1000;
+  const multLow=(1+gLow)/(waccLow-gLow), multHigh=(1+gHigh)/(waccHigh-gHigh);
+  const ebitdaT=R.ent(300,1000)*1000;
+  const veLow=multLow*ebitdaT, veHigh=multHigh*ebitdaT;
+  const facteur=multHigh/multLow;
+  const veHighAuMultLow=multLow*ebitdaT;
+  const sousPaiement=veHigh-veHighAuMultLow;
+  return {contextes:[`Deux entreprises, même EBITDA, deux profils de risque et de croissance opposés.`,
+    `Une valeur défensive face à une valeur de croissance — avant de comparer leurs multiples.`,
+    `Le comité s'étonne qu'une société « paie » deux fois plus cher qu'une autre en multiple.`,
+    `Deux sociétés du même secteur, deux WACC, deux croissances — un seul EBITDA de référence.`],
+   contexte:`Deux entreprises, même EBITDA, deux profils de risque et de croissance opposés.`,
+   donnees:[["WACC — société stable",waccLow*100,"%"],["Croissance perpétuelle — société stable",gLow*100,"%"],
+            ["WACC — société à forte croissance",waccHigh*100,"%"],["Croissance perpétuelle — société à forte croissance",gHigh*100,"%"],
+            ["EBITDA (identique pour les deux)",ebitdaT,"€"]],
+   questions:[
+    {q:"Selon (1+g)/(WACC−g), quel multiple « juste » obtient la société STABLE ?", val:multLow, unit:"×", tol:.3,
+     calcul:`(1 + ${(gLow*100).toFixed(1).replace(".",",")} %) ÷ (${(waccLow*100).toFixed(1).replace(".",",")} % − ${(gLow*100).toFixed(1).replace(".",",")} %) = <b>${multLow.toFixed(2).replace(".",",")}×</b>`,
+     cle:"Un multiple modeste, cohérent avec une croissance modeste et un risque faible — ni cher, ni bon marché : juste."},
+    {q:"Et la société à forte croissance, plus risquée ?", val:multHigh, unit:"×", tol:.3,
+     calcul:`(1 + ${(gHigh*100).toFixed(1).replace(".",",")} %) ÷ (${(waccHigh*100).toFixed(1).replace(".",",")} % − ${(gHigh*100).toFixed(1).replace(".",",")} %) = <b>${multHigh.toFixed(2).replace(".",",")}×</b>`,
+     cle:"Un multiple bien plus élevé — et pourtant, lui aussi parfaitement JUSTE : c'est ce que la croissance et le risque, pris ensemble, impliquent mathématiquement."},
+    {q:"Sur le même EBITDA, quelle valeur d'entreprise cela donne pour la société stable ?", val:veLow, unit:"€", tol:Math.max(3000,veLow*.02),
+     calcul:`${multLow.toFixed(2).replace(".",",")}× × ${eurX(ebitdaT)} = <b>${eurX(veLow)}</b>`,
+     cle:"La valeur qu'un investisseur rationnel paierait pour le profil défensif, à EBITDA identique."},
+    {q:"Et pour la société à forte croissance ?", val:veHigh, unit:"€", tol:Math.max(3000,veHigh*.02),
+     calcul:`${multHigh.toFixed(2).replace(".",",")}× × ${eurX(ebitdaT)} = <b>${eurX(veHigh)}</b>`,
+     cle:"Nettement plus — et ce n'est pas de l'exubérance : c'est la contrepartie chiffrée d'une croissance plus rapide et d'un risque plus élevé assumés simultanément."},
+    {q:"De quel facteur le multiple « juste » de la société à forte croissance dépasse-t-il celui de la société stable ?", val:facteur, unit:"×", tol:.2,
+     calcul:`${multHigh.toFixed(2).replace(".",",")}× ÷ ${multLow.toFixed(2).replace(".",",")}× = <b>${facteur.toFixed(2).replace(".",",")}×</b>`,
+     cle:"Un multiple deux ou trois fois plus élevé n'est pas, en soi, un signal de surpaiement — c'est le résultat mécanique d'hypothèses de croissance et de risque différentes."},
+    {q:"Si on payait la société à forte croissance seulement au multiple « juste » de la société stable, de combien la sous-paierait-on, en euros, par rapport à ce qu'elle vaut réellement ?",
+     val:sousPaiement, unit:"€", tol:Math.max(3000,Math.abs(sousPaiement)*.02),
+     calcul:`${eurX(veHigh)} − ${eurX(veHighAuMultLow)} = <b>${eurX(sousPaiement)}</b>`,
+     cle:"Voilà le miroir du piège habituel : on parle toujours du risque de SURPAYER un multiple élevé, rarement du risque de rater une cible en lui appliquant, par prudence mal placée, le multiple d'une tout autre catégorie d'entreprise."}
    ]};}}
 
 ];
