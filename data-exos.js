@@ -2810,6 +2810,254 @@ const EXOS = [
     {q:"De quel pourcentage le ROCE comptable est-il mécaniquement inférieur au ROCE économique ?", val:chuteRel, unit:"%", tol:1.5,
      calcul:`1 − ${(roceApres*100).toFixed(1).replace(".",",")} % ÷ ${(roceEco*100).toFixed(1).replace(".",",")} % = <b>${chuteRel.toFixed(0)} %</b> de moins, mécaniquement`,
      cle:"Voilà pourquoi un groupe très acquisitif affiche presque toujours un ROCE comptable inférieur à un groupe qui a tout construit lui-même — à performance industrielle strictement identique."}
+   ]};}},
+
+/* ⚠️ PISTE DCF — ajoutée le 2026-09-30. Le socle calcule un flux de
+   trésorerie disponible (palier 10) et actualise un flux unique
+   (palier 8), Les multiples relient déjà multiple et DCF (palier 34),
+   le WACC piste alerte sur le coût d'une petite erreur (palier 29) —
+   mais aucun palier ne construisait jamais le DCF EN ENTIER : horizon
+   explicite, valeur terminale, sensibilité, pont jusqu'au prix par
+   action. Ce sont les cinq gestes qui manquaient, dans l'ordre où un
+   praticien les enchaîne vraiment. */
+
+/* ============ 58 · piste DCF ============ */
+{id:"e58", n:58, piste:"dcf", ic:"📓", titre:"Construire un DCF, palier par palier",
+ sujet:"Facteur d'actualisation, valeur actualisée d'un flux, somme sur l'horizon explicite",
+ rappel:`Un DCF actualise chaque flux futur au taux qui reflète son risque — le WACC — puis additionne le tout. Rien de plus.
+   <br><br><b>Facteur d'actualisation de l'année t = 1 ÷ (1 + WACC)^t.</b> Plus l'année est lointaine, plus le facteur se rapproche de zéro : un euro dans dix ans vaut structurellement moins qu'un euro l'an prochain.
+   <br><br><b>Valeur actualisée du flux de l'année t = FCF de l'année t × facteur d'actualisation de l'année t.</b>
+   <br><br>La <b>valeur actualisée de l'horizon explicite</b> est simplement la somme de ces valeurs actualisées, année après année. Rien d'autre n'entre encore en jeu — pas de valeur terminale, pas de pont vers les capitaux propres. Juste la mécanique, palier par palier.`,
+ gen:R=>{
+  const fcf0=R.ent(2000,10000)*1000;
+  const gExp=R.ent(3,10)/100;
+  const wacc=R.ent(7,12)/100;
+  const fcf=[1,2,3,4].map(t=>fcf0*Math.pow(1+gExp,t));
+  const df=[1,2,3,4].map(t=>1/Math.pow(1+wacc,t));
+  const va=[0,1,2,3].map(i=>fcf[i]*df[i]);
+  const sumVA=va.reduce((a,b)=>a+b,0);
+  return {contextes:[`Tu pars du FCF de l'année dernière et tu dois projeter, actualiser, puis sommer — comme un vrai modèle DCF.`,
+    "Le comité te demande la VA de l'horizon explicite, pas juste les flux bruts.",
+    "Avant de parler de valeur terminale, il faut d'abord savoir manier un flux, une année et un taux.",
+    "Un DCF à quatre ans, posé au tableau : à toi d'actualiser, année par année."],
+   contexte:`Tu pars du FCF de l'année dernière et tu dois projeter, actualiser, puis sommer — comme un vrai modèle DCF.`,
+   donnees:[["FCF de l'année dernière (année 0)",fcf0,"€"],["Croissance des flux sur l'horizon explicite",gExp*100,"%"],["WACC",wacc*100,"%"]],
+   questions:[
+    {q:"Quel est le FCF de l'année 1 ?", val:fcf[0], unit:"€", tol:Math.max(100,fcf[0]*.01),
+     calcul:`${eurX(fcf0)} × (1 + ${(gExp*100).toFixed(1).replace(".",",")} %) = <b>${eurX(fcf[0])}</b>`,
+     cle:"Le point de départ de tout DCF : un flux, projeté un an à la fois."},
+    {q:"Quel est le FCF de l'année 4 ?", val:fcf[3], unit:"€", tol:Math.max(100,fcf[3]*.01),
+     calcul:`${eurX(fcf0)} × (1 + ${(gExp*100).toFixed(1).replace(".",",")} %)⁴ = <b>${eurX(fcf[3])}</b>`,
+     cle:"La croissance se compose — ce n'est jamais fcf0 + 4 × un même montant, mais fcf0 multiplié quatre fois de suite."},
+    {q:"Quel est le facteur d'actualisation de l'année 3 ?", val:df[2], unit:"", tol:.01,
+     calcul:`1 ÷ (1 + ${(wacc*100).toFixed(1).replace(".",",")} %)³ = <b>${df[2].toFixed(3).replace(".",",")}</b>`,
+     cle:"Toujours entre 0 et 1, et toujours décroissant avec le temps — c'est le prix du temps qui passe, rien de plus."},
+    {q:"Quelle est la valeur actualisée du flux de l'année 3 ?", val:va[2], unit:"€", tol:Math.max(100,va[2]*.015),
+     calcul:`${eurX(fcf[2])} × ${df[2].toFixed(3).replace(".",",")} = <b>${eurX(va[2])}</b>`,
+     cle:"Le flux futur, ramené à ce qu'il vaut AUJOURD'HUI — c'est cette valeur-là, et seulement elle, qu'on additionne dans un DCF."},
+    {q:"Quelle est la valeur actualisée du flux de l'année 4 ?", val:va[3], unit:"€", tol:Math.max(100,va[3]*.015),
+     calcul:`${eurX(fcf[3])} × ${df[3].toFixed(3).replace(".",",")} = <b>${eurX(va[3])}</b>`,
+     cle:"Un flux plus gros (la croissance a joué quatre ans) mais actualisé plus fort (un an de plus à attendre) — les deux effets se battent."},
+    {q:"Quelle est la valeur actualisée totale de l'horizon explicite (années 1 à 4) ?", val:sumVA, unit:"€", tol:Math.max(100,sumVA*.015),
+     calcul:`${[0,1,2,3].map(i=>eurX(va[i])).join(" + ")} = <b>${eurX(sumVA)}</b>`,
+     cle:"Une simple somme — mais elle ne représente encore qu'une partie de la valeur d'entreprise. Le palier suivant s'occupe de tout ce qui vient après l'année 4."}
+   ]};}},
+
+/* ============ 59 · piste DCF ============ */
+{id:"e59", n:59, piste:"dcf", ic:"📓", titre:"La valeur terminale, et pourquoi elle domine",
+ sujet:"Gordon growth, actualisation de la VT, poids de la VT dans la VE totale",
+ rappel:`L'horizon explicite s'arrête toujours quelque part — mais l'entreprise, elle, continue. La valeur terminale capture tout ce qui vient après.
+   <br><br><b>Valeur terminale (Gordon growth), en fin d'année N = FCF de l'année N × (1 + g) ÷ (WACC − g).</b> g est la croissance PERPÉTUELLE — un chiffre petit, presque toujours entre 1 et 3 %, jamais un taux de croissance de business plan.
+   <br><br>Cette valeur terminale est calculée EN FIN D'ANNÉE N — il faut donc encore l'actualiser sur N années, comme n'importe quel flux : <b>VA(VT) = VT ÷ (1 + WACC)^N</b>.
+   <br><br><b>Valeur d'entreprise totale = VA(horizon explicite) + VA(valeur terminale).</b>
+   <br><br>⚠️ Dans un DCF classique, la valeur terminale représente souvent <b>60 à 80 %</b> de la valeur totale. Un DCF n'est presque jamais un calcul sur les cinq prochaines années — c'est surtout un pari sur ce qui vient après.`,
+ gen:R=>{
+  const fcfN=R.ent(3000,15000)*1000;
+  const g=R.ent(1,3)/100;
+  const wacc=R.ent(7,12)/100;
+  const n=5;
+  const vaExplicite=R.ent(15000,60000)*1000;
+  const vt=fcfN*(1+g)/(wacc-g);
+  const vaVT=vt/Math.pow(1+wacc,n);
+  const totalVE=vaExplicite+vaVT;
+  const poidsVT=vaVT/totalVE*100;
+  const g2=g+.01;
+  const vt2=fcfN*(1+g2)/(wacc-g2);
+  const vaVT2=vt2/Math.pow(1+wacc,n);
+  const total2=vaExplicite+vaVT2;
+  const poids2=vaVT2/total2*100;
+  return {contextes:[`Ton horizon explicite s'arrête à l'année 5. Il faut maintenant chiffrer tout ce qui vient après.`,
+    "Le comité veut savoir quelle part de la valorisation repose vraiment sur les cinq prochaines années — et quelle part repose sur un pari de long terme.",
+    "Un DCF sans valeur terminale n'est qu'un calcul tronqué : il faut boucler le modèle.",
+    "Avant de présenter une VE, il faut savoir combien elle doit à l'horizon explicite et combien elle doit à l'infini."],
+   contexte:`Ton horizon explicite s'arrête à l'année 5. Il faut maintenant chiffrer tout ce qui vient après.`,
+   donnees:[["FCF de l'année 5",fcfN,"€"],["Croissance perpétuelle (g)",g*100,"%"],["WACC",wacc*100,"%"],
+            ["VA de l'horizon explicite (années 1 à 5)",vaExplicite,"€"]],
+   questions:[
+    {q:"Quelle est la valeur terminale, en fin d'année 5 (non actualisée) ?", val:vt, unit:"€", tol:Math.max(500,vt*.02),
+     calcul:`${eurX(fcfN)} × (1 + ${(g*100).toFixed(1).replace(".",",")} %) ÷ (${(wacc*100).toFixed(1).replace(".",",")} % − ${(g*100).toFixed(1).replace(".",",")} %) = <b>${eurX(vt)}</b>`,
+     cle:"g est PETIT et PERPÉTUEL — jamais le taux de croissance des cinq années précédentes, qui lui ne peut pas durer indéfiniment."},
+    {q:"Quelle est la valeur actualisée (aujourd'hui) de cette valeur terminale ?", val:vaVT, unit:"€", tol:Math.max(500,vaVT*.02),
+     calcul:`${eurX(vt)} ÷ (1 + ${(wacc*100).toFixed(1).replace(".",",")} %)⁵ = <b>${eurX(vaVT)}</b>`,
+     cle:"La valeur terminale se calcule EN FIN d'année 5 — elle doit donc, elle aussi, être ramenée à aujourd'hui, exactement comme les flux qui la précèdent."},
+    {q:"Quelle est la valeur d'entreprise totale ?", val:totalVE, unit:"€", tol:Math.max(500,totalVE*.015),
+     calcul:`${eurX(vaExplicite)} + ${eurX(vaVT)} = <b>${eurX(totalVE)}</b>`,
+     cle:"Toute la valeur d'entreprise, et rien de plus : pas encore de dette nette, pas encore de prix par action."},
+    {q:"Quel est le poids de la valeur terminale dans la valeur d'entreprise totale, en % ?", val:poidsVT, unit:"%", tol:1.5,
+     calcul:`${eurX(vaVT)} ÷ ${eurX(totalVE)} = <b>${poidsVT.toFixed(0)} %</b>`,
+     cle:poidsVT>=60?"Dans la fourchette habituelle des 60-80 % : la majorité de cette valorisation dépend d'une hypothèse de croissance perpétuelle, pas des cinq prochaines années.":"Un poids plus modéré qu'à l'habitude — signe d'un horizon explicite particulièrement généreux, ou d'un g bas par rapport au WACC."},
+    {q:"Si g augmentait d'un point (à WACC constant), quelle serait la nouvelle valeur terminale ?", val:vt2, unit:"€", tol:Math.max(500,vt2*.02),
+     calcul:`${eurX(fcfN)} × (1 + ${(g2*100).toFixed(1).replace(".",",")} %) ÷ (${(wacc*100).toFixed(1).replace(".",",")} % − ${(g2*100).toFixed(1).replace(".",",")} %) = <b>${eurX(vt2)}</b>`,
+     cle:"Un seul point de g, et la valeur terminale bouge nettement plus qu'un point — parce que g est aussi au dénominateur. Le palier suivant chiffre exactement cette sensibilité."},
+    {q:"Avec cette nouvelle valeur terminale, quel serait le nouveau poids de la VT dans la VE totale, en % ?", val:poids2, unit:"%", tol:1.5,
+     calcul:`${eurX(vaVT2)} ÷ (${eurX(vaExplicite)} + ${eurX(vaVT2)}) = <b>${poids2.toFixed(0)} %</b>`,
+     cle:"Le poids de la valeur terminale grimpe avec g — ce qui rend le DCF encore plus dépendant d'une hypothèse qu'on ne peut, par définition, jamais vérifier."}
+   ]};}},
+
+/* ============ 60 · piste DCF ============ */
+{id:"e60", n:60, piste:"dcf", ic:"📓", titre:"Deux méthodes de valeur terminale, un seul chiffre",
+ sujet:"Multiple de sortie contre Gordon growth, le g implicite d'un multiple",
+ rappel:`Il existe une seconde façon de fixer la valeur terminale — et elle ne parle presque jamais le même langage que Gordon growth.
+   <br><br><b>Méthode du multiple de sortie : VT = EBITDA de l'année N × un multiple de sortie</b> (souvent le multiple de transaction du secteur). Simple, ancrée dans le marché — mais elle IMPLIQUE, en creux, un taux de croissance perpétuelle qu'on ne voit jamais si on ne le calcule pas.
+   <br><br>Le lien entre les deux, déjà vu dans Les multiples : <b>VE/EBITDA ≈ (1 + g) ÷ (WACC − g)</b>. En inversant cette même formule, on retrouve le <b>g implicite</b> d'un multiple de sortie :
+   <br><b>g implicite = (VT × WACC − EBITDA) ÷ (EBITDA + VT)</b>
+   <br><br>⚠️ Si ce g implicite dépasse largement 3 %, ou pire, dépasse le WACC lui-même, le multiple de sortie retenu n'est pas défendable — il price une croissance perpétuelle qu'aucune entreprise réelle ne soutient indéfiniment.`,
+ gen:R=>{
+  const ebitdaN=R.ent(3000,15000)*1000;
+  const wacc=R.ent(8,13)/100;
+  const gMarche=R.ent(10,30)/1000;
+  const multipleExit=(1+gMarche)/(wacc-gMarche);
+  const gPlan=R.ent(10,30)/1000;
+  const vtMultiple=ebitdaN*multipleExit;
+  const vtGordonPlan=ebitdaN*(1+gPlan)/(wacc-gPlan);
+  const ecart=(vtMultiple-vtGordonPlan)/vtGordonPlan*100;
+  const gImplied=(vtMultiple*wacc-ebitdaN)/(ebitdaN+vtMultiple);
+  const vtCheck=ebitdaN*(1+gImplied)/(wacc-gImplied);
+  const ecartG=(gImplied-gPlan)*100;
+  return {contextes:[`Le comité retient un multiple de sortie sectoriel pour la valeur terminale. Le plan interne, lui, table sur un g différent.`,
+    "Deux analystes, deux méthodes de valeur terminale, deux chiffres — il faut comprendre lequel ment, et de combien.",
+    "Avant de valider un multiple de sortie, il faut vérifier ce qu'il implique vraiment en termes de croissance perpétuelle.",
+    "Un banquier propose un multiple de sortie généreux. Le CFO veut savoir quel g cela suppose."],
+   contexte:`Le comité retient un multiple de sortie sectoriel pour la valeur terminale. Le plan interne, lui, table sur un g différent.`,
+   donnees:[["EBITDA de l'année N",ebitdaN,"€"],["WACC",wacc*100,"%"],
+            ["Croissance perpétuelle du plan interne",gPlan*100,"%"],["Multiple de sortie retenu",multipleExit,"×"]],
+   questions:[
+    {q:"Quelle est la valeur terminale selon la méthode du multiple de sortie ?", val:vtMultiple, unit:"€", tol:Math.max(500,vtMultiple*.02),
+     calcul:`${eurX(ebitdaN)} × ${multipleExit.toFixed(2).replace(".",",")}× = <b>${eurX(vtMultiple)}</b>`,
+     cle:"La méthode la plus utilisée en pratique — parce qu'elle s'ancre dans des transactions réelles, pas dans une hypothèse abstraite de croissance perpétuelle."},
+    {q:"Quelle est la valeur terminale selon Gordon growth, avec le g du plan interne ?", val:vtGordonPlan, unit:"€", tol:Math.max(500,vtGordonPlan*.02),
+     calcul:`${eurX(ebitdaN)} × (1 + ${(gPlan*100).toFixed(1).replace(".",",")} %) ÷ (${(wacc*100).toFixed(1).replace(".",",")} % − ${(gPlan*100).toFixed(1).replace(".",",")} %) = <b>${eurX(vtGordonPlan)}</b>`,
+     cle:"La même valeur terminale, mais vue depuis l'hypothèse de croissance du plan — pas depuis le marché."},
+    {q:"Quel est l'écart entre les deux valeurs terminales, en % ?", val:ecart, unit:"%", tol:2,
+     calcul:`(${eurX(vtMultiple)} − ${eurX(vtGordonPlan)}) ÷ ${eurX(vtGordonPlan)} = <b>${ecart.toFixed(1).replace(".",",")} %</b>`,
+     cle:"Deux méthodes, un même flux de départ, et pourtant un écart qui peut peser lourd sur toute la valorisation — c'est le signe qu'elles ne racontent pas la même histoire."},
+    {q:"Quel taux de croissance perpétuelle le multiple de sortie implique-t-il réellement ?", val:gImplied*100, unit:"%", tol:.3,
+     calcul:`(${eurX(vtMultiple)} × ${(wacc*100).toFixed(1).replace(".",",")} % − ${eurX(ebitdaN)}) ÷ (${eurX(ebitdaN)} + ${eurX(vtMultiple)}) = <b>${(gImplied*100).toFixed(1).replace(".",",")} %</b>`,
+     cle:"C'est LE chiffre à calculer avant d'accepter un multiple de sortie — pas après. Un multiple, c'est toujours un g qui se cache."},
+    {q:"En réinjectant ce g implicite dans Gordon growth, retrouve-t-on la valeur terminale du multiple ?", val:vtCheck, unit:"€", tol:Math.max(500,vtCheck*.02),
+     calcul:`${eurX(ebitdaN)} × (1 + ${(gImplied*100).toFixed(1).replace(".",",")} %) ÷ (${(wacc*100).toFixed(1).replace(".",",")} % − ${(gImplied*100).toFixed(1).replace(".",",")} %) = <b>${eurX(vtCheck)}</b>`,
+     cle:"Exactement la même valeur terminale — les deux méthodes ne sont jamais que deux façons d'écrire le même chiffre, une fois qu'on a fait apparaître le g caché derrière le multiple."},
+    {q:"De combien de points le g implicite du multiple dépasse-t-il (ou manque-t-il) le g du plan interne ?", val:ecartG, unit:"%", tol:.3,
+     calcul:`${(gImplied*100).toFixed(1).replace(".",",")} % − ${(gPlan*100).toFixed(1).replace(".",",")} % = <b>${ecartG.toFixed(1).replace(".",",")} points</b>`,
+     cle:ecartG>0?"Le multiple de sortie price une croissance perpétuelle plus optimiste que le plan interne lui-même — à documenter avant de le présenter en comité.":"Le multiple de sortie price, à l'inverse, une croissance perpétuelle plus prudente que le plan interne — la méthode du multiple est ici la plus conservatrice des deux."}
+   ]};}},
+
+/* ============ 61 · piste DCF ============ */
+{id:"e61", n:61, piste:"dcf", ic:"📓", titre:"Sensibilité — pourquoi WACC et g pèsent plus que tout le reste",
+ sujet:"Sensibilité de la VE au WACC et à g, comparées point pour point",
+ rappel:`Le WACC piste t'a déjà montré qu'une petite erreur dessus coûte cher. Voici l'ampleur exacte sur un DCF complet — et pourquoi g, minuscule en apparence, est presque aussi dangereux.
+   <br><br>Les deux variables entrent au DÉNOMINATEUR de la valeur terminale — <b>(WACC − g)</b> — qui elle-même pèse 60 à 80 % de la valeur totale. Une petite variation sur l'une ou l'autre se propage donc à la quasi-totalité de la valorisation, pas seulement à une ligne du modèle.
+   <br><br>⚠️ Un DCF n'est jamais un chiffre — c'est une fourchette. Présenter une valorisation sans tester au moins ±1 point de WACC et ±0,5 point de g, c'est présenter une fausse précision.`,
+ gen:R=>{
+  const fcfN=R.ent(3000,15000)*1000;
+  const g=R.ent(1,3)/100;
+  const wacc=R.ent(8,12)/100;
+  const n=5;
+  const vaExplicite=R.ent(15000,60000)*1000;
+  const EV=(w,gg)=>vaExplicite+(fcfN*(1+gg)/(w-gg))/Math.pow(1+w,n);
+  const ev0=EV(wacc,g);
+  const wacc2=wacc+.01;
+  const ev1=EV(wacc2,g);
+  const var1=(ev1-ev0)/ev0*100;
+  const g2=g+.005;
+  const ev2=EV(wacc,g2);
+  const var2=(ev2-ev0)/ev0*100;
+  const sensG=var2/0.5;
+  return {contextes:[`Ton DCF donne un chiffre précis au comité. Il te demande maintenant : « et si tu t'es trompé d'un point ? »`,
+    "Avant de présenter une VE unique, il faut connaître sa sensibilité aux deux hypothèses les plus fragiles du modèle.",
+    "Un investisseur challenge ton WACC ET ta croissance perpétuelle — il faut savoir laquelle des deux fait le plus mal.",
+    "Le comité veut une fourchette, pas un chiffre unique — il faut la construire, pas l'inventer."],
+   contexte:`Ton DCF donne un chiffre précis au comité. Il te demande maintenant : « et si tu t'es trompé d'un point ? »`,
+   donnees:[["FCF de l'année 5",fcfN,"€"],["Croissance perpétuelle (g)",g*100,"%"],["WACC",wacc*100,"%"],
+            ["VA de l'horizon explicite (années 1 à 5)",vaExplicite,"€"]],
+   questions:[
+    {q:"Quelle est la VE de base (avec le WACC et le g de référence) ?", val:ev0, unit:"€", tol:Math.max(500,ev0*.015),
+     calcul:`${eurX(vaExplicite)} + [${eurX(fcfN)} × (1 + ${(g*100).toFixed(1).replace(".",",")} %) ÷ (${(wacc*100).toFixed(1).replace(".",",")} % − ${(g*100).toFixed(1).replace(".",",")} %)] ÷ (1 + ${(wacc*100).toFixed(1).replace(".",",")} %)⁵ = <b>${eurX(ev0)}</b>`,
+     cle:"Le point de départ — celui qu'on présente d'habitude seul, sans jamais montrer sa fragilité."},
+    {q:"Quelle serait la VE si le WACC était réévalué d'un point de plus ?", val:ev1, unit:"€", tol:Math.max(500,Math.abs(ev1)*.015),
+     calcul:`Même formule, avec WACC = ${(wacc2*100).toFixed(1).replace(".",",")} % : <b>${eurX(ev1)}</b>`,
+     cle:"Rien d'autre n'a changé — seulement le taux d'actualisation, d'un seul point."},
+    {q:"Quelle est la variation de la VE pour ce point de WACC en plus, en % ?", val:var1, unit:"%", tol:1.5,
+     calcul:`(${eurX(ev1)} − ${eurX(ev0)}) ÷ ${eurX(ev0)} = <b>${var1.toFixed(1).replace(".",",")} %</b>`,
+     cle:"Un seul point de WACC, et déjà une double-digit de variation sur la valeur totale — voilà pourquoi le WACC piste insistait tant sur sa précision."},
+    {q:"Quelle serait la VE si g augmentait d'un demi-point ?", val:ev2, unit:"€", tol:Math.max(500,ev2*.015),
+     calcul:`Même formule, avec g = ${(g2*100).toFixed(1).replace(".",",")} % : <b>${eurX(ev2)}</b>`,
+     cle:"Un demi-point seulement — la moitié du mouvement testé sur le WACC."},
+    {q:"Quelle est la variation de la VE pour ce demi-point de g, en % ?", val:var2, unit:"%", tol:1,
+     calcul:`(${eurX(ev2)} − ${eurX(ev0)}) ÷ ${eurX(ev0)} = <b>${var2.toFixed(1).replace(".",",")} %</b>`,
+     cle:"Un demi-point de g suffit déjà à faire bouger la VE de plusieurs points de pourcentage — g n'est jamais le « petit » paramètre qu'on néglige en dernier."},
+    {q:"Ramenée à un point PLEIN de g (et non un demi-point), quelle serait cette sensibilité, en % ?", val:sensG, unit:"%", tol:2,
+     calcul:`${var2.toFixed(1).replace(".",",")} % ÷ 0,5 = <b>${sensG.toFixed(1).replace(".",",")} %</b> par point plein de g`,
+     cle:sensG>Math.abs(var1)?"Point pour point, g pèse encore PLUS que le WACC sur la valeur totale — c'est contre-intuitif, mais c'est la conséquence directe du même dénominateur (WACC − g).":"Point pour point, le WACC pèse davantage que g — mais l'écart reste assez faible pour que les deux hypothèses méritent la même vigilance en comité."}
+   ]};}},
+
+/* ============ 62 · piste DCF ============ */
+{id:"e62", n:62, piste:"dcf", ic:"📓", titre:"Du DCF à la valeur par action",
+ sujet:"Le pont VE → capitaux propres appliqué à un DCF, valeur par action, sanity check au marché",
+ rappel:`Les multiples t'ont déjà donné le pont — VE moins dette nette, moins minoritaires, moins provisions sous-financées, égale capitaux propres. Un DCF ne calcule jamais autre chose qu'une VE : il a besoin du même pont pour devenir un prix par action.
+   <br><br><b>Capitaux propres = VE − Dette nette − Minoritaires − Provisions sous-financées.</b>
+   <br><b>Valeur par action = Capitaux propres ÷ Nombre de titres.</b>
+   <br><br>Comparée au cours actuel, cette valeur par action dit si le marché sous-évalue ou survalue le titre SELON TON MODÈLE — pas selon une vérité absolue. Un DCF n'est jamais « faux » ou « juste » : il est cohérent, ou non, avec ses propres hypothèses.`,
+ gen:R=>{
+  const ve=R.ent(30000,120000)*1000;
+  const detteNette=Math.round(ve*(R.ent(5,25)/100));
+  const minoritaires=Math.round(ve*(R.ent(0,5)/100));
+  const provisions=Math.round(ve*(R.ent(0,3)/100));
+  const capitauxPropres=ve-detteNette-minoritaires-provisions;
+  const nbTitresM=R.ent(5,50);
+  const nbTitres=nbTitresM*1000000;
+  const valeurParAction=capitauxPropres/nbTitres;
+  const coursActuel=Math.round(valeurParAction*(1+R.ent(-20,20)/100)*100)/100;
+  const ecartPct=(valeurParAction-coursActuel)/coursActuel*100;
+  const ecartEuros=(valeurParAction-coursActuel)*nbTitres;
+  const veMarche=coursActuel*nbTitres+detteNette+minoritaires+provisions;
+  const ecartVE=(veMarche-ve)/ve*100;
+  return {contextes:[`Ton DCF sort une VE. Le comité veut un prix par action à comparer au cours de bourse.`,
+    "Avant d'annoncer que le titre est sous-évalué, il faut finir le pont jusqu'au prix par action.",
+    "Un investisseur veut savoir ce que ton DCF implique en prix par action, pas en valeur d'entreprise abstraite.",
+    "Le cours de bourse est connu. Ton DCF donne un autre chiffre — il faut les confronter, proprement."],
+   contexte:`Ton DCF sort une VE. Le comité veut un prix par action à comparer au cours de bourse.`,
+   donnees:[["Valeur d'entreprise (DCF)",ve,"€"],["Dette nette",detteNette,"€"],["Minoritaires",minoritaires,"€"],
+            ["Provisions sous-financées",provisions,"€"],["Nombre de titres (en millions)",nbTitresM,""],["Cours actuel de l'action",coursActuel,"€u"]],
+   questions:[
+    {q:"Quels sont les capitaux propres selon le DCF ?", val:capitauxPropres, unit:"€", tol:Math.max(500,capitauxPropres*.01),
+     calcul:`${eurX(ve)} − ${eurX(detteNette)} − ${eurX(minoritaires)} − ${eurX(provisions)} = <b>${eurX(capitauxPropres)}</b>`,
+     cle:"Le même pont que dans Les multiples — un DCF donne une VE, jamais directement un prix par action."},
+    {q:"Quelle est la valeur par action selon le DCF ?", val:valeurParAction, unit:"€u", tol:Math.max(.1,valeurParAction*.02),
+     calcul:`${eurX(capitauxPropres)} ÷ ${nbTitresM} millions de titres = <b>${vf(valeurParAction)} €</b>`,
+     cle:"Le seul chiffre que compare vraiment un actionnaire — pas la VE, qu'il ne touchera jamais directement."},
+    {q:"Quel est l'écart entre la valeur DCF et le cours actuel, en % ?", val:ecartPct, unit:"%", tol:2,
+     calcul:`(${vf(valeurParAction)} − ${vf(coursActuel)}) ÷ ${vf(coursActuel)} = <b>${ecartPct.toFixed(1).replace(".",",")} %</b>`,
+     cle:ecartPct>0?"Positif : selon ton modèle, le marché sous-évalue le titre — encore faut-il que tes hypothèses résistent à la contradiction.":"Négatif : selon ton modèle, le marché survalue le titre — vérifie tes hypothèses de g et de WACC avant de l'annoncer."},
+    {q:"En euros, quel est l'écart de capitalisation entre ta valorisation DCF et le marché ?", val:ecartEuros, unit:"€", tol:Math.max(500,Math.abs(ecartEuros)*.02),
+     calcul:`(${vf(valeurParAction)} − ${vf(coursActuel)}) × ${nbTitresM} millions = <b>${eurX(ecartEuros)}</b>`,
+     cle:"Le même écart, mais en euros plutôt qu'en pour cent — c'est celui-là qui parle vraiment à un comité d'investissement."},
+    {q:"Quelle VE le marché implique-t-il, à ce cours actuel ?", val:veMarche, unit:"€", tol:Math.max(500,veMarche*.015),
+     calcul:`${vf(coursActuel)} × ${nbTitresM} millions + ${eurX(detteNette)} + ${eurX(minoritaires)} + ${eurX(provisions)} = <b>${eurX(veMarche)}</b>`,
+     cle:"Le pont fonctionne dans les deux sens : du cours vers la VE implicite, exactement comme de la VE vers le prix par action."},
+    {q:"Quel est l'écart entre cette VE implicite du marché et la VE de ton DCF, en % ?", val:ecartVE, unit:"%", tol:2,
+     calcul:`(${eurX(veMarche)} − ${eurX(ve)}) ÷ ${eurX(ve)} = <b>${ecartVE.toFixed(1).replace(".",",")} %</b>`,
+     cle:"Un écart différent de celui calculé sur les capitaux propres : la dette nette et les minoritaires ne bougent pas avec le cours, donc le même désaccord de prix par action se dilue différemment une fois ramené à la VE totale."}
    ]};}}
 
 ];
