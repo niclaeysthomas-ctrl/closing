@@ -218,7 +218,7 @@ const CAS = [
   "Avoir proposé une option à faible coût plutôt qu'un « non » sec.",
   "Avoir mentionné le coût d'opportunité, même en une phrase."]},
 
-{id:"cas4", ic:"🎚️", titre:"Le concurrent casse les prix de 15 %", type:"Pricing", format:"mené par le candidat", duree:"25 min", niveau:2,
+{id:"cas4", ic:"💰", titre:"Le concurrent casse les prix de 15 %", type:"Pricing", format:"mené par le candidat", duree:"25 min", niveau:2,
  client:"Un fabricant de consommables techniques pour laboratoires.",
  enonce:`« Notre principal concurrent vient de baisser ses tarifs de 15 %. Mon directeur commercial veut s'aligner dès lundi, il parle d'hémorragie. Mon directeur financier refuse. Tranchez. »
    <br><br>On te demande un arbitrage, pas une analyse.`,

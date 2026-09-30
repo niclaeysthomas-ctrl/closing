@@ -2,9 +2,9 @@
 // Format : {id, module, title, content[], questions:[{q, opts, a, exp}]}
 const MODULES = [
  {id:"base", name:"Rappels — les bases", icon:"🧱", desc:"Bilan, résultat, cash. Le socle. Tu ne passes pas au reste sans ça."},
- {id:"ana", name:"Analyse financière", icon:"🔬", desc:"Lire une entreprise comme un dossier de crédit."},
+ {id:"ana", name:"Analyse financière", icon:"🔍", desc:"Lire une entreprise comme un dossier de crédit."},
  {id:"valo", name:"Valorisation", icon:"⚖️", desc:"DCF, WACC, multiples. Le cœur du métier."},
- {id:"lbo", name:"LBO & Private Equity", icon:"🏗️", desc:"Levier, structure de dette, création de valeur."},
+ {id:"lbo", name:"LBO & Private Equity", icon:"🎯", desc:"Levier, structure de dette, création de valeur."},
  {id:"ma", name:"Process M&A", icon:"🤝", desc:"Du teaser au closing, côté banquier."},
  {id:"droit", name:"Droit des affaires · le socle", icon:"⚖️", desc:"Ce qu'il faut savoir en droit pour travailler en finance : sociétés, titres, contrats, sûretés, difficultés, marchés, conformité. Le socle SOUS le juridique du deal."},
  {id:"jur", name:"Juridique du deal", icon:"📜", desc:"NDA, SPA, garanties, pactes, réglementaire. Ce que les juristes savent et que les financiers ignorent — pas toi."},
@@ -13,7 +13,7 @@ const MODULES = [
  {id:"fisc", name:"Fiscalité du deal", icon:"🧾", desc:"IS, intégration, holding de reprise, droits. L'angle mort classique des candidats — pas le tien."},
  {id:"mac", name:"Macro & taux", icon:"🌍", desc:"Banques centrales, courbe, inflation, cycle du crédit. Le climat dans lequel tous les deals se font."},
  {id:"con", name:"Consolidation & IFRS", icon:"🧮", desc:"Minoritaires, PPA, IFRS 16, impôts différés. Ce qui sépare celui qui lit des comptes de celui qui les comprend."},
- {id:"cpt", name:"Comptabilité — l'écart au réel", icon:"📐", desc:"Engagement contre trésorerie, amortissements, dépréciations, provisions, goodwill, IFRS 15 et juste valeur, prévisions, EBITDA ajusté. Le chiffre n'est pas le réel : voilà exactement où ils divergent, et qui décide de l'écart."}
+ {id:"cpt", name:"Comptabilité — l'écart au réel", icon:"🥊", desc:"Engagement contre trésorerie, amortissements, dépréciations, provisions, goodwill, IFRS 15 et juste valeur, prévisions, EBITDA ajusté. Le chiffre n'est pas le réel : voilà exactement où ils divergent, et qui décide de l'écart."}
 ];
 
 const LESSONS = [

@@ -333,7 +333,7 @@
 // ================= ÉTAT =================
 const RANKS=[["Stagiaire",0],["Analyst",150],["Associate",400],["VP",800],["Director",1400],["Managing Director",2200],["Rainmaker",3200]];
 const KEY="closing_v1";
-const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[],mclass:[],eco:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{},journal:[],biz:null,cimetiere:[],bizDone:[],bizRec:{},exos:{cur:1,p:{}},pal:{}};
+const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[],mclass:[],eco:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{},journal:[],biz:null,cimetiere:[],bizDone:[],bizRec:{},exos:{cur:1,p:{}},pal:{},lastExport:null};
 let S=load();
 function load(){
   let s={};
@@ -359,6 +359,13 @@ function save(){ localStorage.setItem(KEY,JSON.stringify(S)); }
 function today(){ return new Date().toISOString().slice(0,10); }
 function addDays(n){ const d=new Date(Date.now()+n*864e5); return d.toISOString().slice(0,10); }
 function yesterday(){ return addDays(-1); }
+/* Aucune sauvegarde cloud : localStorage seul, effacé par un cache vidé
+   ou un téléphone changé. On ne peut pas empêcher l'accident, mais on
+   peut arrêter de laisser des mois de progression sans filet. */
+function joursSansExport(){
+  const ref=S.lastExport||(S.days&&S.days[0])||today();
+  return Math.floor((new Date(today())-new Date(ref))/864e5);
+}
 function esc(x){ return String(x).replace(/</g,"&lt;"); }
 
 function rank(){ let r=RANKS[0]; for(const x of RANKS){ if(S.xp>=x[1]) r=x; } return r; }
@@ -1286,7 +1293,7 @@ function vBoite(){
 
   ${B.hist.length>1?`<h2 class="sec">Résultat vs trésorerie</h2>${bizChart()}`:""}
 
-  <button class="btn ghost" onclick="formRoom()">📐 Les formules — les 14 calculs qui décident</button>
+  <button class="btn ghost" onclick="formRoom()">🧮 Les formules — les 14 calculs qui décident</button>
   ${B.hist.length?`<button class="btn ghost" onclick="bizExport()">📋 Débriefer avec Claude</button>`:""}
   <button class="danger" onclick="if(confirm('Liquider ${esc(B.name)} et repartir de zéro ?')){S.biz=null;save();render()}">Liquider et recommencer</button>`;
 }
@@ -1772,7 +1779,7 @@ function formPre(id){
 }
 function formBlock(){
   return `<div class="calcw${S.formOpen?" open":""}" id="formw">
-    <div class="calch" onclick="formToggle()"><span>📐</span><b>Les formules</b>
+    <div class="calch" onclick="formToggle()"><span>🧮</span><b>Les formules</b>
       <span class="xptxt">tu ne calcules pas de tête</span><span class="ar">›</span></div>
     <div class="calcb"><div id="formbody"></div></div></div>`;
 }
@@ -1834,7 +1841,7 @@ function formToCalc(v){
 }
 /* consultable hors décision : depuis l'écran de la boîte */
 function formRoom(){
-  openOv(ovTop("📐 Les formules")+`
+  openOv(ovTop("🧮 Les formules")+`
     <p class="sub" style="margin-bottom:10px">Les quatorze calculs qui décident à ta place — si tu les poses. Chacun se calcule ici, avec tes chiffres.</p>
     <div id="formbody"></div>`);
   formDraw();
@@ -3364,6 +3371,7 @@ function vProfil(){
     </ul>
   </div>
   <div class="coach">Le grade ne compte pas. Ce qui compte : est-ce que tu répondrais mieux qu'hier si un associé te cuisinait <b>maintenant</b> ?</div>
+  ${joursSansExport()>=14?`<div class="coach" style="border-color:var(--acc)">⚠️ <b>${S.lastExport?"Dernière sauvegarde il y a "+joursSansExport()+" jours.":"Aucune sauvegarde depuis que tu utilises l'app — "+joursSansExport()+" jours."}</b> Rien ne part dans le cloud : un cache vidé ou un téléphone changé, et tout disparaît. Exporte-la maintenant, ça prend dix secondes.</div>`:""}
   <button class="btn ghost" onclick="exportSave()">Exporter ma progression (copie JSON)</button>
   <button class="btn ghost" onclick="importSave()">Importer une progression</button>
   <button class="danger" onclick="if(confirm('Tout effacer ? XP, streak, révisions, progression. Irréversible.')){localStorage.removeItem(KEY);location.reload()}">Réinitialiser toute la progression</button>`;
@@ -3371,6 +3379,7 @@ function vProfil(){
 
 function exportSave(){
   const data=JSON.stringify(S);
+  S.lastExport=today(); save();
   const done=()=>toast("📋 <b>Progression copiée.</b> Colle-la dans une note, un mail, où tu veux — c'est ta sauvegarde.");
   if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(data).then(done,()=>prompt("Copie ce JSON :",data));
   else prompt("Copie ce JSON :",data);
@@ -3758,7 +3767,7 @@ function openSparList(type){
     const n=lad?palCount(s.id):0;
     return `
     <div class="act ${done.includes(s.id)?"done":""}" onclick="openSpar('${type}','${s.id}')">
-      <div class="ico">${ico}</div><div class="t"><b>${s.title||s.q.slice(0,60)+"…"}</b><small>${s.tag||s.cat}${lad&&!done.includes(s.id)?` · 🪜 ${n}/5 marches`:""}</small></div>
+      <div class="ico">${ico}</div><div class="t"><b>${s.title||s.q.slice(0,60)+"…"}</b><small>${s.tag||s.cat}${lad&&!done.includes(s.id)?` · 🔁 ${n}/5 marches`:""}</small></div>
       <div class="st">${done.includes(s.id)?"✓":"›"}</div>
     </div>`;}).join(""));
 }
@@ -3767,7 +3776,7 @@ function openSparList(type){
 const PAL_STEPS=[
   {k:"mots",ico:"📖",lab:"Les mots de l'énoncé",sub:"Le vocabulaire du cas, en français simple. Deux minutes."},
   {k:"chiffres",ico:"🔢",lab:"Lire les chiffres",sub:"Ce que l'énoncé dit vraiment — trois questions."},
-  {k:"meca",ico:"⚙️",lab:"Le mécanisme",sub:"Le pourquoi que personne ne t'a expliqué."},
+  {k:"meca",ico:"🔍",lab:"Le mécanisme",sub:"Le pourquoi que personne ne t'a expliqué."},
   {k:"reflexe",ico:"🎯",lab:"Le réflexe",sub:"Trois réponses possibles. Une seule tient."},
   {k:"guide",ico:"✍️",lab:"Le cas, guidé",sub:"Une question à la fois, avec les pistes sous les yeux."}
 ];
@@ -3912,7 +3921,7 @@ function openSparFull(type,id){
     <p class="sub" style="margin:12px 0 6px">Ta réponse écrite — complète, structurée, chiffrée quand c'est possible. <b>Minimum 200 caractères, le flou ne passe pas.</b></p>
     <textarea id="sparTxt" placeholder="Écris comme si l'associé lisait par-dessus ton épaule…" oninput="document.getElementById('revealBtn').disabled=this.value.trim().length<200"></textarea>
     <button class="btn" id="revealBtn" disabled onclick="revealGrid('${type}','${id}')">Révéler la grille de correction</button>
-    ${lad?`<button class="btn ghost" onclick="openPaliers('${type}','${id}')">🪜 Trop raide ? Reprendre par l'escalier (${palCount(id)}/5)</button>`:""}`);
+    ${lad?`<button class="btn ghost" onclick="openPaliers('${type}','${id}')">🔁 Trop raide ? Reprendre par l'escalier (${palCount(id)}/5)</button>`:""}`);
 }
 function revealGrid(type,id,txt){
   const s=SPAR[type].l().find(x=>x.id===id);

@@ -1,5 +1,5 @@
 // LE CLOSING — service worker : cache-first, app 100 % hors-ligne
-const CACHE = "closing-v34-compta";
+const CACHE = "closing-v35-rentabilite-dcf-icones";
 const ASSETS = [
   "./",
   "./index.html",

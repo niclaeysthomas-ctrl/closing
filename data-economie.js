@@ -603,7 +603,7 @@ const ECO_CHAPITRES = [
 },
 
 {
- id:"keynesianisme", theme:"doctrines", icon:"🏗️",
+ id:"keynesianisme", theme:"doctrines", icon:"🏭",
  titre:"Le keynésianisme : l'État peut-il piloter la demande ?",
  accroche:"En pleine dépression, Keynes a posé une question simple et dérangeante : et si l'économie pouvait rester bloquée dans le mauvais équilibre, indéfiniment, sans qu'aucune main invisible ne vienne la sauver ?",
  niveau:"Fondamental", minutes:20,
