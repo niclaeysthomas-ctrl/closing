@@ -17,10 +17,13 @@ Capitaux engagés	Capitaux engagés = Immobilisations + BFR. L'argent immobilis�
 ROCE (Return on Capital Employed)	ROCE = NOPAT ÷ Capitaux engagés. La rentabilité de l'OUTIL, indépendamment de qui l'a financé. ROCE > WACC = création de valeur.	Closing::Fondamentaux::Rentabilité
 ROE (Return on Equity)	ROE = Résultat net ÷ Capitaux propres. La rentabilité pour l'ACTIONNAIRE — elle dépend, elle, de la dette.	Closing::Fondamentaux::Rentabilité
 Décomposition du ROCE	ROCE = Marge opérationnelle × Rotation des capitaux, avec rotation = CA ÷ Capitaux engagés. Deux chemins vers la même rentabilité : vendre cher peu souvent, ou peu cher très souvent.	Closing::Fondamentaux::Rentabilité
+Effet de levier financier	ROE = ROCE + (ROCE − Kd après impôt) × Dette ÷ Capitaux propres. Si le ROCE bat le coût de la dette, chaque euro emprunté enrichit l'actionnaire ; sinon, il l'appauvrit plus vite.	Closing::Fondamentaux::Rentabilité
+EVA (Economic Value Added)	EVA = (ROCE − WACC) × Capitaux engagés. Le surplus de valeur créé, en euros plutôt qu'en pourcentage — dit si la taille compense un spread faible.	Closing::Fondamentaux::Rentabilité
 Valeur actuelle (actualisation)	VA = Flux futur ÷ (1 + taux)^n. Un euro futur vaut moins qu'un euro aujourd'hui — d'autant moins que le taux et l'horizon sont grands.	Closing::Fondamentaux::Valo
 VAN (Valeur actuelle nette)	VAN = Somme des flux actualisés − Investissement initial. Positive, le projet crée de la valeur au taux exigé.	Closing::Fondamentaux::Valo
 Rente perpétuelle	Valeur = Flux ÷ Taux. Avec une croissance g : Valeur = Flux ÷ (Taux − g). Le raccourci qui sert tous les jours en valorisation.	Closing::Fondamentaux::Valo
 Valeur terminale (Gordon Growth)	VT = FCF × (1+g) ÷ (WACC − g). La valeur de tout ce qui vient après l'horizon explicite d'un DCF — souvent 60 à 80 % du total.	Closing::Fondamentaux::Valo
+Multiple de sortie, le g implicite	g implicite = (VT × WACC − EBITDA) ÷ (EBITDA + VT). Un multiple de sortie, c'est toujours une croissance perpétuelle qui se cache — à calculer avant d'accepter le multiple.	Closing::Fondamentaux::Valo
 Coût de la dette après impôt	Kd après impôt = Taux d'intérêt × (1 − taux d'IS). Les intérêts sont déductibles : la dette coûte réellement moins que son taux affiché.	Closing::Fondamentaux::Valo
 WACC (coût moyen pondéré du capital)	WACC = Ke × (CP/V) + Kd après impôt × (D/V), avec V = CP + D en valeurs de MARCHÉ. Le taux plancher que tout projet doit dépasser pour créer de la valeur.	Closing::Fondamentaux::Valo
 Structure cible (WACC)	Pondérer sur une structure CIBLE (secteur, ou objectif de long terme) plutôt que sur la structure du jour, souvent transitoire — et sur laquelle le WACC se base pour vingt ans de flux.	Closing::Fondamentaux::Valo

@@ -196,5 +196,19 @@ grid:[
 "L'inégalité décisive énoncée : valeur créée = synergies réalisées − prime payée ; si la prime gagne, l'acheteur s'appauvrit en achetant.",
 "La hiérarchie de crédibilité : synergies de coûts (réalisables) vs synergies de revenus (rarement réalisées) — on ne paie jamais d'avance les secondes."
 ],
-coach:"Ce raisonnement en trois lignes démonte 90 % des communiqués de presse de fusions. Quand tu liras « acquisition stratégique créatrice de valeur », tu feras le calcul toi-même — et souvent, il ne passera pas."}
+coach:"Ce raisonnement en trois lignes démonte 90 % des communiqués de presse de fusions. Quand tu liras « acquisition stratégique créatrice de valeur », tu feras le calcul toi-même — et souvent, il ne passera pas."},
+{id:"fy15", title:"ROCE, ROE et l'effet de levier", tag:"Rentabilité",
+simple:[
+"Deux amis achètent chacun un food truck identique, à 50 000 €. Les deux trucks rapportent pareil : 7 500 € de profit par an — 15 % de ce qu'a coûté le truck. Ce chiffre, c'est le ROCE : la rentabilité du TRUCK lui-même, qui ne regarde que l'outil, pas qui l'a payé. Le premier ami a payé cash, avec ses économies. Le second a emprunté 35 000 € à la banque à 5 %, et n'a sorti que 15 000 € de sa poche. Même truck, même profit, même ROCE : 15 % pour les deux.",
+"Demande maintenant à chacun « combien ça t'a rapporté, à TOI », et la réponse change du tout au tout. Le premier a mis 50 000 € et en a tiré 7 500 € : 15 % pour lui aussi — logique, c'est son argent, son truck, son profit. Le second a payé 5 % d'intérêt sur ses 35 000 empruntés (1 750 €), il lui reste donc 5 750 € de profit — mais sur seulement 15 000 € sortis de sa poche : 38 % ! Ce chiffre, c'est le ROE, la rentabilité POUR L'ACTIONNAIRE. Le truck est identique, mais parce qu'il rapporte plus (15 %) que ce que coûte l'argent emprunté (5 %), tout le surplus revient en entier à celui qui a le moins mis de sa poche. C'est l'effet de levier.",
+"Le piège, c'est que le même mécanisme joue en sens inverse. Imagine une mauvaise année : le truck tombe en panne un mois, le profit annuel retombe à zéro. Le premier ami encaisse 0 % — décevant, mais il ne perd rien. Le second, lui, doit quand même payer ses 1 750 € d'intérêts sur un truck qui n'a rien rapporté : il finit l'année à −1 750 €, soit environ −12 % de ses 15 000 € misés. Le levier n'enrichit jamais à sens unique : il amplifie ce qui existe déjà, dans les deux sens. Emprunter n'est une bonne idée QUE si on est sûr que l'outil rapportera plus que ce que coûte l'argent emprunté — jamais avant de le savoir."
+],
+mission:"Explique à quelqu'un pourquoi deux entreprises identiques, même outil, même profit d'exploitation, peuvent annoncer des rentabilités totalement différentes à leurs actionnaires — et pourquoi ce n'est ni un mensonge ni un tour de passe-passe.",
+grid:[
+"La distinction ROCE (rentabilité de l'outil, indépendante du financement) vs ROE (rentabilité pour l'actionnaire, qui dépend de la dette) — avec un exemple chiffré à toi.",
+"Le mécanisme de l'effet de levier : si l'outil rapporte plus que ce que coûte l'argent emprunté, le surplus revient en entier à celui qui a mis le moins de sa poche.",
+"Le revers explicitement couvert : le même levier amplifie aussi les pertes, pas seulement les gains.",
+"La règle qui en découle : emprunter n'est rentable que si on est sûr de battre le coût de la dette — sinon le levier démolit plus vite qu'il ne construit."
+],
+coach:"Si tu n'as expliqué que le sens gagnant du levier, tu as fait la moitié du travail — exactement l'erreur des discours qui vendent la dette comme un outil magique sans jamais montrer la mécanique inverse. Un associé qui t'entend dire « effet de levier » veut immédiatement entendre « et si ça tourne mal » dans la phrase qui suit."}
 ];
