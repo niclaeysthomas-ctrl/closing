@@ -167,6 +167,41 @@ const CHIFFRAGE = [
   const jour=R.ent(8,90)*100;
   return {q:`${eurX(jour)} de recette par jour ouvré. Combien cela fait-il par AN (250 jours) ?`, val:jour*250, unit:"€",
    calcul:`${eurX(jour)} × 250 = ${eurX(jour)} × 1 000 ÷ 4 = <b>${eurX(jour*250)}</b>`,
-   truc:`Multiplier par 250, c'est ajouter trois zéros et diviser par 4. Le sens inverse du raccourci précédent — les deux se travaillent ensemble.`};}}
+   truc:`Multiplier par 250, c'est ajouter trois zéros et diviser par 4. Le sens inverse du raccourci précédent — les deux se travaillent ensemble.`};}},
+
+{id:"mult2", ic:"✖️", nom:"La multiplication à deux chiffres", sujet:"Quatre niveaux, du socle qui marche toujours aux raccourcis qui impressionnent", tolPct:0,
+ regle:`On ne pose jamais une multiplication à deux chiffres comme à l'école, colonne par colonne. Sous chrono il y a <b>quatre niveaux</b> : un socle qui marche toujours, et trois raccourcis qui ne s'appliquent que si le cas s'y prête — mais qui, quand ils s'appliquent, sont trois fois plus rapides.
+   <br><br><b>Niveau 1 — le socle : dizaines, croisé, unités.</b> Tout nombre à deux chiffres se lit « dizaine + unité ». 23 × 47 = (20+3)(40+7) : <b>dizaines × dizaines</b> (20×40=800), puis le <b>croisé</b> (20×7 + 3×40 = 140+120=260), puis <b>unités × unités</b> (3×7=21). On additionne : 800+260+21 = <b>1 081</b>. Toujours dans cet ordre. Ça ne rate jamais — c'est la méthode à utiliser quand aucun raccourci ne saute aux yeux.
+   <br><br><b>Niveau 2 — le ×11.</b> a × 11 où a est à deux chiffres : le premier et le dernier chiffre du résultat sont ceux de a, le chiffre du milieu est leur <b>somme</b>. 34 × 11 : 3 _ 4, milieu = 3+4 = 7 → <b>374</b>. Si la somme dépasse 9 (58 × 11 : 5+8=13), on écrit 3 et on retient 1 sur les centaines → <b>638</b>.
+   <br><br><b>Niveau 3 — proches de 100.</b> Deux nombres entre 90 et 99 : on travaille sur ce qui leur <b>manque</b> pour atteindre 100, pas sur les nombres eux-mêmes. 97 × 96 : il manque 3 et 4. (97−4) × 100 + 3×4 = 9 300 + 12 = <b>9 312</b>. On a remplacé une multiplication à deux chiffres par une multiplication à un chiffre (3×4) et une soustraction.
+   <br><br><b>Niveau 4 — la différence de carrés.</b> Le plus élégant : deux nombres équidistants d'un nombre rond. 47 × 53 : la moyenne est 50, l'écart est 3. <b>50² − 3² = 2 500 − 9 = 2 491.</b> Dès que deux nombres sont symétriques autour d'une dizaine (43 et 57, 68 et 72…), ce raccourci bat tous les autres : un seul carré à connaître, aucun croisé.
+   <br><br>⚠️ Le réflexe à avoir AVANT de choisir : regarder les deux nombres une seconde. Proches de 100 ? L'un des deux est 11 ? Équidistants d'un rond ? Rien ne saute aux yeux → retour au niveau 1. Il ne rate jamais, il est juste un cran plus lent — et sous pression, fiable bat élégant.`,
+ gen:R=>{
+  const mode=R.ent(0,3);
+  if(mode===0){
+   const a=R.ent(12,89), b=R.ent(12,89);
+   const a1=Math.floor(a/10), a0=a%10, b1=Math.floor(b/10), b0=b%10;
+   const t1=a1*b1*100, t2=(a1*b0+a0*b1)*10, t3=a0*b0, v=a*b;
+   return {q:`Combien font ${a} × ${b} ?`, val:v, unit:"",
+    calcul:`${a1}0×${b1}0 = ${t1} · croisé (${a1}×${b0}+${a0}×${b1})×10 = ${t2} · ${a0}×${b0} = ${t3} · somme = <b>${v}</b>`,
+    truc:`Niveau 1, le socle : dizaines × dizaines, puis le croisé, puis unités × unités. Trois morceaux, toujours dans cet ordre — il ne rate jamais.`};
+  }
+  if(mode===1){
+   const a=R.ent(12,89);
+   const a1=Math.floor(a/10), a0=a%10, s=a1+a0, v=a*11;
+   return {q:`Combien font ${a} × 11 ?`, val:v, unit:"",
+    calcul:`${a1} _ ${a0}, milieu = ${a1}+${a0} = ${s}${s>=10?" → on retient 1 sur les centaines":""} · <b>${v}</b>`,
+    truc:`Niveau 2, le ×11 : le premier et le dernier chiffre ne bougent pas, seul le milieu change — et c'est la somme des deux chiffres.${s>=10?" Dès que cette somme dépasse 9, elle fait monter une retenue, comme ici.":""}`};
+  }
+  if(mode===2){
+   const a=R.ent(90,99), b=R.ent(90,99), ca=100-a, cb=100-b, v=a*b;
+   return {q:`Combien font ${a} × ${b} ?`, val:v, unit:"",
+    calcul:`Compléments à 100 : ${a}→${ca}, ${b}→${cb} · (${a}−${cb})00 + ${ca}×${cb} = ${(a-cb)*100} + ${ca*cb} = <b>${v}</b>`,
+    truc:`Niveau 3, proches de 100 : on travaille sur ce qu'il MANQUE à chacun pour atteindre 100 — des nombres bien plus petits à multiplier entre eux.`};
+  }
+  const m=R.ent(20,80), d=R.ent(1,9), a=m-d, b=m+d, v=m*m-d*d;
+  return {q:`Combien font ${a} × ${b} ?`, val:v, unit:"",
+   calcul:`Moyenne (${a}+${b})/2 = ${m}, écart ${d} · ${m}² − ${d}² = ${m*m} − ${d*d} = <b>${v}</b>`,
+   truc:`Niveau 4, différence de carrés : ${a} et ${b} sont symétriques autour de ${m}. Un seul carré à connaître (${m}²) au lieu d'une multiplication à deux inconnues — le raccourci le plus rentable dès qu'on repère deux nombres équidistants d'un rond.`};}}
 
 ];

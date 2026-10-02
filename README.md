@@ -12,7 +12,7 @@ Ouvrir `index.html` dans un navigateur, ou servir le dossier (`python3 -m http.s
 |---|---|
 | `index.html` | App complète : vues, moteur de quiz, révision espacée, modes entretien FR/EN, missions, mémo |
 | `data-deals.js` | 18 deals réels (histoire + quiz + leçon) |
-| `data-academy.js` | 11 modules, 42 leçons (bases → restructuring, fiscalité, macro, consolidation), quiz inclus |
+| `data-academy.js` | 11 modules, 62 leçons (bases → restructuring, fiscalité, macro, consolidation), quiz inclus |
 | `data-sparring.js` | 12 cas DAF, 10 négociations, 26 brain teasers (auto-évalués) |
 | `data-drills.js` | 8 cascades comptables, 6 paper LBO, 16 missions terrain, 24 questions d'entretien en anglais |
 | `data-lexique.js` | 97 termes FR/EN du deal-maker |

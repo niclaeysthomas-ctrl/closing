@@ -143,7 +143,7 @@ const FORMULES = [
  note:"C'est la dette <b>nette</b> : ta trésorerie vient en déduction. Un covenant classique se fixe entre 3,0 et 3,5×.",
  piege:"Tester le ratio au scénario central. Quand l'activité se dégrade, le dénominateur baisse et le numérateur ne bouge pas : le ratio explose bien plus vite que ton activité."},
 
-{id:"dscr", cat:"Dette", ic:"🏗️", t:"Le cash vraiment disponible (DSCR)",
+{id:"dscr", cat:"Dette", ic:"🔍", t:"Le cash vraiment disponible (DSCR)",
  q:"Combien de dette ce dossier peut-il réellement porter ?",
  f:"cash dispo = EBITDA − CAPEX de maintien − ΔBFR − impôt\nDSCR = cash dispo ÷ service annuel de la dette",
  champs:[{k:"eb", lab:"EBITDA (€/an)", v:2000000},{k:"cap", lab:"CAPEX de maintien (€/an)", v:350000},{k:"bfr", lab:"ΔBFR (€/an)", v:120000},{k:"is", lab:"taux d'impôt (%)", v:25, pas:5},{k:"srv", lab:"service de la dette (€/an)", v:1140000}],

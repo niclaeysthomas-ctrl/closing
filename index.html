@@ -2963,10 +2963,10 @@ function chifRoom(){
       <div class="t"><b>${esc(f.nom)}</b><small>${esc(f.sujet)}${e.vus?` · ${part} % justes · ${moy} en moyenne`:""}${e.best!==null?` · record <b style="color:var(--acc)">${e.best}/${CHIF_SERIE}</b>`:""}</small></div>
       <div class="pc">›</div></div>`;}).join("");
   openOv(ovTop("⚡ Le chiffrage")+`
-    <p class="sub">En entretien, personne ne demande 47 × 83. On demande « ça fait combien, à peu près ? » — et ce qui se note est la <b>vitesse</b>, l'<b>ordre de grandeur</b>, et le fait de ne pas se taire pendant qu'on cherche. Huit familles, dix items par série, sans calculatrice.</p>
+    <p class="sub">En entretien, personne ne demande 47 × 83. On demande « ça fait combien, à peu près ? » — et ce qui se note est la <b>vitesse</b>, l'<b>ordre de grandeur</b>, et le fait de ne pas se taire pendant qu'on cherche. Neuf familles, dix items par série, sans calculatrice.</p>
     <div class="crit" style="margin:10px 0"><b>Arrondir n'est pas tricher.</b> Sauf sur les pourcentages exacts, une réponse approchée est acceptée — c'est précisément la compétence qu'on entraîne. Chaque famille indique sa tolérance.</div>
     <div class="mod gold" onclick="chifStart('mix')">
-      <div class="ico">🎲</div><div class="t"><b>Tout mélangé</b><small>Dix items tirés dans les huit familles. C'est le vrai test : en entretien, on ne sait pas quelle famille arrive.</small></div>
+      <div class="ico">🎲</div><div class="t"><b>Tout mélangé</b><small>Dix items tirés dans les neuf familles. C'est le vrai test : en entretien, on ne sait pas quelle famille arrive.</small></div>
       <div class="pc">›</div></div>
     ${lignes}
     <div class="xptxt" style="margin-top:10px">Le chrono mesure, il ne sanctionne pas. Il est là pour que tu voies ton temps baisser.</div>`);
@@ -3285,7 +3285,7 @@ function vAcad(){
     <div class="pc">${exoDus().length||exosFaits()||"›"}</div>
   </div>
   <div class="mod gold" onclick="chifRoom()" style="border-color:#453a20">
-    <div class="ico">⚡</div><div class="t"><b>Le chiffrage — calculer de tête, sous chrono</b><small>${CHIFFRAGE.length} familles : pourcentages, variations, points contre pour cent, fractions, ordres de grandeur, divisions, règle de 72, conversions. Dix items par série, sans calculatrice. ${(()=>{const t=chifSt().series||0;return t?t+" série"+(t>1?"s":"")+" faite"+(t>1?"s":""):"C'est la vitesse qui se note en entretien.";})()}</small></div>
+    <div class="ico">⚡</div><div class="t"><b>Le chiffrage — calculer de tête, sous chrono</b><small>${CHIFFRAGE.length} familles : pourcentages, variations, points contre pour cent, fractions, ordres de grandeur, divisions, règle de 72, conversions, multiplications à deux chiffres. Dix items par série, sans calculatrice. ${(()=>{const t=chifSt().series||0;return t?t+" série"+(t>1?"s":"")+" faite"+(t>1?"s":""):"C'est la vitesse qui se note en entretien.";})()}</small></div>
     <div class="pc">›</div>
   </div>
   <div class="mod gold" onclick="casRoom()" style="border-color:#453a20">
