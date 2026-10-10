@@ -2374,40 +2374,44 @@ function formQueue(){
 }
 function formSues(){ return FORMULES_CARDS.filter(c=>{const s=formSt(c.id);return s&&s.box>=3;}).length; }
 let FQ=null;
-function formStart(){
-  const q=formQueue();
-  FQ={q:q.slice(), n:q.length, nouvelles:q.filter(c=>!formSt(c.id)).length, faites:0};
-  formCard();
+/* Deux usages : la séance du jour (daily) et le « farm » (autant de cartes
+   qu'on veut, quand on veut — ajouté sur « je veux les farmer »). Les deux
+   alimentent la même révision espacée. */
+function formStart(){ const q=formQueue(); FQ={q:q.slice(), n:q.length, faites:0, daily:true}; formCard(); }
+function formFarm(n,cat){
+  const t=today(), pool=FORMULES_CARDS.filter(c=>!cat||c.cat===cat);
+  const rang=c=>{const s=formSt(c.id); if(!s) return 1; if(s.due<=t) return 0; return 2+s.box+Math.random();};
+  const q=pool.slice().sort((x,y)=>rang(x)-rang(y)).slice(0,n||pool.length);
+  if(!q.length) return toast("Aucune carte dans cette catégorie.");
+  FQ={q, n:q.length, faites:0, daily:false}; formCard();
 }
+function formWays(c){ return c.f.map(w=>`<div style="margin-top:12px"><div class="xptxt" style="text-transform:uppercase;letter-spacing:1px">${esc(w[0])}</div><div style="font-size:16.5px;line-height:1.5;color:var(--acc);font-weight:700;margin-top:3px">${esc(w[1])}</div></div>`).join(""); }
 function formCard(){
   const c=FQ.q[0], s=formSt(c.id);
-  openOv(ovTop("🧮 Les formules")+`
-    <div class="prog">${FQ.faites}/${FQ.n} cartes acquises aujourd'hui${FQ.q.length>FQ.n-FQ.faites?" · des cartes ratées reviennent":""}</div>
-    <div class="card" style="text-align:center;padding:26px 16px;margin-top:8px">
+  openOv(ovTop(FQ.daily?"🧮 Les formules du jour":"🔁 Farm de cartes")+`
+    <div class="prog">${FQ.faites}/${FQ.n} cartes acquises${FQ.q.length>FQ.n-FQ.faites?" · les ratées reviennent":""}</div>
+    <div class="card" onclick="formFlip()" style="text-align:center;padding:40px 16px;margin-top:8px;cursor:pointer">
       <div class="xptxt">${esc(c.cat)}${s?"":" · <b style=\"color:var(--acc)\">nouvelle</b>"}</div>
-      <div style="font-size:24px;font-weight:800;margin-top:8px;line-height:1.25">${esc(c.n)}</div>
+      <div style="font-size:25px;font-weight:800;margin-top:10px;line-height:1.25">${esc(c.n)}</div>
+      <div class="xptxt" style="margin-top:16px">Dis-la dans ta tête — les DEUX façons — puis touche la carte</div>
     </div>
-    <p class="sub" style="margin:10px 0 6px">Écris la formule de tête, comme sur une copie. Même approximative : c'est l'effort de rappel qui fixe la mémoire.</p>
-    <textarea id="formTxt" style="min-height:70px" placeholder="${esc(c.n.split(" (")[0])} = …"></textarea>
     <button class="btn" onclick="formFlip()">Retourner la carte</button>`);
-  setTimeout(()=>{const e=document.getElementById("formTxt"); if(e) e.focus();},80);
 }
 function formFlip(){
-  const c=FQ.q[0], mine=(document.getElementById("formTxt")||{}).value||"";
-  openOv(ovTop("🧮 Les formules")+`
-    <div class="prog">${FQ.faites}/${FQ.n} cartes acquises aujourd'hui</div>
+  const c=FQ.q[0];
+  openOv(ovTop(FQ.daily?"🧮 Les formules du jour":"🔁 Farm de cartes")+`
+    <div class="prog">${FQ.faites}/${FQ.n} cartes acquises</div>
     <div class="card" style="margin-top:8px">
       <div class="xptxt">${esc(c.cat)}</div>
-      <div style="font-size:17px;font-weight:800;margin:6px 0 10px">${esc(c.n)}</div>
-      <div style="font-size:17px;line-height:1.5;color:var(--acc);font-weight:700">${esc(c.f)}</div>
-      <div class="sub" style="margin-top:10px">${esc(c.note)}</div>
+      <div style="font-size:18px;font-weight:800;margin-top:4px">${esc(c.n)}</div>
+      ${formWays(c)}
+      <div class="sub" style="margin-top:14px">${esc(c.note)}</div>
     </div>
-    ${mine.trim()?`<div class="gridpt"><b>Ta version :</b> ${esc(mine)}</div>`:""}
-    <p class="sub" style="margin:12px 0 4px">Honnêtement, tu la savais ?</p>
+    <p class="sub" style="margin:12px 0 4px">Honnêtement, tu avais les deux façons ?</p>
     <div class="selfrow">
       <button class="btn r" onclick="formRate(0)">À revoir</button>
-      <button class="btn m" onclick="formRate(1)">Hésitant</button>
-      <button class="btn s" onclick="formRate(2)">Je savais</button>
+      <button class="btn m" onclick="formRate(1)">Une sur deux</button>
+      <button class="btn s" onclick="formRate(2)">Les deux</button>
     </div>`);
 }
 function formRate(q){
@@ -2418,19 +2422,35 @@ function formRate(q){
   else { s.box=Math.min(FORM_IVL.length-1,(s.box||0)+1); s.due=addDays(FORM_IVL[s.box]); FQ.faites++; }
   S.formules[c.id]=s; save();
   if(FQ.q.length) return formCard();
-  const n=FQ.n; FQ=null;
-  addXP(5+n); checkMenu("formules"); save();
-  openOv(ovTop("🧮 Formules du jour")+`<div class="result"><div class="big">${n} / ${n}</div>
-    <p>Toutes les cartes du jour sont acquises. ${formSues()}/${FORMULES_CARDS.length} formules solidement installées. Demain, les cartes reviennent selon ce que tu as répondu aujourd'hui.</p></div>
-    <button class="btn ghost" onclick="formBrowse()">📖 Voir tout le formulaire</button>`);
+  const n=FQ.n, daily=FQ.daily; FQ=null;
+  addXP(daily?5+n:Math.ceil(n/2));
+  if(daily) checkMenu("formules");
+  save();
+  openOv(ovTop(daily?"🧮 Formules du jour":"🔁 Farm terminé")+`<div class="result"><div class="big">${n} / ${n}</div>
+    <p>${daily?"Les cartes du jour sont acquises.":"Série terminée."} ${formSues()}/${FORMULES_CARDS.length} formules solidement installées.</p></div>
+    <button class="btn ghost" onclick="formFarm(10)">🔁 Encore 10 cartes</button>
+    <button class="btn ghost" onclick="formBrowse()">📖 Tout le formulaire</button>`);
 }
 function formBrowse(){
   const cats=[...new Set(FORMULES_CARDS.map(c=>c.cat))];
   openOv(ovTop("📖 Mon formulaire")+`
-    <div class="sub" style="margin-bottom:10px">Touche une formule pour la révéler. ${formSues()}/${FORMULES_CARDS.length} acquises (vues au moins trois fois avec succès).</div>
-    ${cats.map(cat=>`<h2 class="sec">${esc(cat)}</h2>`+FORMULES_CARDS.filter(c=>c.cat===cat).map(c=>{const s=formSt(c.id);
+    <div class="sub" style="margin-bottom:10px">${FORMULES_CARDS.length} formules, chacune avec ses deux façons. ${formSues()} acquises. Touche une formule pour la révéler, ou farm-les en cartes.</div>
+    <button class="btn" onclick="formFarm(10)">🔁 Farm — 10 cartes</button>
+    <button class="btn ghost" onclick="formFarm(0)">🔁 Tout le paquet (${FORMULES_CARDS.length} cartes)</button>
+    <button class="btn ghost" onclick="formAnki()">⬇️ Télécharger le paquet pour Anki</button>
+    ${cats.map(cat=>`<h2 class="sec">${esc(cat)} <a href="#" onclick="formFarm(0,${JSON.stringify(cat).replace(/"/g,"&quot;")});return false" style="color:var(--acc);font-size:11px;letter-spacing:0">› farm cette catégorie</a></h2>`+FORMULES_CARDS.filter(c=>c.cat===cat).map(c=>{const s=formSt(c.id);
       return `<details class="gridpt" style="cursor:pointer"><summary><b>${esc(c.n)}</b> <small style="color:var(--dim)">${s?(s.box>=3?"· acquise":"· en cours"):"· pas encore vue"}</small></summary>
-        <div style="color:var(--acc);font-weight:700;margin-top:8px">${esc(c.f)}</div><div class="xptxt" style="margin-top:6px">${esc(c.note)}</div></details>`;}).join("")).join("")}`);
+        ${formWays(c)}<div class="xptxt" style="margin-top:8px">${esc(c.note)}</div></details>`;}).join("")).join("")}`);
+}
+/* Export au format texte d'Anki (Fichier › Importer) : recto = nom,
+   verso = les deux façons + la lecture. Une carte par formule. */
+function formAnki(){
+  const clean=x=>String(x).replace(/\t/g," ").replace(/\n/g," ");
+  const lignes=["#separator:tab","#html:true","#columns:Recto\tVerso\tTags","#tags column:3"].concat(
+    FORMULES_CARDS.map(c=>[clean(c.n), c.f.map(w=>"<b>"+clean(w[0])+"</b> : "+clean(w[1])).join("<br>")+"<br><br><i>"+clean(c.note)+"</i>", "Closing::Formules::"+clean(c.cat).replace(/[^A-Za-zÀ-ÿ0-9]+/g,"_")].join("\t")));
+  const url=URL.createObjectURL(new Blob([lignes.join("\n")],{type:"text/plain;charset=utf-8"}));
+  const a=document.createElement("a"); a.href=url; a.download="closing-formules-anki.txt"; document.body.appendChild(a); a.click(); a.remove();
+  toast("⬇️ Fichier prêt. Dans Anki : Fichier › Importer, puis choisis ce fichier.");
 }
 
 /* ---- une fiche par jour, dans l'ordre, sans répétition ---- */
@@ -2531,7 +2551,7 @@ function stageTasks(m){
   const T=[
    {b:1, k:"chif", nom:"le chiffrage", min:5, done:!!m.dChif, ic:"⚡", t:"Le chiffrage — 5 calculs de tête", s:"cinq items, sans calculatrice", go:"chifStart('mix',5)"},
   ];
-  T.push({b:1, k:"formules", nom:"les formules", min:10, done:!!m.dForm, ic:"🧮", t:"Les formules — cartes à retourner", s:formQueue().length+" cartes aujourd'hui, dont des nouvelles : écris chaque formule de tête avant de retourner", go:"formStart()"});
+  T.push({b:1, k:"formules", nom:"les formules", min:10, done:!!m.dForm, ic:"🧮", t:"Les formules — cartes à retourner", s:formQueue().length+" cartes aujourd'hui, dont des nouvelles : les deux façons de chaque formule", go:"formStart()"});
   if(w<=3) T.push({b:1, k:"etats", nom:"le drill des trois états", min:5, done:!!m.dEtats, ic:"🔗", t:"Drill — les trois états liés", s:"15 variations éclair ; objectif 15/15 deux jours de suite", go:"etatsDrill()"});
   T.push(
    {b:2, k:"lesson", nom:"la leçon", min:15, done:!!m.dLesson, ic:"🎓", t:"Leçon — "+les.title, s:MODULES.find(x=>x.id===les.module).name+" · lis, puis quiz en formulant chaque réponse avant de voir les choix", go:`openLesson('${les.id}')`},
@@ -2562,6 +2582,7 @@ function vJourStage(){
   const bonus=[
     revs.length?`<div class="act rev" onclick="openRev('${revs[0].t}','${revs[0].id}')"><div class="ico">↻</div><div class="t"><b>Révisions dues — ${revs.length}</b><small>la mémoire se paie : une révision prend 5 minutes</small></div><div class="st">›</div></div>`:"",
     nMiss?`<div class="act rev" onclick="startRattrapage()"><div class="ico">🩹</div><div class="t"><b>Rattrapage — ${nMiss} question${nMiss>1?"s":""} ratée${nMiss>1?"s":""}</b><small>tes erreurs t'attendent</small></div><div class="st">›</div></div>`:"",
+    `<div class="act rev" onclick="formFarm(10)"><div class="ico">🔁</div><div class="t"><b>Farmer des cartes de formules</b><small>10 cartes de plus, les plus fragiles d'abord · ${formSues()}/${FORMULES_CARDS.length} acquises</small></div><div class="st">›</div></div>`,
     `<div class="act rev" onclick="fitRoom()"><div class="ico">✍️</div><div class="t"><b>Rédiger une réponse de fit</b><small>${ORAL.filter(x=>x.cat==="fit"&&(S.fit[x.id]||"").trim().length>=200).length}/${ORAL.filter(x=>x.cat==="fit").length} rédigées</small></div><div class="st">›</div></div>`,
     `<div class="act rev" onclick="dealsRecRoom()"><div class="ico">📝</div><div class="t"><b>Avancer une fiche deal</b><small>${S.mesDeals.length} fiche${S.mesDeals.length>1?"s":""} · objectif : deux d'ici la semaine 3</small></div><div class="st">›</div></div>`,
     (bz&&bz.alive&&!bz.finished&&bz.pending)?`<div class="act rev" onclick="nav('boite');setTimeout(bizOpenCase,150)"><div class="ico">🏭</div><div class="t"><b>${esc(bz.name)} — une décision t'attend</b><small>mois ${bz.month}/${bz.horizon}</small></div><div class="st">›</div></div>`:""
@@ -2605,7 +2626,7 @@ const GUIDE_HOW={
  appli:"L'exercice qui ressemble le plus à un vrai entretien. Fais-le par écrit ou à voix haute, sans regarder la correction avant d'avoir fini.",
  presse:"Ouvre un site d'actualité financière (Les Échos, CFNEWS, Reuters, FT). Choisis un deal de la semaine et écris 5 lignes : qui, combien, pourquoi, comment c'est financé, ton avis.",
  deal:"Lis l'histoire du deal, puis le quiz. Retiens une seule leçon, celle que tu pourrais citer en entretien.",
- formules:"Les cartes des formules. Pour chacune : lis le nom, écris la formule de tête dans le cadre, retourne, compare, puis note-toi honnêtement. Une carte « à revoir » revient jusqu'à ce que tu la saches.",
+ formules:"Les cartes des formules. Pour chacune : lis le nom, dis-toi les DEUX façons de la calculer, retourne la carte, puis note-toi honnêtement. Une carte « à revoir » revient jusqu'à ce que tu la saches. Tu pourras en farmer autant que tu veux ensuite.",
  metier:"Découvre un métier de la finance : sa mission, une journée type, ce qu'on teste pour un stage. Réponds à la question « teste-toi », puis donne ton avis.",
  conseil:"Une notion de conseil : lis l'idée, la méthode, l'exemple et le piège. Puis explique-la à voix haute en 30 secondes avec ton propre exemple.",
  cards:"Une session de flashcards. Pour chaque carte, réponds dans ta tête avant de la retourner, et note-toi honnêtement."
@@ -3620,7 +3641,7 @@ function vAcad(){
     <div class="ico">🃏</div><div class="t"><b>Flashcards — révision espacée</b><small>${cd?cd+" carte"+(cd>1?"s":"")+" due"+(cd>1?"s":"")+" · ":""}${cm} maîtrisée${cm>1?"s":""} sur ${FLASHCARDS.length}. Vocabulaire, multiples, réalité du métier.</small></div>
     <div class="pc">${cd?cd:"›"}</div>
   </div>
-  ${typeof FORMULES_CARDS!=="undefined"?`<div class="mod gold" onclick="formBrowse()"><div class="ico">📖</div><div class="t"><b>Mon formulaire — ${FORMULES_CARDS.length} formules</b><small>Toutes les formules à connaître par cœur, touche pour révéler. Révisées en cartes chaque jour dans la séance.</small></div><div class="pc">${formSues()}/${FORMULES_CARDS.length}</div></div>`:""}
+  ${typeof FORMULES_CARDS!=="undefined"?`<div class="mod gold" onclick="formBrowse()"><div class="ico">📖</div><div class="t"><b>Mon formulaire — ${FORMULES_CARDS.length} formules</b><small>Toutes les formules, avec leurs deux façons. Farm en cartes autant que tu veux, ou exporte le paquet vers Anki.</small></div><div class="pc">${formSues()}/${FORMULES_CARDS.length}</div></div>`:""}
   <div class="mod gold" onclick="openLexique()">
     <div class="ico">📕</div><div class="t"><b>Lexique du deal-maker</b><small>${LEXIQUE.length} termes FR/EN avec définitions. Le vocabulaire EST la légitimité.</small></div>
     <div class="pc">›</div>
