@@ -557,6 +557,7 @@ function ensureMenu(){
     if(S.menu.dCards===undefined){ S.menu.dCards=false; save(); } // migration des menus d'avant l'ajout des flashcards
     if(S.menu.readMode===undefined){ S.menu.readMode="deal"; if(!S.menu.mclass) S.menu.mclass=nextUndone(MASTERCLASS,S.done.mclass).id; save(); } // migration masterclass
     if(S.menu.dExo===undefined){ S.menu.dExo=exoJourClos(); S.menu.dChif=false; save(); } // migration séance à 2h : chiffrage + exos rejoignent la journée
+    if(S.stage&&!S.menu.stageV&&typeof STAGE_PLAN!=="undefined"){ stageMenuInit(S.menu); save(); } // passage au programme stage en cours de journée
     return;
   }
   const doy=Math.floor((new Date()-new Date(new Date().getFullYear(),0,0))/864e5);
@@ -567,6 +568,7 @@ function ensureMenu(){
     lesson:nextLesson().id,
     sparType,spar:nextUndone(SPAR[sparType].l(),SPAR[sparType].d()).id,
     dDeal:false,dLesson:false,dSpar:false,dCards:false,dExo:exoJourClos(),dChif:false,validated:false};
+  if(S.stage&&typeof STAGE_PLAN!=="undefined") stageMenuInit(S.menu);
   save();
 }
 /* ⚠️ LA SÉANCE À 2H, ET LES FONDAMENTAUX D'ABORD.
@@ -598,7 +600,13 @@ function checkMenu(kind,id){
   if(kind==="exo") m.dExo=true;
   if(kind==="chif") m.dChif=true;
   if(SPAR[kind]&&kind===m.sparType&&id===m.spar) m.dSpar=true;
-  if(m.dDeal&&m.dLesson&&m.dSpar&&m.dCards&&m.dExo&&m.dChif&&!m.validated){
+  if(kind==="oral") m.dOral=true;
+  if(kind==="etats") m.dEtats=true;
+  if(kind==="presse") m.dPresse=true;
+  if(m.stageV&&kind===m.appli&&(kind!=="cas"||!m.appliId||id===m.appliId)) m.dAppli=true;
+  if(m.stageV&&SPAR[m.appli]&&m.dSpar) m.dAppli=true;
+  const complet=(m.stageV&&S.stage) ? stageTasks(m).every(t=>t.done) : (m.dDeal&&m.dLesson&&m.dSpar&&m.dCards&&m.dExo&&m.dChif);
+  if(complet&&!m.validated){
     m.validated=true;
     S.streak=(S.lastVal===yesterday())?S.streak+1:1;
     S.lastVal=today();
@@ -2333,13 +2341,107 @@ function coachLine(){
   }
   if(dispStreak()===0) return "Streak à <b>zéro</b>. En M&A, la régularité n'est pas une qualité, c'est le ticket d'entrée. Deux heures, fondamentaux d'abord. Maintenant.";
   if(P.length) return P[0].t;
-  const left=[!m.dChif&&"le chiffrage",!m.dExo&&"les fondamentaux",!m.dDeal&&"le deal",!m.dLesson&&"la leçon",!m.dSpar&&"le sparring",!m.dCards&&"les flashcards"].filter(Boolean);
+  const stg=m.stageV&&S.stage&&typeof stageTasks==="function", TT=stg?stageTasks(m):null;
+  const left=stg?TT.filter(t=>!t.done).map(t=>t.nom):[!m.dChif&&"le chiffrage",!m.dExo&&"les fondamentaux",!m.dDeal&&"le deal",!m.dLesson&&"la leçon",!m.dSpar&&"le sparring",!m.dCards&&"les flashcards"].filter(Boolean);
+  if(stg&&left.length===TT.length) return "Rien de fait aujourd'hui. Deux heures, dans l'ordre : <b>on s'échauffe, on apprend, on le dit à voix haute, on l'applique</b>. Commence par le chiffrage.";
   if(left.length>=6) return "Rien de fait aujourd'hui. Le chiffrage t'attend — <b>on s'échauffe d'abord, on tranche ensuite</b>.";
   return "Il te reste <b>"+left.join(" et ")+"</b>. On ne laisse pas un menu à moitié terminé — c'est exactement le flou qu'on chasse.";
 }
 
+/* ================= LE PROGRAMME DU JOUR — MODE STAGE =================
+   Refait le 2026-10-10 : « au moins 2 heures par jour ». L'ancien menu
+   (chiffrage, exos, deal, leçon, sparring, flashcards) ne contenait ni
+   l'oral, ni le fit, ni l'actualité des deals — exactement ce qu'un
+   recruteur teste. Le programme stage tient en 2 h, en six blocs dans
+   l'ordre où le cerveau les encaisse le mieux : s'échauffer, apprendre,
+   dire, appliquer, s'informer, consolider.
+
+   La mise en situation tourne selon le jour de la semaine, et bascule
+   vers les entretiens blancs en semaines 5 et 6 du plan. Le drill des
+   trois états n'est exigé que les trois premières semaines : ensuite,
+   c'est un réflexe, ou il faut le refaire hors menu. */
+const STAGE_ROT   = ["itvEN","cascade","plbo","cas","cascade","itv","plbo"];  /* dim → sam, semaines 1-4 */
+const STAGE_ROT_B = ["itvEN","itv","plbo","cas","itvEN","itv","cascade"];     /* semaines 5-6 : entretiens blancs */
+function stageMenuInit(m){
+  const w=stageWeek(), dow=new Date().getDay();
+  let ap=(w>=5?STAGE_ROT_B:STAGE_ROT)[dow];
+  m.stageV=1; m.readMode="deal"; m.appliId=null;
+  if(ap==="cas"){
+    const c=nextCaseFondamental()||CAS.find(x=>!casFait(x.id));
+    if(c) m.appliId=c.id; else ap="cascade";
+  }
+  if(SPAR[ap]){ m.sparType=ap; m.spar=nextUndone(SPAR[ap].l(),SPAR[ap].d()).id; m.dSpar=false; }
+  m.appli=ap; m.dAppli=false;
+  m.dOral=false; m.dPresse=false; m.dEtats=(w>3);
+}
+function stageAppliTile(m){
+  if(m.appli==="cas"){ const c=CAS.find(x=>x.id===m.appliId);
+    return {ic:c.ic, t:"Cas de conseil — "+c.titre, s:"cadrer, découper, chiffrer, conclure : la démarche notée en entretien", go:`casOpen('${c.id}')`}; }
+  if(m.appli==="itv") return {ic:"🎙️", t:"Entretien blanc — 12 questions, 8 minutes", s:"puis repasse chaque question ratée au Rattrapage en expliquant à voix haute pourquoi tu t'es trompé", go:"startInterview()"};
+  if(m.appli==="itvEN") return {ic:"🇬🇧", t:"Interview in English — 12 questions, 8 minutes", s:"la moitié de tes entretiens seront en anglais ; ensuite, redis à voix haute en anglais les deux réponses que tu as ratées", go:"startInterviewEN()"};
+  const sp=SPAR[m.appli], it=sp.l().find(x=>x.id===m.spar);
+  return {ic:sp.ico, t:sp.lab+" — "+(it.title||it.cat), s:m.appli==="plbo"?"sur papier, chronométré : MOIC, TRI, puis une phrase sur la source du rendement":"déroule P&L → flux → bilan par écrit, chiffre par chiffre", go:`openSpar('${m.appli}','${m.spar}')`};
+}
+function stageTasks(m){
+  const w=stageWeek();
+  const les=LESSONS.find(l=>l.id===m.lesson), deal=DEALS.find(d=>d.id===m.deal);
+  const dusExo=exoDus(), pExo=exoProchainPalier();
+  const T=[
+   {b:1, k:"chif", nom:"le chiffrage", min:10, done:!!m.dChif, ic:"⚡", t:"Le chiffrage — calcul de tête, sous chrono", s:"dix items, sans calculatrice", go:"chifStart('mix')"},
+  ];
+  if(w<=3) T.push({b:1, k:"etats", nom:"le drill des trois états", min:5, done:!!m.dEtats, ic:"🔗", t:"Drill — les trois états liés", s:"15 variations éclair ; objectif 15/15 deux jours de suite", go:"etatsDrill()"});
+  T.push(
+   {b:2, k:"lesson", nom:"la leçon", min:15, done:!!m.dLesson, ic:"🎓", t:"Leçon — "+les.title, s:MODULES.find(x=>x.id===les.module).name+" · lis, puis quiz en formulant chaque réponse avant de voir les choix", go:`openLesson('${les.id}')`},
+   {b:2, k:"exo", nom:"les exos", min:20, done:!!m.dExo, ic:dusExo.length?"🔁":"🧮", t:dusExo.length?`Exos — reprise de ${dusExo.length} palier${dusExo.length>1?"s":""}`:(pExo?`Exos — palier ${pExo.n}. ${pExo.titre}`:"Exos — tout est validé"), s:"une série complète, calculs posés sur papier", go:"exoContinuer()"},
+   {b:3, k:"oral", nom:"l'oral", min:20, done:!!m.dOral, ic:"🎤", t:"L'oral du jour — 3 questions à voix haute", s:w<=2?"technique et motivation, enregistre-toi et réécoute-toi. Si une question de fit tombe sans réponse écrite, rédige-la d'abord":"technique et motivation, 90 s chacune, enregistre-toi et réécoute-toi", go:"oralStart('mix')"},
+   Object.assign({b:4, k:"appli", nom:"la mise en situation", min:25, done:!!m.dAppli}, stageAppliTile(m)),
+   {b:5, k:"presse", nom:"la revue de presse", min:5, done:!!m.dPresse, ic:"📰", t:"Revue de presse — un deal de la semaine", s:"5 lignes dans le Journal : qui, combien, pourquoi, comment c'est financé, ton avis", go:"openPresse()"},
+   {b:5, k:"deal", nom:"le deal du jour", min:10, done:!!m.dDeal, ic:"📖", t:"Le deal du jour — "+deal.title, s:deal.tag+" · "+deal.year+" · histoire + quiz", go:`openDeal('${deal.id}')`},
+   {b:6, k:"cards", nom:"les flashcards", min:10, done:!!m.dCards, ic:"🃏", t:"Flashcards"+(cardsDue().length?" — "+cardsDue().length+" dues":""), s:"la révision espacée garde ce que tu as appris cette semaine", go:"openCardIntro()"}
+  );
+  return T;
+}
+const STAGE_BLOCS={1:"Échauffement",2:"Le socle technique",3:"L'oral",4:"Mise en situation",5:"Culture deals",6:"Mémoire"};
+function vJourStage(){
+  const m=S.menu, r=rank(), nr=nextRank(), w=stageWeek(), pw=STAGE_PLAN.find(x=>x.s===w);
+  const T=stageTasks(m), fait=T.filter(t=>t.done).length;
+  const total=T.reduce((a,t)=>a+t.min,0), reste=T.filter(t=>!t.done).reduce((a,t)=>a+t.min,0);
+  const pct=nr?Math.min(100,Math.round((S.xp-r[1])/(nr[1]-r[1])*100)):100;
+  const blocs=[...new Set(T.map(t=>t.b))].map((b,i)=>{
+    const ts=T.filter(t=>t.b===b), mn=ts.reduce((a,t)=>a+t.min,0);
+    return `<h2 class="sec">${"①②③④⑤⑥"[i]} ${STAGE_BLOCS[b]} — ${mn} min</h2>`+ts.map(t=>
+      `<div class="act ${t.done?"done":""}" onclick="${t.go}"><div class="ico">${t.ic}</div><div class="t"><b>${esc(t.t)}</b><small>${t.s} (~${t.min} min)</small></div><div class="st">${t.done?"✓":"›"}</div></div>`).join("");
+  }).join("");
+  const etape=pw.items.find(it=>!S.plan[it[0]]);
+  const revs=dueRevs(), nMiss=S.miss.length, bz=S.biz;
+  const bonus=[
+    revs.length?`<div class="act rev" onclick="openRev('${revs[0].t}','${revs[0].id}')"><div class="ico">↻</div><div class="t"><b>Révisions dues — ${revs.length}</b><small>la mémoire se paie : une révision prend 5 minutes</small></div><div class="st">›</div></div>`:"",
+    nMiss?`<div class="act rev" onclick="startRattrapage()"><div class="ico">🩹</div><div class="t"><b>Rattrapage — ${nMiss} question${nMiss>1?"s":""} ratée${nMiss>1?"s":""}</b><small>tes erreurs t'attendent</small></div><div class="st">›</div></div>`:"",
+    `<div class="act rev" onclick="fitRoom()"><div class="ico">✍️</div><div class="t"><b>Rédiger une réponse de fit</b><small>${ORAL.filter(x=>x.cat==="fit"&&(S.fit[x.id]||"").trim().length>=200).length}/${ORAL.filter(x=>x.cat==="fit").length} rédigées</small></div><div class="st">›</div></div>`,
+    `<div class="act rev" onclick="dealsRecRoom()"><div class="ico">📝</div><div class="t"><b>Avancer une fiche deal</b><small>${S.mesDeals.length} fiche${S.mesDeals.length>1?"s":""} · objectif : deux d'ici la semaine 3</small></div><div class="st">›</div></div>`,
+    (bz&&bz.alive&&!bz.finished&&bz.pending)?`<div class="act rev" onclick="nav('boite');setTimeout(bizOpenCase,150)"><div class="ico">🏭</div><div class="t"><b>${esc(bz.name)} — une décision t'attend</b><small>mois ${bz.month}/${bz.horizon}</small></div><div class="st">›</div></div>`:""
+  ].join("");
+  return `
+  <h1 class="page">Le programme du jour</h1>
+  <div class="sub">${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})} — objectif stage, semaine ${w}/6 : <b>${esc(pw.t)}</b>.</div>
+  <div class="hero">
+    <div class="rank">${fait}/${T.length} blocs faits</div>
+    <div class="big">${m.validated?"Journée validée":reste+" min restantes"}</div>
+    <div class="xpbar"><i style="width:${Math.round(fait/T.length*100)}%"></i></div>
+    <div class="xptxt">programme de ${total} min · ${r[0]}, ${S.xp} XP · streak ${dispStreak()} 🔥</div>
+  </div>
+  <div class="coach">${coachLine()}</div>
+  ${blocs}
+  ${etape?`<h2 class="sec">Hors app — l'étape du plan cette semaine</h2>
+  <div class="act rev" onclick="planRoom()"><div class="ico">🗓️</div><div class="t"><b>${esc(etape[1])}</b><small>semaine ${w} · coche-la dans le plan quand c'est fait</small></div><div class="st">›</div></div>`:""}
+  <h2 class="sec">Si tu as plus de 2 heures</h2>
+  ${bonus}
+  <div class="act" onclick="stageRoom()"><div class="ico">🎯</div><div class="t"><b>Objectif stage — tout l'espace</b><small>plan, oral technique, fit, trois états, deals récents</small></div><div class="st">›</div></div>`;
+}
+
 function vJour(){
   ensureMenu();
+  if(S.stage&&S.menu.stageV&&typeof ORAL!=="undefined") return vJourStage();
   const m=S.menu,r=rank(),nr=nextRank();
   const deal=DEALS.find(d=>d.id===m.deal),les=LESSONS.find(l=>l.id===m.lesson);
   const mc=MASTERCLASS.find(x=>x.id===m.mclass);
@@ -2926,7 +3028,7 @@ function casFin(){
   if(!CAS_ST) return;
   const {c,score,total}=CAS_ST;
   casEtat()[c.id]={score,total,d:exoAujourdhui()};
-  const xp=10+score*2; addXP(xp); save();
+  const xp=10+score*2; addXP(xp); checkMenu("cas",c.id); save();
   toast(`+${xp} XP · ${score}/${total}`);
   CAS_ST=null; casRoom();
 }
@@ -3336,7 +3438,7 @@ function acadModules(){
     `<details style="margin-top:14px"><summary style="cursor:pointer;color:var(--dim);font-size:14px;padding:8px 0">Après le stage — ${rest.length} modules (droit, fiscalité, restructuring, marchés…)</summary>
       ${rest.map(m=>acadModTile(m)).join("")}</details>`;
 }
-function stageToggle(){ S.stage=!S.stage; save(); render(); toast(S.stage?"🎯 Mode stage activé : priorités d'abord.":"Mode stage désactivé : tous les modules à plat."); }
+function stageToggle(){ S.stage=!S.stage; if(S.stage&&S.menu&&!S.menu.stageV) stageMenuInit(S.menu); save(); render(); toast(S.stage?"🎯 Mode stage activé : priorités d'abord.":"Mode stage désactivé : tous les modules à plat."); }
 function recallToggle(){ S.recall=!recallOn(); save(); render(); toast(S.recall?"🧠 Les choix restent cachés jusqu'à ce que tu aies formulé ta réponse.":"Les choix s'affichent directement."); }
 
 function vSpar(){
@@ -3468,6 +3570,13 @@ function openJEntry(i){
     ${e?`<button class="danger" onclick="delJEntry(${i})">Supprimer cette note</button>`:""}`);
   jTagSel=e?e.tag||"":"";
 }
+/* La revue de presse du jour : une note taguée Deal, avec une trame. */
+function openPresse(){
+  openJEntry();
+  pickJTag("Deal");
+  const t=document.getElementById("jTxt");
+  if(t){ t.placeholder="Un deal annoncé cette semaine (Les Échos, CFNEWS, FT, Reuters…).\nQui achète qui, combien, quel multiple ?\nPourquoi l'acheteur le fait ?\nComment c'est financé ?\nMon avis en une phrase : bon deal ou pas, et pourquoi."; t.style.minHeight="190px"; }
+}
 let jTagSel="";
 function pickJTag(t){ jTagSel=(jTagSel===t)?"":t; document.querySelectorAll("#jtags button").forEach(b=>b.classList.toggle("on",b.textContent.trim().endsWith(t)&&jTagSel===t)); }
 function saveJEntry(i){
@@ -3475,6 +3584,7 @@ function saveJEntry(i){
   if(txt.length<2) return toast("Note trop courte.");
   if(i>=0){ S.journal[i].txt=txt; S.journal[i].tag=jTagSel; }
   else{ S.journal.unshift({d:today(),tag:jTagSel,txt,t:Date.now()}); addXP(2); }
+  if(jTagSel==="Deal"&&txt.length>=120) checkMenu("presse");
   save(); toast("📓 <b>Noté.</b>"); closeOv(); nav("journal");
 }
 function delJEntry(i){
@@ -4214,6 +4324,7 @@ function oralScore(){
 }
 function oralFin(){
   const g=ORL.good,t=ORL.items.length; ORL=null;
+  if(t>=3) checkMenu("oral");
   openOv(ovTop("Oral terminé")+`<div class="result"><div class="big">${g}/${t}</div><p>réponses solides. L'oral se travaille comme un sport : un peu chaque jour vaut mieux qu'une séance de trois heures la veille.</p></div>
     <button class="btn" onclick="stageRoom()">‹ Objectif stage</button><button class="btn ghost" onclick="closeOv()">Fermer</button>`);
 }
@@ -4246,7 +4357,7 @@ function fitOpen(id){
 function etatsDrill(){
   const items=ETATS.slice().sort(()=>Math.random()-.5).map(q=>Object.assign({},q,{from:"Trois états · impôt 25 %"}));
   startQuiz(items,"🔗 Trois états",(good,total)=>{
-    if(S.etatsBest==null||good>S.etatsBest) S.etatsBest=good;
+    if(S.etatsBest==null||good>S.etatsBest) S.etatsBest=good; checkMenu("etats");
     S.etatsLast=(S.etatsLast||[]).concat([{d:today(),g:good}]).slice(-10);
     const xp=good; addXP(xp); save();
     quizVerdict(good,total,xp,good===total?" Recommence demain : 15/15 deux jours de suite, et c'est un réflexe.":" Reprends la leçon « Les trois états liés », puis refais le drill.");
@@ -4312,7 +4423,7 @@ function launchInterview(bases){
   });
   let idx=0;
   startQuiz(items,"Entretien",(good,total,timedOut)=>{
-    S.itv.runs++; if(good>S.itv.best) S.itv.best=good;
+    S.itv.runs++; if(good>S.itv.best) S.itv.best=good; checkMenu("itv");
     const xp=good*3; addXP(xp); save();
     const v=timedOut?"Temps écoulé — en entretien aussi, le silence compte comme une mauvaise réponse.":
       good>=11?"Offre. On te rappelle avant les autres.":
@@ -4405,7 +4516,7 @@ function startInterviewEN(){
 function launchInterviewEN(){
   const items=[...ENGQ].sort(()=>Math.random()-.5).slice(0,12);
   startQuiz(items,"English interview",(good,total,timedOut)=>{
-    S.itv.runsEN++; if(good>S.itv.bestEN) S.itv.bestEN=good;
+    S.itv.runsEN++; if(good>S.itv.bestEN) S.itv.bestEN=good; checkMenu("itvEN");
     const xp=good*3; addXP(xp); save();
     const v=timedOut?"Time's up — in a real interview, silence counts as a wrong answer.":
       good>=11?"Offer. They'll call you before the others.":

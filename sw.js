@@ -1,5 +1,5 @@
 // LE CLOSING — service worker : cache-first, app 100 % hors-ligne
-const CACHE = "closing-v40-stage";
+const CACHE = "closing-v41-programme";
 const ASSETS = [
   "./",
   "./index.html",
