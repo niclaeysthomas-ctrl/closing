@@ -219,6 +219,7 @@
   nav .in{max-width:520px;margin:0 auto;display:flex}
   nav button{flex:1;background:none;border:none;color:var(--dim);font-size:10.5px;font-weight:700;padding:9px 0 max(9px,env(safe-area-inset-bottom));cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
   nav button i{font-style:normal;font-size:19px}
+  body.locked nav button:not([data-v=jour]){opacity:.3}
   nav button.on{color:var(--acc)}
 
   .mod{display:flex;align-items:center;gap:11px;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:13px;margin-bottom:8px;cursor:pointer}
@@ -330,12 +331,13 @@
 <script src="data-deals-tech.js"></script>
 <script src="data-economie.js"></script>
 <script src="data-stage.js"></script>
+<script src="data-quotidien.js"></script>
 <script>
 // ================= ÉTAT =================
 const RANKS=[["Stagiaire",0],["Analyst",150],["Associate",400],["VP",800],["Director",1400],["Managing Director",2200],["Rainmaker",3200]];
 const KEY="closing_v1";
 const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[],mclass:[],eco:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{},journal:[],biz:null,cimetiere:[],bizDone:[],bizRec:{},exos:{cur:1,p:{}},pal:{},lastExport:null,
-  /* Objectif stage (2026-10-10) */ stage:true,recall:true,oral:{},fit:{},plan:{},mesDeals:[]};
+  /* Objectif stage (2026-10-10) */ stage:true,recall:true,guided:true,oral:{},fit:{},plan:{},mesDeals:[]};
 let S=load();
 function load(){
   let s={};
@@ -593,6 +595,7 @@ function nextLesson(){
 }
 function checkMenu(kind,id){
   const m=S.menu; if(!m||m.date!==today()) return;
+  const avant=(m.stageV&&S.stage&&S.guided!==false&&typeof guideCur==="function")?guideCur():null;
   if(kind==="deal"&&id===m.deal) m.dDeal=true;
   if(kind==="mclass"&&id===m.mclass) m.dDeal=true; // la masterclass valide le slot "lecture du jour"
   if(kind==="lesson"&&id===m.lesson) m.dLesson=true;
@@ -603,6 +606,9 @@ function checkMenu(kind,id){
   if(kind==="oral") m.dOral=true;
   if(kind==="etats") m.dEtats=true;
   if(kind==="presse") m.dPresse=true;
+  if(kind==="formules") m.dForm=true;
+  if(kind==="metier") m.dMetier=true;
+  if(kind==="conseil") m.dConseil=true;
   if(m.stageV&&kind===m.appli&&(kind!=="cas"||!m.appliId||id===m.appliId)) m.dAppli=true;
   if(m.stageV&&SPAR[m.appli]&&m.dSpar) m.dAppli=true;
   const complet=(m.stageV&&S.stage) ? stageTasks(m).every(t=>t.done) : (m.dDeal&&m.dLesson&&m.dSpar&&m.dCards&&m.dExo&&m.dChif);
@@ -615,6 +621,7 @@ function checkMenu(kind,id){
     setTimeout(()=>toast("🔥 <b>Journée validée.</b> Streak : "+S.streak+" (+20 XP)"),400);
   }
   save(); header();
+  if(avant){ const apres=guideCur(); if(apres!==avant&&(!apres||apres.k!==avant.k)) setTimeout(guideNextBtn,250); }
 }
 
 // ================= LA BOÎTE — MOTEUR =================
@@ -2293,7 +2300,7 @@ function bizExport(){
 
 // ================= VUES =================
 let view="jour";
-function nav(v){ view=v; document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v)); render(); window.scrollTo(0,0); }
+function nav(v){ if(v!=="jour"&&typeof guidedOn==="function"&&guidedOn()){ toast("🔒 Termine d'abord ta séance — l'app se libère à la fin."); v="jour"; } view=v; document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v)); render(); window.scrollTo(0,0); }
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>nav(b.dataset.v));
 
 /* ================================================================
@@ -2348,6 +2355,141 @@ function coachLine(){
   return "Il te reste <b>"+left.join(" et ")+"</b>. On ne laisse pas un menu à moitié terminé — c'est exactement le flou qu'on chasse.";
 }
 
+/* ================= LES FORMULES, LE MÉTIER, LE CONSEIL (2026-10-10) =================
+   Les formules à la manière d'Anki : le recto donne le nom (« FCFF »), on
+   écrit la formule de tête, on retourne, on se note. Une carte ratée
+   revient dans la même séance jusqu'à être sue ; une carte sue revient de
+   plus en plus tard (1, 2, 4, 7, 14, 30 jours). Chaque jour : les cartes
+   dues + quelques nouvelles, dans l'ordre d'apprentissage (bases d'abord). */
+const FORM_IVL=[0,1,2,4,7,14,30];
+function formSt(id){ S.formules=S.formules||{}; return S.formules[id]; }
+function formNewPerDay(){ return stageWeek()<=3?5:3; }
+function formQueue(){
+  const t=today();
+  const dues=FORMULES_CARDS.filter(c=>{const s=formSt(c.id);return s&&s.due<=t;});
+  const news=FORMULES_CARDS.filter(c=>!formSt(c.id)).slice(0,formNewPerDay());
+  let q=dues.concat(news);
+  if(!q.length) q=FORMULES_CARDS.slice().sort(()=>Math.random()-.5).slice(0,5); /* tout est à jour : révision libre */
+  return q;
+}
+function formSues(){ return FORMULES_CARDS.filter(c=>{const s=formSt(c.id);return s&&s.box>=3;}).length; }
+let FQ=null;
+function formStart(){
+  const q=formQueue();
+  FQ={q:q.slice(), n:q.length, nouvelles:q.filter(c=>!formSt(c.id)).length, faites:0};
+  formCard();
+}
+function formCard(){
+  const c=FQ.q[0], s=formSt(c.id);
+  openOv(ovTop("🧮 Les formules")+`
+    <div class="prog">${FQ.faites}/${FQ.n} cartes acquises aujourd'hui${FQ.q.length>FQ.n-FQ.faites?" · des cartes ratées reviennent":""}</div>
+    <div class="card" style="text-align:center;padding:26px 16px;margin-top:8px">
+      <div class="xptxt">${esc(c.cat)}${s?"":" · <b style=\"color:var(--acc)\">nouvelle</b>"}</div>
+      <div style="font-size:24px;font-weight:800;margin-top:8px;line-height:1.25">${esc(c.n)}</div>
+    </div>
+    <p class="sub" style="margin:10px 0 6px">Écris la formule de tête, comme sur une copie. Même approximative : c'est l'effort de rappel qui fixe la mémoire.</p>
+    <textarea id="formTxt" style="min-height:70px" placeholder="${esc(c.n.split(" (")[0])} = …"></textarea>
+    <button class="btn" onclick="formFlip()">Retourner la carte</button>`);
+  setTimeout(()=>{const e=document.getElementById("formTxt"); if(e) e.focus();},80);
+}
+function formFlip(){
+  const c=FQ.q[0], mine=(document.getElementById("formTxt")||{}).value||"";
+  openOv(ovTop("🧮 Les formules")+`
+    <div class="prog">${FQ.faites}/${FQ.n} cartes acquises aujourd'hui</div>
+    <div class="card" style="margin-top:8px">
+      <div class="xptxt">${esc(c.cat)}</div>
+      <div style="font-size:17px;font-weight:800;margin:6px 0 10px">${esc(c.n)}</div>
+      <div style="font-size:17px;line-height:1.5;color:var(--acc);font-weight:700">${esc(c.f)}</div>
+      <div class="sub" style="margin-top:10px">${esc(c.note)}</div>
+    </div>
+    ${mine.trim()?`<div class="gridpt"><b>Ta version :</b> ${esc(mine)}</div>`:""}
+    <p class="sub" style="margin:12px 0 4px">Honnêtement, tu la savais ?</p>
+    <div class="selfrow">
+      <button class="btn r" onclick="formRate(0)">À revoir</button>
+      <button class="btn m" onclick="formRate(1)">Hésitant</button>
+      <button class="btn s" onclick="formRate(2)">Je savais</button>
+    </div>`);
+}
+function formRate(q){
+  const c=FQ.q.shift(), s=formSt(c.id)||{box:0,due:today(),n:0};
+  s.n=(s.n||0)+1;
+  if(q===0){ s.box=0; s.due=today(); FQ.q.push(c); }                  /* revient dans la séance */
+  else if(q===1){ s.box=Math.max(1,s.box); s.due=addDays(1); FQ.faites++; }
+  else { s.box=Math.min(FORM_IVL.length-1,(s.box||0)+1); s.due=addDays(FORM_IVL[s.box]); FQ.faites++; }
+  S.formules[c.id]=s; save();
+  if(FQ.q.length) return formCard();
+  const n=FQ.n; FQ=null;
+  addXP(5+n); checkMenu("formules"); save();
+  openOv(ovTop("🧮 Formules du jour")+`<div class="result"><div class="big">${n} / ${n}</div>
+    <p>Toutes les cartes du jour sont acquises. ${formSues()}/${FORMULES_CARDS.length} formules solidement installées. Demain, les cartes reviennent selon ce que tu as répondu aujourd'hui.</p></div>
+    <button class="btn ghost" onclick="formBrowse()">📖 Voir tout le formulaire</button>`);
+}
+function formBrowse(){
+  const cats=[...new Set(FORMULES_CARDS.map(c=>c.cat))];
+  openOv(ovTop("📖 Mon formulaire")+`
+    <div class="sub" style="margin-bottom:10px">Touche une formule pour la révéler. ${formSues()}/${FORMULES_CARDS.length} acquises (vues au moins trois fois avec succès).</div>
+    ${cats.map(cat=>`<h2 class="sec">${esc(cat)}</h2>`+FORMULES_CARDS.filter(c=>c.cat===cat).map(c=>{const s=formSt(c.id);
+      return `<details class="gridpt" style="cursor:pointer"><summary><b>${esc(c.n)}</b> <small style="color:var(--dim)">${s?(s.box>=3?"· acquise":"· en cours"):"· pas encore vue"}</small></summary>
+        <div style="color:var(--acc);font-weight:700;margin-top:8px">${esc(c.f)}</div><div class="xptxt" style="margin-top:6px">${esc(c.note)}</div></details>`;}).join("")).join("")}`);
+}
+
+/* ---- une fiche par jour, dans l'ordre, sans répétition ---- */
+function dailyPick(key,arr){
+  S.daily=S.daily||{};
+  const d=S.daily[key];
+  if(!d||d.date!==today()){ S.daily[key]={date:today(), n:d?d.n+1:0}; save(); }
+  return arr[S.daily[key].n%arr.length];
+}
+function metierDuJour(){ return dailyPick("metier",METIERS); }
+function conseilDuJour(){ return dailyPick("conseil",CONSEIL); }
+function openMetier(id){
+  const x=id?METIERS.find(m=>m.id===id):metierDuJour(), av=(S.metierAvis||{})[x.id];
+  openOv(ovTop("🧑‍💼 Le métier du jour")+`
+    <div class="meta"><span class="tag">${x.ic} Métier ${METIERS.indexOf(x)+1}/${METIERS.length}</span></div>
+    <div class="qq">${esc(x.titre)}</div>
+    <div class="xptxt" style="margin-bottom:10px">${esc(x.ou)}</div>
+    <div class="card"><b style="font-size:14px">La mission</b><div class="story"><p>${esc(x.mission)}</p></div></div>
+    <div class="card"><b style="font-size:14px">Une journée type</b>${x.journee.map(j=>`<div class="gridpt" style="margin-top:8px">• ${esc(j)}</div>`).join("")}</div>
+    <div class="card"><b style="font-size:14px">Les compétences</b><div class="story"><p>${esc(x.competences)}</p></div>
+      <b style="font-size:14px">Ce qu'on teste pour un stage</b><div class="story"><p>${esc(x.stage)}</p></div>
+      <b style="font-size:14px">Le lien avec tes cibles</b><div class="story"><p>${esc(x.lien)}</p></div></div>
+    <div class="coach"><b>Teste-toi :</b> ${esc(x.question)}</div>
+    <p class="sub" style="margin:12px 0 4px">Ce métier, pour toi ?</p>
+    <div class="selfrow">
+      <button class="btn ${av===0?"":"ghost"}" onclick="metierAvis('${x.id}',0)">Pas pour moi</button>
+      <button class="btn ${av===1?"":"ghost"}" onclick="metierAvis('${x.id}',1)">Pourquoi pas</button>
+      <button class="btn ${av===2?"":"ghost"}" onclick="metierAvis('${x.id}',2)">Ça m'attire</button>
+    </div>`);
+}
+function metierAvis(id,v){
+  S.metierAvis=S.metierAvis||{}; S.metierAvis[id]=v; addXP(3); checkMenu("metier"); save();
+  toast(["Noté. Savoir ce qu'on ne veut pas, c'est déjà s'orienter.","Noté. Garde-le en tête pour tes candidatures.","Noté. Ajoute-le à ta liste de cibles dans le plan."][v]);
+}
+function openConseil(id){
+  const x=id?CONSEIL.find(c=>c.id===id):conseilDuJour();
+  openOv(ovTop("🧠 Le conseil du jour")+`
+    <div class="meta"><span class="tag">${x.ic} Fiche ${CONSEIL.indexOf(x)+1}/${CONSEIL.length}</span></div>
+    <div class="qq">${esc(x.titre)}</div>
+    <div class="card"><b style="font-size:14px">L'idée</b><div class="story"><p>${esc(x.idee)}</p></div></div>
+    <div class="card"><b style="font-size:14px">Comment l'appliquer</b>${x.comment.map((c,i)=>`<div class="gridpt" style="margin-top:8px"><b>${i+1}.</b> ${esc(c)}</div>`).join("")}</div>
+    <div class="card"><b style="font-size:14px">Exemple</b><div class="story"><p>${esc(x.exemple)}</p></div>
+      <b style="font-size:14px">Le piège</b><div class="story"><p>${esc(x.piege)}</p></div></div>
+    <div class="coach"><b>En entretien :</b> ${esc(x.entretien)}</div>
+    <div class="coachnote" style="margin-top:8px">Avant de valider : explique cette notion <b>à voix haute en 30 secondes</b>, avec ton propre exemple.</div>
+    <button class="btn" onclick="conseilFait('${x.id}')">Je l'ai expliquée à voix haute</button>`);
+}
+function conseilFait(id){ S.conseilVus=S.conseilVus||{}; S.conseilVus[id]=today(); addXP(3); checkMenu("conseil"); save(); toast("🧠 Notion du jour faite."); }
+function listeMetiers(){
+  const av=S.metierAvis||{};
+  openOv(ovTop("🧑‍💼 Les métiers de la finance")+`<div class="sub" style="margin-bottom:10px">Un nouveau chaque jour dans la séance. Tes avis t'aident à cibler tes candidatures.</div>`+
+    METIERS.map(m=>`<div class="act" onclick="openMetier('${m.id}')"><div class="ico">${m.ic}</div><div class="t"><b>${esc(m.titre)}</b><small>${av[m.id]==null?"pas encore vu":["pas pour moi","pourquoi pas","ça m'attire"][av[m.id]]}</small></div><div class="st">›</div></div>`).join(""));
+}
+function listeConseil(){
+  const v=S.conseilVus||{};
+  openOv(ovTop("🧠 Les fiches conseil")+`<div class="sub" style="margin-bottom:10px">Une nouvelle chaque jour dans la séance.</div>`+
+    CONSEIL.map(c=>`<div class="act ${v[c.id]?"done":""}" onclick="openConseil('${c.id}')"><div class="ico">${c.ic}</div><div class="t"><b>${esc(c.titre)}</b><small>${v[c.id]?"vue":"pas encore vue"}</small></div><div class="st">›</div></div>`).join(""));
+}
+
 /* ================= LE PROGRAMME DU JOUR — MODE STAGE =================
    Refait le 2026-10-10 : « au moins 2 heures par jour ». L'ancien menu
    (chiffrage, exos, deal, leçon, sparring, flashcards) ne contenait ni
@@ -2387,21 +2529,24 @@ function stageTasks(m){
   const les=LESSONS.find(l=>l.id===m.lesson), deal=DEALS.find(d=>d.id===m.deal);
   const dusExo=exoDus(), pExo=exoProchainPalier();
   const T=[
-   {b:1, k:"chif", nom:"le chiffrage", min:10, done:!!m.dChif, ic:"⚡", t:"Le chiffrage — calcul de tête, sous chrono", s:"dix items, sans calculatrice", go:"chifStart('mix')"},
+   {b:1, k:"chif", nom:"le chiffrage", min:5, done:!!m.dChif, ic:"⚡", t:"Le chiffrage — 5 calculs de tête", s:"cinq items, sans calculatrice", go:"chifStart('mix',5)"},
   ];
+  T.push({b:1, k:"formules", nom:"les formules", min:10, done:!!m.dForm, ic:"🧮", t:"Les formules — cartes à retourner", s:formQueue().length+" cartes aujourd'hui, dont des nouvelles : écris chaque formule de tête avant de retourner", go:"formStart()"});
   if(w<=3) T.push({b:1, k:"etats", nom:"le drill des trois états", min:5, done:!!m.dEtats, ic:"🔗", t:"Drill — les trois états liés", s:"15 variations éclair ; objectif 15/15 deux jours de suite", go:"etatsDrill()"});
   T.push(
    {b:2, k:"lesson", nom:"la leçon", min:15, done:!!m.dLesson, ic:"🎓", t:"Leçon — "+les.title, s:MODULES.find(x=>x.id===les.module).name+" · lis, puis quiz en formulant chaque réponse avant de voir les choix", go:`openLesson('${les.id}')`},
    {b:2, k:"exo", nom:"les exos", min:20, done:!!m.dExo, ic:dusExo.length?"🔁":"🧮", t:dusExo.length?`Exos — reprise de ${dusExo.length} palier${dusExo.length>1?"s":""}`:(pExo?`Exos — palier ${pExo.n}. ${pExo.titre}`:"Exos — tout est validé"), s:"une série complète, calculs posés sur papier", go:"exoContinuer()"},
-   {b:3, k:"oral", nom:"l'oral", min:20, done:!!m.dOral, ic:"🎤", t:"L'oral du jour — 3 questions à voix haute", s:w<=2?"technique et motivation, enregistre-toi et réécoute-toi. Si une question de fit tombe sans réponse écrite, rédige-la d'abord":"technique et motivation, 90 s chacune, enregistre-toi et réécoute-toi", go:"oralStart('mix')"},
+   {b:3, k:"oral", nom:"l'oral", min:15, done:!!m.dOral, ic:"🎤", t:"L'oral du jour — 3 questions à voix haute", s:w<=2?"technique et motivation, enregistre-toi et réécoute-toi. Si une question de fit tombe sans réponse écrite, rédige-la d'abord":"technique et motivation, 90 s chacune, enregistre-toi et réécoute-toi", go:"oralStart('mix')"},
    Object.assign({b:4, k:"appli", nom:"la mise en situation", min:25, done:!!m.dAppli}, stageAppliTile(m)),
    {b:5, k:"presse", nom:"la revue de presse", min:5, done:!!m.dPresse, ic:"📰", t:"Revue de presse — un deal de la semaine", s:"5 lignes dans le Journal : qui, combien, pourquoi, comment c'est financé, ton avis", go:"openPresse()"},
+   (()=>{const x=metierDuJour();return {b:5, k:"metier", nom:"le métier du jour", min:5, done:!!m.dMetier, ic:"🧑‍💼", t:"Le métier du jour — "+x.titre, s:"mission, journée type, ce qu'on teste en stage ; puis ton avis", go:"openMetier()"};})(),
+   (()=>{const x=conseilDuJour();return {b:5, k:"conseil", nom:"la fiche conseil", min:5, done:!!m.dConseil, ic:"🧠", t:"Le conseil du jour — "+x.titre, s:"l'outil, comment l'appliquer, le piège ; puis tu l'expliques à voix haute", go:"openConseil()"};})(),
    {b:5, k:"deal", nom:"le deal du jour", min:10, done:!!m.dDeal, ic:"📖", t:"Le deal du jour — "+deal.title, s:deal.tag+" · "+deal.year+" · histoire + quiz", go:`openDeal('${deal.id}')`},
    {b:6, k:"cards", nom:"les flashcards", min:10, done:!!m.dCards, ic:"🃏", t:"Flashcards"+(cardsDue().length?" — "+cardsDue().length+" dues":""), s:"la révision espacée garde ce que tu as appris cette semaine", go:"openCardIntro()"}
   );
   return T;
 }
-const STAGE_BLOCS={1:"Échauffement",2:"Le socle technique",3:"L'oral",4:"Mise en situation",5:"Culture deals",6:"Mémoire"};
+const STAGE_BLOCS={1:"Échauffement",2:"Le socle technique",3:"L'oral",4:"Mise en situation",5:"Culture finance & conseil",6:"Mémoire"};
 function vJourStage(){
   const m=S.menu, r=rank(), nr=nextRank(), w=stageWeek(), pw=STAGE_PLAN.find(x=>x.s===w);
   const T=stageTasks(m), fait=T.filter(t=>t.done).length;
@@ -2430,7 +2575,7 @@ function vJourStage(){
     <div class="xpbar"><i style="width:${Math.round(fait/T.length*100)}%"></i></div>
     <div class="xptxt">programme de ${total} min · ${r[0]}, ${S.xp} XP · streak ${dispStreak()} 🔥</div>
   </div>
-  <div class="coach">${coachLine()}</div>
+  ${S.guided!==false&&guideFini(m)?`<div class="coach" style="border-color:var(--ok)">🎉 <b>Séance ${m.validated?"terminée et validée":"terminée"}.</b> L'app est libre : explore, révise, ou change tes réglages dans Profil.${m.validated?"":" Une étape a été passée, la journée n'est donc pas validée."}</div>`:`<div class="coach">${coachLine()}</div>`}
   ${blocs}
   ${etape?`<h2 class="sec">Hors app — l'étape du plan cette semaine</h2>
   <div class="act rev" onclick="planRoom()"><div class="ico">🗓️</div><div class="t"><b>${esc(etape[1])}</b><small>semaine ${w} · coche-la dans le plan quand c'est fait</small></div><div class="st">›</div></div>`:""}
@@ -2439,8 +2584,76 @@ function vJourStage(){
   <div class="act" onclick="stageRoom()"><div class="ico">🎯</div><div class="t"><b>Objectif stage — tout l'espace</b><small>plan, oral technique, fit, trois états, deals récents</small></div><div class="st">›</div></div>`;
 }
 
+/* ================= LA SÉANCE GUIDÉE (2026-10-10) =================
+   « Je me perds dans l'application. » Tant que la séance du jour n'est pas
+   finie, l'app ne montre qu'UNE chose : l'étape en cours. Les onglets sont
+   verrouillés, les étapes suivantes aussi. L'ordre est celui du programme
+   stage : échauffement, socle, oral, mise en situation, culture, mémoire.
+   À la fin — et seulement à la fin — l'app redevient libre, et les
+   réglages (Profil) redeviennent accessibles.
+
+   Une seule soupape : « Je suis bloqué ». Elle passe l'étape après
+   confirmation, mais la journée n'est alors pas validée (streak) — pour
+   qu'un bug ne puisse jamais enfermer l'utilisateur, sans en faire une
+   sortie confortable. */
+const GUIDE_HOW={
+ chif:"Cinq calculs de tête, sans calculatrice ni papier. Réponds vite, arrondis quand c'est permis : on vise moins de huit secondes par calcul.",
+ etats:"Quinze variations sur les trois états financiers. Pour chacune, déroule dans ta tête : compte de résultat (avec l'impôt à 25 %), flux, bilan. Formule ta réponse avant d'afficher les choix.",
+ lesson:"Lis la leçon en entier, lentement. Puis le quiz : pour chaque question, dis ta réponse à voix haute AVANT d'afficher les choix. Une erreur part au Rattrapage, c'est normal.",
+ exo:"Une série de calculs sur le palier en cours. Pose chaque calcul sur une feuille, puis tape le résultat. Lis la correction même quand tu as juste.",
+ oral:"Trois questions. Pour chacune : lance le chrono, réponds à voix haute 90 secondes (enregistre-toi si tu peux), puis coche honnêtement ce que tu as vraiment dit.",
+ appli:"L'exercice qui ressemble le plus à un vrai entretien. Fais-le par écrit ou à voix haute, sans regarder la correction avant d'avoir fini.",
+ presse:"Ouvre un site d'actualité financière (Les Échos, CFNEWS, Reuters, FT). Choisis un deal de la semaine et écris 5 lignes : qui, combien, pourquoi, comment c'est financé, ton avis.",
+ deal:"Lis l'histoire du deal, puis le quiz. Retiens une seule leçon, celle que tu pourrais citer en entretien.",
+ formules:"Les cartes des formules. Pour chacune : lis le nom, écris la formule de tête dans le cadre, retourne, compare, puis note-toi honnêtement. Une carte « à revoir » revient jusqu'à ce que tu la saches.",
+ metier:"Découvre un métier de la finance : sa mission, une journée type, ce qu'on teste pour un stage. Réponds à la question « teste-toi », puis donne ton avis.",
+ conseil:"Une notion de conseil : lis l'idée, la méthode, l'exemple et le piège. Puis explique-la à voix haute en 30 secondes avec ton propre exemple.",
+ cards:"Une session de flashcards. Pour chaque carte, réponds dans ta tête avant de la retourner, et note-toi honnêtement."
+};
+function guideSteps(m){ return stageTasks(m).map(t=>Object.assign(t,{skip:!!(m.skip&&m.skip[t.k])})); }
+function guideFini(m){ return guideSteps(m).every(t=>t.done||t.skip); }
+function guidedOn(){
+  return !!(S.stage&&S.guided!==false&&S.menu&&S.menu.stageV&&typeof stageTasks==="function"&&!guideFini(S.menu));
+}
+function guideCur(){ return guideSteps(S.menu).find(t=>!t.done&&!t.skip); }
+function vGuided(){
+  const m=S.menu, T=guideSteps(m), cur=T.find(t=>!t.done&&!t.skip), idx=T.indexOf(cur), w=stageWeek();
+  const reste=T.filter(t=>!t.done&&!t.skip).reduce((a,t)=>a+t.min,0);
+  return `
+  <h1 class="page">La séance du jour</h1>
+  <div class="sub">${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})} · semaine ${w}/6 · une étape à la fois. L'app se libère à la fin.</div>
+  <div class="hero">
+    <div class="rank">Étape ${idx+1}/${T.length}</div>
+    <div class="big" style="font-size:22px;line-height:1.25">${cur.ic} ${esc(cur.t)}</div>
+    <div class="xpbar"><i style="width:${Math.round(idx/T.length*100)}%"></i></div>
+    <div class="xptxt">${STAGE_BLOCS[cur.b]} · ~${cur.min} min · encore ~${reste} min de séance</div>
+  </div>
+  <div class="coach"><b>Ce que tu fais :</b> ${GUIDE_HOW[cur.k]||esc(cur.s)}</div>
+  <button class="btn" style="font-size:17px;padding:16px" onclick="${cur.go}">C'est parti ›</button>
+  <h2 class="sec">Le déroulé</h2>
+  ${T.map((t,i)=>`<div class="act ${t.done||t.skip?"done":""}" style="${t===cur?"border-color:var(--acc)":i>idx?"opacity:.45;cursor:default":""};cursor:default">
+      <div class="ico">${t.done?"✓":t.skip?"↷":t===cur?t.ic:"🔒"}</div><div class="t"><b>${esc(t.t)}</b><small>${STAGE_BLOCS[t.b]} · ~${t.min} min${t.skip?" · passée":""}</small></div></div>`).join("")}
+  <div style="text-align:center;margin:18px 0 6px"><a href="#" onclick="guideSkip();return false" style="color:var(--dim);font-size:12.5px">Je suis bloqué sur cette étape</a></div>`;
+}
+function guideSkip(){
+  const cur=guideCur(); if(!cur) return;
+  if(!confirm("Passer « "+cur.t+" » ?\n\nTu pourras continuer la séance, mais la journée ne sera pas validée et ton streak ne progressera pas.")) return;
+  S.menu.skip=S.menu.skip||{}; S.menu.skip[cur.k]=true; save(); render();
+}
+/* Quand une étape est faite, un bouton fixe « Étape suivante » apparaît
+   par-dessus l'exercice : plus besoin de chercher comment revenir. */
+function guideNextBtn(){
+  if(!(S.stage&&S.guided!==false)) return;
+  let el=document.getElementById("guideNext");
+  if(!el){ el=document.createElement("button"); el.id="guideNext"; document.body.appendChild(el); }
+  const fini=guideFini(S.menu);
+  el.className="btn"; el.style.cssText="position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));width:min(488px,calc(100% - 32px));z-index:200;box-shadow:0 8px 30px rgba(0,0,0,.6);margin:0";
+  el.innerHTML=fini?"🎉 Séance terminée — voir le bilan ›":"✅ Étape faite — étape suivante ›";
+  el.onclick=()=>{ el.remove(); closeOv(); };
+}
 function vJour(){
   ensureMenu();
+  if(guidedOn()) return vGuided();
   if(S.stage&&S.menu.stageV&&typeof ORAL!=="undefined") return vJourStage();
   const m=S.menu,r=rank(),nr=nextRank();
   const deal=DEALS.find(d=>d.id===m.deal),les=LESSONS.find(l=>l.id===m.lesson);
@@ -3083,12 +3296,12 @@ function chifRoom(){
     <div class="xptxt" style="margin-top:10px">Le chrono mesure, il ne sanctionne pas. Il est là pour que tu voies ton temps baisser.</div>`);
 }
 
-function chifStart(famId){
+function chifStart(famId,n){
   const R={ent:(a,b)=>a+Math.floor(Math.random()*(b-a+1))};
   const pool = famId==='mix' ? CHIFFRAGE : CHIFFRAGE.filter(f=>f.id===famId);
   if(!pool.length) return;
   const items=[];
-  for(let i=0;i<CHIF_SERIE;i++){
+  for(let i=0;i<(n||CHIF_SERIE);i++){
     const f=pool[famId==='mix'?Math.floor(Math.random()*pool.length):0];
     try{ const it=f.gen(R); it.fam=f; items.push(it); }catch(e){}
   }
@@ -3407,6 +3620,7 @@ function vAcad(){
     <div class="ico">🃏</div><div class="t"><b>Flashcards — révision espacée</b><small>${cd?cd+" carte"+(cd>1?"s":"")+" due"+(cd>1?"s":"")+" · ":""}${cm} maîtrisée${cm>1?"s":""} sur ${FLASHCARDS.length}. Vocabulaire, multiples, réalité du métier.</small></div>
     <div class="pc">${cd?cd:"›"}</div>
   </div>
+  ${typeof FORMULES_CARDS!=="undefined"?`<div class="mod gold" onclick="formBrowse()"><div class="ico">📖</div><div class="t"><b>Mon formulaire — ${FORMULES_CARDS.length} formules</b><small>Toutes les formules à connaître par cœur, touche pour révéler. Révisées en cartes chaque jour dans la séance.</small></div><div class="pc">${formSues()}/${FORMULES_CARDS.length}</div></div>`:""}
   <div class="mod gold" onclick="openLexique()">
     <div class="ico">📕</div><div class="t"><b>Lexique du deal-maker</b><small>${LEXIQUE.length} termes FR/EN avec définitions. Le vocabulaire EST la légitimité.</small></div>
     <div class="pc">›</div>
@@ -3500,6 +3714,7 @@ function vProfil(){
   <div class="coach">Le grade ne compte pas. Ce qui compte : est-ce que tu répondrais mieux qu'hier si un associé te cuisinait <b>maintenant</b> ?</div>
   <div class="card"><b style="font-size:14px">Réglages d'entraînement</b>
     <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin-top:10px"><input type="checkbox" ${S.stage?"checked":""} onchange="stageToggle()" style="margin-top:3px;accent-color:var(--acc)"><span><b>Mode stage</b><br><small style="color:var(--dim)">Priorités M&A et finance d'entreprise d'abord, dans l'Académie, le menu du jour et les entretiens blancs.</small></span></label>
+    <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin-top:10px"><input type="checkbox" ${S.guided!==false?"checked":""} onchange="S.guided=!(S.guided!==false);save();render()" style="margin-top:3px;accent-color:var(--acc)"><span><b>Séance guidée</b><br><small style="color:var(--dim)">Chaque jour, une étape à la fois dans un ordre imposé ; le reste de l'app est verrouillé jusqu'à la fin de la séance. Ce réglage ne se change qu'une fois la séance finie.</small></span></label>
     <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin-top:10px"><input type="checkbox" ${recallOn()?"checked":""} onchange="recallToggle()" style="margin-top:3px;accent-color:var(--acc)"><span><b>Réponds d'abord</b><br><small style="color:var(--dim)">Les choix des QCM restent cachés tant que tu n'as pas formulé ta réponse. Sans ça, ton score mesure la reconnaissance, pas ce que tu sais dire en entretien.</small></span></label>
   </div>
   ${joursSansExport()>=7?`<div class="coach" style="border-color:var(--acc)">⚠️ <b>${S.lastExport?"Dernière sauvegarde il y a "+joursSansExport()+" jours.":"Aucune sauvegarde depuis que tu utilises l'app — "+joursSansExport()+" jours."}</b> Rien ne part dans le cloud : un cache vidé ou un téléphone changé, et tout disparaît. Exporte-la maintenant, ça prend dix secondes.</div>`:""}
@@ -3525,6 +3740,8 @@ function importSave(){
 
 function render(){
   ensureMenu();
+  if(typeof guidedOn==="function"&&guidedOn()&&view!=="jour"){ view="jour"; document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v==="jour")); }
+  document.body.classList.toggle("locked",typeof guidedOn==="function"&&guidedOn());
   document.getElementById("main").innerHTML=({jour:vJour,boite:vBoite,deals:vDeals,acad:vAcad,eco:vEco,spar:vSpar,journal:vJournal,profil:vProfil})[view]();
   header();
 }
@@ -3585,7 +3802,7 @@ function saveJEntry(i){
   if(i>=0){ S.journal[i].txt=txt; S.journal[i].tag=jTagSel; }
   else{ S.journal.unshift({d:today(),tag:jTagSel,txt,t:Date.now()}); addXP(2); }
   if(jTagSel==="Deal"&&txt.length>=120) checkMenu("presse");
-  save(); toast("📓 <b>Noté.</b>"); closeOv(); nav("journal");
+  save(); toast("📓 <b>Noté.</b>"); closeOv(); if(!guidedOn()) nav("journal");
 }
 function delJEntry(i){
   if(!confirm("Supprimer cette note ?")) return;
@@ -3595,7 +3812,7 @@ function delJEntry(i){
 // ================= OVERLAY =================
 const ov=document.getElementById("ov"),ovin=document.getElementById("ovin");
 function openOv(html){ ovin.innerHTML=html; ov.classList.add("on"); ov.scrollTop=0; }
-function closeOv(){ stopTimer(); if(typeof oralCleanup==="function") oralCleanup(); ov.classList.remove("on"); render(); }
+function closeOv(){ stopTimer(); const gn=document.getElementById("guideNext"); if(gn) gn.remove(); if(typeof oralCleanup==="function") oralCleanup(); ov.classList.remove("on"); render(); }
 function ovTop(title,timer){ return `<div class="top"><button class="x" onclick="closeOv()">✕</button><b>${title}</b>${timer?'<span class="timer" id="qtimer">8:00</span>':""}</div>`; }
 
 // ---------- QUIZ ENGINE ----------
@@ -4215,11 +4432,14 @@ function stageRoom(){
     <div class="mod gold" onclick="oralStart('tech')"><div class="ico">🎤</div><div class="t"><b>Oral technique</b><small>DCF, trois états, EV → fonds propres, WACC, LBO, budget, covenants. À dire à voix haute en 90 secondes, puis tu coches les points attendus.</small></div><div class="pc">${oralSolides("tech")}/${ORAL.length-nFit}</div></div>
     <div class="mod gold" onclick="fitRoom()"><div class="ico">🗣️</div><div class="t"><b>Motivation et fit — tes réponses</b><small>Pitch, « pourquoi le M&A », « pourquoi la finance d'entreprise », un deal récent, un échec… Une trame, les pièges, ta réponse écrite, puis l'oral.</small></div><div class="pc">${fitEcrits}/${nFit}</div></div>
     <div class="mod gold" onclick="etatsDrill()"><div class="ico">🔗</div><div class="t"><b>Drill — les trois états liés</b><small>15 variations éclair (amortissement, BFR, dette, dividende, cession…). La question technique n°1. Vise 15/15 deux jours de suite.</small></div><div class="pc">${S.etatsBest!=null?S.etatsBest+"/"+ETATS.length:"›"}</div></div>
+    <div class="mod gold" onclick="formBrowse()"><div class="ico">📖</div><div class="t"><b>Mon formulaire</b><small>${FORMULES_CARDS.length} formules, à réviser en cartes chaque jour. Touche pour révéler.</small></div><div class="pc">${formSues()}/${FORMULES_CARDS.length}</div></div>
+    <div class="mod gold" onclick="listeMetiers()"><div class="ico">🧑‍💼</div><div class="t"><b>Les métiers de la finance</b><small>${METIERS.length} fiches, une par jour, et tes avis.</small></div><div class="pc">${Object.keys(S.metierAvis||{}).length}/${METIERS.length}</div></div>
+    <div class="mod gold" onclick="listeConseil()"><div class="ico">🧠</div><div class="t"><b>Les fiches conseil</b><small>${CONSEIL.length} outils et méthodes du conseil.</small></div><div class="pc">${Object.keys(S.conseilVus||{}).length}/${CONSEIL.length}</div></div>
     <div class="mod gold" onclick="dealsRecRoom()"><div class="ico">📰</div><div class="t"><b>Deals récents — et tes fiches</b><small>${DEALS_RECENTS.length} opérations 2025-2026 vérifiées avec sources, et un modèle pour rédiger tes propres fiches. « Parle-moi d'un deal récent » tombe presque toujours.</small></div><div class="pc">${S.mesDeals.length}</div></div>
-    <div class="card" style="margin-top:12px">
+    ${guidedOn()?`<div class="xptxt" style="margin-top:12px">🔒 Les réglages se débloquent à la fin de la séance du jour.</div>`:`<div class="card" style="margin-top:12px">
       <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" ${S.stage?"checked":""} onchange="stageToggle()" style="margin-top:3px;accent-color:var(--acc)"><span><b>Mode stage</b><br><small style="color:var(--dim)">Académie et entretiens blancs recentrés sur les modules prioritaires.</small></span></label>
       <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin-top:10px"><input type="checkbox" ${recallOn()?"checked":""} onchange="recallToggle()" style="margin-top:3px;accent-color:var(--acc)"><span><b>Réponds d'abord</b><br><small style="color:var(--dim)">Les choix des QCM restent cachés tant que tu n'as pas formulé ta réponse. C'est ce qui rend ton score honnête.</small></span></label>
-    </div>`);
+    </div>`}`);
 }
 
 /* ---- le plan ---- */
