@@ -2566,6 +2566,39 @@ function maNext(m){
 }
 function maFaits(){ return MA_PARCOURS.filter(id=>S.done.lessons.includes(id)).length; }
 
+/* ================= L'ENTRAÎNEMENT LIBRE (2026-10-10) =================
+   « Je ne peux pas faire des cartes une fois la journée finie… mets-moi
+   d'autres fondamentaux à travailler une fois la journée terminée. »
+   Une fois la séance finie, le programme du jour s'ouvre sur un menu
+   d'entraînement libre : rien n'y est limité, tout alimente les mêmes
+   révisions. Ordre : ce qui consolide (cartes) avant ce qui avance. */
+function libreItems(){
+  const m=S.menu, nm=S.miss.length;
+  const lecon=(()=>{ const l=LESSONS.filter(x=>lessonOrder().includes(x.module)).find(x=>!S.done.lessons.includes(x.id)); return l||null; })();
+  const maId=(()=>{ const ids=MA_PARCOURS.filter(id=>LESSONS.find(l=>l.id===id)); return ids.find(id=>!S.done.lessons.includes(id))||null; })();
+  const maL=maId?LESSONS.find(l=>l.id===maId):null;
+  const st=STRUCTURATIONS.find(x=>!(S.structDone||{})[x.id])||STRUCTURATIONS[Math.floor(Math.random()*STRUCTURATIONS.length)];
+  const pExo=exoProchainPalier(), dus=exoDus();
+  return [
+   {ic:"🔁", t:"Farmer 10 cartes de formules", s:`les plus fragiles d'abord · ${formSues()}/${FORMULES_CARDS.length} acquises`, go:"formFarm(10)"},
+   {ic:"🃏", t:"Une session de flashcards", s:"vocabulaire, multiples, LBO, IPO, réalité du métier — 15 cartes, et autant de sessions que tu veux", go:"openCardIntro()"},
+   {ic:"🔗", t:"Le drill des trois états", s:`meilleur score : ${S.etatsBest!=null?S.etatsBest+"/"+ETATS.length:"jamais fait"}`, go:"etatsDrill()"},
+   {ic:dus.length?"🔁":"🧮", t:dus.length?`Exos — reprendre ${dus.length} palier${dus.length>1?"s":""}`:(pExo?`Exos — palier ${pExo.n}. ${pExo.titre}`:"Exos — refaire une série"), s:"une série de calculs posés sur papier", go:"exoContinuer()"},
+   lecon?{ic:"🎓", t:"Leçon suivante du socle — "+lecon.title, s:MODULES.find(x=>x.id===lecon.module).name+" · prendre de l'avance sur demain", go:`openLesson('${lecon.id}')`}:null,
+   maL?{ic:"🤝", t:"Leçon M&A suivante — "+maL.title, s:`parcours Bases M&A · ${maFaits()}/${MA_PARCOURS.length}`, go:`openLesson('${maL.id}')`}:null,
+   {ic:"🧩", t:"Une structuration de plus — "+st.type, s:st.enonce.slice(0,80)+(st.enonce.length>80?"…":""), go:`openStruct('${st.id}')`},
+   {ic:"⚡", t:"Chiffrage — 10 calculs de tête", s:"la vitesse se construit par la répétition", go:"chifStart('mix')"},
+   {ic:"🎤", t:"Oral — 3 questions de plus", s:"les moins travaillées passent en premier", go:"oralStart('mix')"},
+   nm?{ic:"🩹", t:`Rattrapage — ${nm} question${nm>1?"s":""} ratée${nm>1?"s":""}`, s:"vider le tableau des erreurs", go:"startRattrapage()"}:null,
+   {ic:"🎙️", t:"Entretien blanc — 12 questions, 8 minutes", s:`meilleur : ${S.itv.best}/12`, go:"startInterview()"}
+  ].filter(Boolean);
+}
+function libreHtml(){
+  return `<h2 class="sec">💪 Entraînement libre — sans limite</h2>
+  <div class="sub" style="margin-top:-8px;margin-bottom:10px">La séance est faite. Tout ce qui suit est du bonus : prends ce que tu veux, autant de fois que tu veux.</div>`+
+  libreItems().map(x=>`<div class="act" onclick="${x.go}"><div class="ico">${x.ic}</div><div class="t"><b>${esc(x.t)}</b><small>${x.s}</small></div><div class="st">›</div></div>`).join("");
+}
+
 /* ================= LE RAPPORT POUR LE COACH (2026-10-10) =================
    La progression vit dans le navigateur : personne ne la voit. Ce rapport
    la met en texte lisible, à coller dans la conversation avec le coach
@@ -2745,6 +2778,7 @@ function vJourStage(){
     <div class="xptxt">programme de ${total} min · ${r[0]}, ${S.xp} XP · streak ${dispStreak()} 🔥</div>
   </div>
   ${S.guided!==false&&guideFini(m)?`<div class="coach" style="border-color:var(--ok)">🎉 <b>Séance ${m.validated?"terminée et validée":"terminée"}.</b> L'app est libre : explore, révise, ou change tes réglages dans Profil.${m.validated?"":" Une étape a été passée, la journée n'est donc pas validée."}</div>`:`<div class="coach">${coachLine()}</div>`}
+  ${guideFini(m)?libreHtml()+`<h2 class="sec">✅ La séance du jour — faite</h2>`:""}
   ${blocs}
   ${etape?`<h2 class="sec">Hors app — l'étape du plan cette semaine</h2>
   <div class="act rev" onclick="planRoom()"><div class="ico">🗓️</div><div class="t"><b>${esc(etape[1])}</b><small>semaine ${w} · coche-la dans le plan quand c'est fait</small></div><div class="st">›</div></div>`:""}
@@ -4211,10 +4245,11 @@ function startCardSession(catFilter){
   const queue=[...due,...news];
   if(!queue.length){
     if(!catFilter) checkMenu("cards"); // rien de dû ni de nouveau : l'exercice du jour est réputé fait
-    openOv(ovTop("Flashcards")+`
-      <div class="result"><div class="big">✓</div><p>Rien à réviser pour l'instant${catFilter?" dans « "+catFilter+" »":""}. La répétition espacée fait le reste — reviens quand une carte sera due.</p></div>
-      <button class="btn ghost" onclick="closeOv()">Fermer</button>`);
-    return;
+    /* Plus de cul-de-sac (2026-10-10) : rien de dû ni de nouveau → révision
+       libre de 15 cartes déjà vues, plutôt qu'un « reviens plus tard ». */
+    const vues=shuffled(pool.filter(c=>S.cards[c.id])).slice(0,15).map(c=>({id:c.id,rev:!!S.cards[c.id+":r"]&&Math.random()<.5}));
+    if(!vues.length){ toast("Aucune carte dans ce thème."); return; }
+    queue.push(...vues);
   }
   CS={queue,i:0,revealed:false,catFilter,startCount:queue.length,good:0,attempted:new Set(),relearned:0};
   cardStep();
@@ -4931,7 +4966,11 @@ function launchInterviewEN(){
 
 // ================= INIT =================
 if(location.protocol.startsWith("http")&&"serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js").catch(()=>{});
+  navigator.serviceWorker.register("sw.js").then(r=>{ try{ r.update(); }catch(e){} }).catch(()=>{});
+  /* Une nouvelle version prend la main → on recharge une fois, pour ne plus
+     avoir à ouvrir l'app deux fois après chaque mise à jour. */
+  let swRecharge=false;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{ if(swRecharge||!navigator.serviceWorker.controller) return; swRecharge=true; location.reload(); });
 }
 nav("jour");
 </script>
