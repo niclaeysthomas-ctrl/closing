@@ -620,6 +620,7 @@ function checkMenu(kind,id){
     addXP(20);
     setTimeout(()=>toast("🔥 <b>Journée validée.</b> Streak : "+S.streak+" (+20 XP)"),400);
   }
+  if(typeof histoNote==="function") histoNote();
   save(); header();
   if(avant){ const apres=guideCur(); if(apres!==avant&&(!apres||apres.k!==avant.k)) setTimeout(guideNextBtn,250); }
 }
@@ -2510,6 +2511,91 @@ function listeConseil(){
     CONSEIL.map(c=>`<div class="act ${v[c.id]?"done":""}" onclick="openConseil('${c.id}')"><div class="ico">${c.ic}</div><div class="t"><b>${esc(c.titre)}</b><small>${v[c.id]?"vue":"pas encore vue"}</small></div><div class="st">›</div></div>`).join(""));
 }
 
+/* ================= LE RAPPORT POUR LE COACH (2026-10-10) =================
+   La progression vit dans le navigateur : personne ne la voit. Ce rapport
+   la met en texte lisible, à coller dans la conversation avec le coach
+   (Claude) chaque dimanche. Il contient aussi les textes écrits (fit,
+   fiches deals, revue de presse) : ce sont eux qui méritent une correction.
+   S.histo garde, jour par jour, les étapes faites et passées : sans lui,
+   on ne voyait que la journée en cours. */
+function histoNote(){
+  const m=S.menu; if(!m||!m.stageV||typeof stageTasks!=="function") return;
+  const T=stageTasks(m);
+  S.histo=S.histo||{};
+  S.histo[m.date]={f:T.filter(t=>t.done).map(t=>t.k), s:Object.keys(m.skip||{}), n:T.length, v:!!m.validated};
+  const ks=Object.keys(S.histo).sort(); while(ks.length>90) delete S.histo[ks.shift()];
+}
+function rapportTexte(){
+  const L=[], t=today(), w=stageWeek(), fmt=d=>d.split("-").reverse().slice(0,2).join("/");
+  const lab={chif:"chiffrage",formules:"formules",etats:"trois états",lesson:"leçon",exo:"exos",oral:"oral",appli:"mise en situation",presse:"presse",metier:"métier",conseil:"conseil",deal:"deal",cards:"flashcards"};
+  L.push("=== RAPPORT LE CLOSING — "+new Date().toLocaleDateString("fr-FR")+" ===");
+  L.push("Semaine "+w+"/6 du plan · "+rank()[0]+" · "+S.xp+" XP · streak "+dispStreak()+" · journées validées au total : "+S.days.length);
+  L.push("");
+  L.push("## Régularité — 14 derniers jours");
+  for(let i=13;i>=0;i--){
+    const d=addDays(-i), h=(S.histo||{})[d];
+    L.push("- "+fmt(d)+" : "+(h?(h.v?"✅ validée":h.f.length+"/"+h.n+" étapes")+(h.s.length?" · passées : "+h.s.map(k=>lab[k]||k).join(", "):""):(S.days.includes(d)?"✅ validée":"—")));
+  }
+  L.push("");
+  L.push("## Formules ("+formSues()+"/"+FORMULES_CARDS.length+" acquises)");
+  const fr=FORMULES_CARDS.filter(c=>{const s=formSt(c.id);return s&&s.box<=1;});
+  L.push("Fragiles : "+(fr.length?fr.map(c=>c.n).join(" ; "):"aucune"));
+  L.push("Pas encore vues : "+FORMULES_CARDS.filter(c=>!formSt(c.id)).length);
+  L.push("");
+  L.push("## Technique");
+  L.push("- Leçons faites : "+S.done.lessons.length+"/"+LESSONS.length+(typeof STAGE_PRIO!=="undefined"?" (prioritaires : "+LESSONS.filter(l=>STAGE_PRIO.includes(l.module)&&S.done.lessons.includes(l.id)).length+"/"+LESSONS.filter(l=>STAGE_PRIO.includes(l.module)).length+")":""));
+  L.push("- Exos : "+exosFaits()+"/"+EXOS.length+" paliers validés"+(exoDus().length?", "+exoDus().length+" à reprendre":""));
+  const pf=exoPointFaible(); if(pf) L.push("- Point faible en calcul : palier "+pf.n+" ("+pf.titre+"), « "+pf.lab+" » raté "+pf.ko+" fois sur "+pf.vus);
+  L.push("- Drill trois états : meilleur "+(S.etatsBest!=null?S.etatsBest+"/"+ETATS.length:"jamais fait")+(S.etatsLast&&S.etatsLast.length?" · derniers : "+S.etatsLast.slice(-5).map(x=>x.g).join(", "):""));
+  L.push("- Chiffrage : "+((chifSt().series)||0)+" séries");
+  L.push("- Entretiens blancs : FR "+S.itv.runs+" (meilleur "+S.itv.best+"/12) · EN "+S.itv.runsEN+" (meilleur "+S.itv.bestEN+"/12)");
+  L.push("- Cas de conseil : "+(CAS.filter(c=>casFait(c.id)).map(c=>c.titre+" "+casEtat()[c.id].score+"/"+casEtat()[c.id].total).join(" ; ")||"aucun"));
+  const mi=missItems(), parSrc={}; mi.forEach(x=>{parSrc[x.from]=(parSrc[x.from]||0)+1;});
+  L.push("- Questions ratées en attente : "+mi.length+(mi.length?" — "+Object.entries(parSrc).sort((a,b)=>b[1]-a[1]).slice(0,6).map(e=>e[0]+" ("+e[1]+")").join(" ; "):""));
+  if(mi.length) L.push("  Exemples : "+mi.slice(0,5).map(x=>"« "+x.q.q+" »").join(" | "));
+  L.push("");
+  L.push("## Oral");
+  const ov=ORAL.filter(x=>S.oral[x.id]);
+  L.push(ov.length?ov.map(x=>"- "+["❌","🟠","✅"][S.oral[x.id].last]+" "+x.q+" ("+S.oral[x.id].n+" fois)").join("\n"):"Aucune question travaillée.");
+  L.push("");
+  L.push("## Réponses de fit (à corriger)");
+  const fits=ORAL.filter(x=>x.cat==="fit"&&(S.fit[x.id]||"").trim());
+  L.push(fits.length?fits.map(x=>"### "+x.q+"\n"+S.fit[x.id].trim()).join("\n\n"):"Aucune rédigée.");
+  L.push("");
+  L.push("## Fiches deals");
+  L.push(S.mesDeals.length?S.mesDeals.map(f=>"### "+(f.op||"Sans titre")+"\n"+FICHE_CHAMPS.filter(c=>c[0]!=="op"&&(f[c[0]]||"").trim()).map(c=>c[1]+" : "+f[c[0]].trim()).join("\n")).join("\n\n"):"Aucune.");
+  L.push("");
+  L.push("## Revue de presse (7 derniers jours)");
+  const pr=S.journal.filter(e=>e.tag==="Deal"&&e.d>=addDays(-7));
+  L.push(pr.length?pr.map(e=>"- "+fmt(e.d)+" : "+e.txt.replace(/\n+/g," / ")).join("\n"):"Aucune note.");
+  L.push("");
+  L.push("## Orientation");
+  const av=S.metierAvis||{};
+  L.push("Métiers qui m'attirent : "+(METIERS.filter(m=>av[m.id]===2).map(m=>m.titre).join(", ")||"—"));
+  L.push("Pourquoi pas : "+(METIERS.filter(m=>av[m.id]===1).map(m=>m.titre).join(", ")||"—"));
+  L.push("Fiches conseil vues : "+Object.keys(S.conseilVus||{}).length+"/"+CONSEIL.length);
+  L.push("");
+  L.push("## Plan des six semaines ("+planDone()+"/"+planItems().length+")");
+  const pw=STAGE_PLAN.find(x=>x.s===w);
+  L.push("Semaine "+w+" : "+pw.items.map(it=>(S.plan[it[0]]?"✅ ":"⬜ ")+it[1]).join(" · "));
+  L.push("");
+  L.push("(Rapport généré par l'app. Ma question pour le coach : …)");
+  return L.join("\n");
+}
+function openRapport(){
+  const txt=rapportTexte();
+  openOv(ovTop("📤 Rapport pour mon coach")+`
+    <div class="sub" style="margin-bottom:10px">Copie ce rapport et colle-le dans ta conversation avec Claude. Il contient tes chiffres <b>et</b> tes textes (fit, fiches, presse) pour qu'ils soient corrigés. Ajoute ta question à la fin.</div>
+    <button class="btn" onclick="copierRapport()">📋 Copier le rapport</button>
+    <textarea id="rapTxt" style="min-height:340px;font-size:12px;margin-top:10px" readonly>${esc(txt)}</textarea>`);
+}
+function copierRapport(){
+  const el=document.getElementById("rapTxt"), txt=el?el.value:rapportTexte();
+  const ok=()=>{ S.lastRapport=today(); save(); toast("📋 <b>Rapport copié.</b> Colle-le dans ta conversation avec Claude."); };
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok,()=>{ if(el){el.select();document.execCommand("copy");} ok(); });
+  else { if(el){el.select();document.execCommand("copy");} ok(); }
+}
+
 /* ================= LE PROGRAMME DU JOUR — MODE STAGE =================
    Refait le 2026-10-10 : « au moins 2 heures par jour ». L'ancien menu
    (chiffrage, exos, deal, leçon, sparring, flashcards) ne contenait ni
@@ -2600,6 +2686,7 @@ function vJourStage(){
   ${blocs}
   ${etape?`<h2 class="sec">Hors app — l'étape du plan cette semaine</h2>
   <div class="act rev" onclick="planRoom()"><div class="ico">🗓️</div><div class="t"><b>${esc(etape[1])}</b><small>semaine ${w} · coche-la dans le plan quand c'est fait</small></div><div class="st">›</div></div>`:""}
+  ${new Date().getDay()===0&&S.lastRapport!==today()?`<div class="act rev" onclick="openRapport()" style="border-color:var(--acc)"><div class="ico">📤</div><div class="t"><b>C'est dimanche — envoie ton rapport à ton coach</b><small>copie-le et colle-le dans ta conversation avec Claude : retour sur ta semaine et programme ajusté</small></div><div class="st">›</div></div>`:""}
   <h2 class="sec">Si tu as plus de 2 heures</h2>
   ${bonus}
   <div class="act" onclick="stageRoom()"><div class="ico">🎯</div><div class="t"><b>Objectif stage — tout l'espace</b><small>plan, oral technique, fit, trois états, deals récents</small></div><div class="st">›</div></div>`;
@@ -2659,7 +2746,7 @@ function vGuided(){
 function guideSkip(){
   const cur=guideCur(); if(!cur) return;
   if(!confirm("Passer « "+cur.t+" » ?\n\nTu pourras continuer la séance, mais la journée ne sera pas validée et ton streak ne progressera pas.")) return;
-  S.menu.skip=S.menu.skip||{}; S.menu.skip[cur.k]=true; save(); render();
+  S.menu.skip=S.menu.skip||{}; S.menu.skip[cur.k]=true; histoNote(); save(); render();
 }
 /* Quand une étape est faite, un bouton fixe « Étape suivante » apparaît
    par-dessus l'exercice : plus besoin de chercher comment revenir. */
@@ -3739,6 +3826,7 @@ function vProfil(){
     <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin-top:10px"><input type="checkbox" ${recallOn()?"checked":""} onchange="recallToggle()" style="margin-top:3px;accent-color:var(--acc)"><span><b>Réponds d'abord</b><br><small style="color:var(--dim)">Les choix des QCM restent cachés tant que tu n'as pas formulé ta réponse. Sans ça, ton score mesure la reconnaissance, pas ce que tu sais dire en entretien.</small></span></label>
   </div>
   ${joursSansExport()>=7?`<div class="coach" style="border-color:var(--acc)">⚠️ <b>${S.lastExport?"Dernière sauvegarde il y a "+joursSansExport()+" jours.":"Aucune sauvegarde depuis que tu utilises l'app — "+joursSansExport()+" jours."}</b> Rien ne part dans le cloud : un cache vidé ou un téléphone changé, et tout disparaît. Exporte-la maintenant, ça prend dix secondes.</div>`:""}
+  ${typeof ORAL!=="undefined"?`<button class="btn" onclick="openRapport()">📤 Rapport pour mon coach</button>`:""}
   <button class="btn ghost" onclick="exportSave()">Exporter ma progression (copie JSON)</button>
   <button class="btn ghost" onclick="importSave()">Importer une progression</button>
   <button class="danger" onclick="if(confirm('Tout effacer ? XP, streak, révisions, progression. Irréversible.')){localStorage.removeItem(KEY);location.reload()}">Réinitialiser toute la progression</button>`;
@@ -4453,6 +4541,7 @@ function stageRoom(){
     <div class="mod gold" onclick="oralStart('tech')"><div class="ico">🎤</div><div class="t"><b>Oral technique</b><small>DCF, trois états, EV → fonds propres, WACC, LBO, budget, covenants. À dire à voix haute en 90 secondes, puis tu coches les points attendus.</small></div><div class="pc">${oralSolides("tech")}/${ORAL.length-nFit}</div></div>
     <div class="mod gold" onclick="fitRoom()"><div class="ico">🗣️</div><div class="t"><b>Motivation et fit — tes réponses</b><small>Pitch, « pourquoi le M&A », « pourquoi la finance d'entreprise », un deal récent, un échec… Une trame, les pièges, ta réponse écrite, puis l'oral.</small></div><div class="pc">${fitEcrits}/${nFit}</div></div>
     <div class="mod gold" onclick="etatsDrill()"><div class="ico">🔗</div><div class="t"><b>Drill — les trois états liés</b><small>15 variations éclair (amortissement, BFR, dette, dividende, cession…). La question technique n°1. Vise 15/15 deux jours de suite.</small></div><div class="pc">${S.etatsBest!=null?S.etatsBest+"/"+ETATS.length:"›"}</div></div>
+    <div class="mod gold" onclick="openRapport()"><div class="ico">📤</div><div class="t"><b>Rapport pour mon coach</b><small>Ta progression et tes textes en un bloc à coller dans ta conversation avec Claude, chaque dimanche.</small></div><div class="pc">›</div></div>
     <div class="mod gold" onclick="formBrowse()"><div class="ico">📖</div><div class="t"><b>Mon formulaire</b><small>${FORMULES_CARDS.length} formules, à réviser en cartes chaque jour. Touche pour révéler.</small></div><div class="pc">${formSues()}/${FORMULES_CARDS.length}</div></div>
     <div class="mod gold" onclick="listeMetiers()"><div class="ico">🧑‍💼</div><div class="t"><b>Les métiers de la finance</b><small>${METIERS.length} fiches, une par jour, et tes avis.</small></div><div class="pc">${Object.keys(S.metierAvis||{}).length}/${METIERS.length}</div></div>
     <div class="mod gold" onclick="listeConseil()"><div class="ico">🧠</div><div class="t"><b>Les fiches conseil</b><small>${CONSEIL.length} outils et méthodes du conseil.</small></div><div class="pc">${Object.keys(S.conseilVus||{}).length}/${CONSEIL.length}</div></div>
