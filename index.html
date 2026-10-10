@@ -585,7 +585,8 @@ function ensureMenu(){
 const LESSON_FOND=["base","ana","valo"];
 /* En mode stage (2026-10-10), l'ordre suit STAGE_PRIO : socle, compta,
    analyse, valorisation, M&A, LBO, finance d'entreprise — puis le reste. */
-function lessonOrder(){ return (S.stage&&typeof STAGE_PRIO!=="undefined")?STAGE_PRIO:LESSON_FOND; }
+const STAGE_SOCLE=["base","cpt","ana","valo","fpa"];   /* le M&A et le LBO ont leur propre parcours quotidien */
+function lessonOrder(){ return (S.stage&&typeof STAGE_PRIO!=="undefined")?STAGE_SOCLE:LESSON_FOND; }
 function nextLesson(){
   for(const mid of lessonOrder()){
     const l=LESSONS.filter(x=>x.module===mid).find(x=>!S.done.lessons.includes(x.id));
@@ -607,6 +608,8 @@ function checkMenu(kind,id){
   if(kind==="etats") m.dEtats=true;
   if(kind==="presse") m.dPresse=true;
   if(kind==="formules") m.dForm=true;
+  if(kind==="struct") m.dStruct=true;
+  if(kind==="lesson"&&id&&id===m.maLesson) m.dMA=true;
   if(kind==="metier") m.dMetier=true;
   if(kind==="conseil") m.dConseil=true;
   if(m.stageV&&kind===m.appli&&(kind!=="cas"||!m.appliId||id===m.appliId)) m.dAppli=true;
@@ -2511,6 +2514,58 @@ function listeConseil(){
     CONSEIL.map(c=>`<div class="act ${v[c.id]?"done":""}" onclick="openConseil('${c.id}')"><div class="ico">${c.ic}</div><div class="t"><b>${esc(c.titre)}</b><small>${v[c.id]?"vue":"pas encore vue"}</small></div><div class="st">›</div></div>`).join(""));
 }
 
+/* ---- la structuration du jour (conseil) et le parcours Bases M&A ---- */
+function structDuJour(){ return dailyPick("struct",STRUCTURATIONS); }
+function openStruct(id){
+  const x=id?STRUCTURATIONS.find(s=>s.id===id):structDuJour();
+  openOv(ovTop("🧩 La structuration du jour")+`
+    <div class="meta"><span class="tag">${esc(x.type)}</span>cas ${STRUCTURATIONS.indexOf(x)+1}/${STRUCTURATIONS.length}</div>
+    <div class="card"><div class="xptxt" style="text-transform:uppercase;letter-spacing:1px">Le client</div><div class="story"><p><b>${esc(x.enonce)}</b></p></div></div>
+    <div class="coach">Comme en entretien : <b>deux minutes</b> pour poser ta structure — 3 branches principales, 2 ou 3 sous-branches chacune, MECE. Sur papier ou ci-dessous. Puis dis-la à voix haute en commençant par « Je propose de regarder trois choses… ».</div>
+    <div style="text-align:center;font-size:30px;font-weight:800;margin:8px 0" id="stT">2:00</div>
+    <textarea id="stTxt" style="min-height:120px" placeholder="1. …&#10;   a) …&#10;2. …&#10;3. …"></textarea>
+    <button class="btn" onclick="structReveal('${x.id}')">Voir la structure attendue</button>`);
+  let left=120; if(ORLT) clearInterval(ORLT);
+  ORLT=setInterval(()=>{ left--; const e=document.getElementById("stT"); if(!e){clearInterval(ORLT);ORLT=null;return;}
+    e.textContent=(left<0?"−":"")+Math.floor(Math.abs(left)/60)+":"+String(Math.abs(left)%60).padStart(2,"0"); e.style.color=left<0?"var(--bad)":left<=20?"var(--acc)":""; },1000);
+}
+function structReveal(id){
+  if(ORLT){ clearInterval(ORLT); ORLT=null; }
+  const x=STRUCTURATIONS.find(s=>s.id===id), mine=(document.getElementById("stTxt")||{}).value||"";
+  openOv(ovTop("🧩 La structure attendue")+`
+    <div class="xptxt" style="margin-bottom:8px">${esc(x.enonce)}</div>
+    <div class="card">${x.structure.map((b,i)=>`<div style="margin-top:${i?12:0}px"><b style="color:var(--acc)">${i+1}. ${esc(b[0])}</b>${b[1].map(s=>`<div style="padding-left:14px;margin-top:4px;font-size:14px">• ${esc(s)}</div>`).join("")}</div>`).join("")}</div>
+    ${mine.trim()?`<details class="gridpt"><summary>Ta structure</summary><p style="white-space:pre-wrap;margin-top:6px">${esc(mine)}</p></details>`:""}
+    <p class="sub" style="margin:10px 0 6px">Coche ce que ta structure contenait <b>vraiment</b> :</p>
+    ${x.points.map((p,i)=>`<label class="gridpt" style="display:flex;gap:10px;cursor:pointer"><input type="checkbox" class="schk" style="margin-top:3px;flex-shrink:0;accent-color:var(--acc);width:17px;height:17px"><span>${esc(p)}</span></label>`).join("")}
+    <div class="coachnote"><b>Le piège :</b> ${esc(x.piege)}</div>
+    <div class="xptxt" style="margin-top:6px">Il n'y a pas une seule bonne structure : une autre découpe MECE et adaptée au problème vaut autant. Ce qui compte, c'est la logique et la priorisation.</div>
+    <button class="btn" onclick="structScore('${x.id}')">Valider</button>`);
+}
+function structScore(id){
+  const got=document.querySelectorAll(".schk:checked").length, tot=document.querySelectorAll(".schk").length;
+  S.structDone=S.structDone||{}; S.structDone[id]={d:today(),g:got,t:tot};
+  addXP(3+got*2); checkMenu("struct"); save();
+  openOv(ovTop("Structuration")+`<div class="result"><div class="big">${got}/${tot}</div>
+    <p>${got===tot?"Structure complète : c'est le niveau attendu en entretien.":got>=tot/2?"La base est là. Relis la structure attendue à voix haute, en l'annonçant comme à un recruteur.":"À reprendre : refais l'exercice demain matin, de tête, avant de regarder."}</p></div>
+    <button class="btn ghost" onclick="listeStruct()">Toutes les structurations</button>`);
+}
+function listeStruct(){
+  const d=S.structDone||{};
+  openOv(ovTop("🧩 Les structurations")+`<div class="sub" style="margin-bottom:10px">Une nouvelle chaque jour dans la séance ; refais-les autant que tu veux.</div>`+
+    STRUCTURATIONS.map(x=>`<div class="act ${d[x.id]?"done":""}" onclick="openStruct('${x.id}')"><div class="ico">🧩</div><div class="t"><b>${esc(x.enonce.slice(0,80))}${x.enonce.length>80?"…":""}</b><small>${esc(x.type)}${d[x.id]?" · "+d[x.id].g+"/"+d[x.id].t:""}</small></div><div class="st">›</div></div>`).join(""));
+}
+/* Le parcours Bases M&A : première leçon du parcours pas encore faite
+   (et différente de la leçon de socle du jour) ; parcours bouclé → révision. */
+function maNext(m){
+  const ids=MA_PARCOURS.filter(id=>LESSONS.find(l=>l.id===id));
+  const next=ids.find(id=>!S.done.lessons.includes(id)&&id!==(m&&m.lesson));
+  if(next) return next;
+  const pool=ids.filter(id=>id!==(m&&m.lesson));
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function maFaits(){ return MA_PARCOURS.filter(id=>S.done.lessons.includes(id)).length; }
+
 /* ================= LE RAPPORT POUR LE COACH (2026-10-10) =================
    La progression vit dans le navigateur : personne ne la voit. Ce rapport
    la met en texte lisible, à coller dans la conversation avec le coach
@@ -2527,7 +2582,7 @@ function histoNote(){
 }
 function rapportTexte(){
   const L=[], t=today(), w=stageWeek(), fmt=d=>d.split("-").reverse().slice(0,2).join("/");
-  const lab={chif:"chiffrage",formules:"formules",etats:"trois états",lesson:"leçon",exo:"exos",oral:"oral",appli:"mise en situation",presse:"presse",metier:"métier",conseil:"conseil",deal:"deal",cards:"flashcards"};
+  const lab={struct:"structuration",ma:"leçon M&A",chif:"chiffrage",formules:"formules",etats:"trois états",lesson:"leçon",exo:"exos",oral:"oral",appli:"mise en situation",presse:"presse",metier:"métier",conseil:"conseil",deal:"deal",cards:"flashcards"};
   L.push("=== RAPPORT LE CLOSING — "+new Date().toLocaleDateString("fr-FR")+" ===");
   L.push("Semaine "+w+"/6 du plan · "+rank()[0]+" · "+S.xp+" XP · streak "+dispStreak()+" · journées validées au total : "+S.days.length);
   L.push("");
@@ -2549,6 +2604,9 @@ function rapportTexte(){
   L.push("- Drill trois états : meilleur "+(S.etatsBest!=null?S.etatsBest+"/"+ETATS.length:"jamais fait")+(S.etatsLast&&S.etatsLast.length?" · derniers : "+S.etatsLast.slice(-5).map(x=>x.g).join(", "):""));
   L.push("- Chiffrage : "+((chifSt().series)||0)+" séries");
   L.push("- Entretiens blancs : FR "+S.itv.runs+" (meilleur "+S.itv.best+"/12) · EN "+S.itv.runsEN+" (meilleur "+S.itv.bestEN+"/12)");
+  L.push("- Parcours Bases M&A : "+maFaits()+"/"+MA_PARCOURS.length+" leçons");
+  const sd=S.structDone||{}, sk=Object.keys(sd);
+  L.push("- Structurations : "+sk.length+"/"+STRUCTURATIONS.length+(sk.length?" · derniers scores : "+sk.slice(-5).map(k=>sd[k].g+"/"+sd[k].t).join(", "):""));
   L.push("- Cas de conseil : "+(CAS.filter(c=>casFait(c.id)).map(c=>c.titre+" "+casEtat()[c.id].score+"/"+casEtat()[c.id].total).join(" ; ")||"aucun"));
   const mi=missItems(), parSrc={}; mi.forEach(x=>{parSrc[x.from]=(parSrc[x.from]||0)+1;});
   L.push("- Questions ratées en attente : "+mi.length+(mi.length?" — "+Object.entries(parSrc).sort((a,b)=>b[1]-a[1]).slice(0,6).map(e=>e[0]+" ("+e[1]+")").join(" ; "):""));
@@ -2608,8 +2666,8 @@ function copierRapport(){
    vers les entretiens blancs en semaines 5 et 6 du plan. Le drill des
    trois états n'est exigé que les trois premières semaines : ensuite,
    c'est un réflexe, ou il faut le refaire hors menu. */
-const STAGE_ROT   = ["itvEN","cascade","plbo","cas","cascade","itv","plbo"];  /* dim → sam, semaines 1-4 */
-const STAGE_ROT_B = ["itvEN","itv","plbo","cas","itvEN","itv","cascade"];     /* semaines 5-6 : entretiens blancs */
+const STAGE_ROT   = ["itvEN","cascade","plbo","cas","cascade","itv","cas"];   /* conseil : 2 cas par semaine */  /* dim → sam, semaines 1-4 */
+const STAGE_ROT_B = ["itvEN","itv","plbo","cas","itvEN","itv","cas"];     /* semaines 5-6 : entretiens blancs */
 function stageMenuInit(m){
   const w=stageWeek(), dow=new Date().getDay();
   let ap=(w>=5?STAGE_ROT_B:STAGE_ROT)[dow];
@@ -2621,6 +2679,7 @@ function stageMenuInit(m){
   if(SPAR[ap]){ m.sparType=ap; m.spar=nextUndone(SPAR[ap].l(),SPAR[ap].d()).id; m.dSpar=false; }
   m.appli=ap; m.dAppli=false;
   m.dOral=false; m.dPresse=false; m.dEtats=(w>3);
+  m.maLesson=maNext(m); m.dMA=false; m.dStruct=false;
 }
 function stageAppliTile(m){
   if(m.appli==="cas"){ const c=CAS.find(x=>x.id===m.appliId);
@@ -2632,6 +2691,7 @@ function stageAppliTile(m){
 }
 function stageTasks(m){
   const w=stageWeek();
+  if(!m.maLesson&&typeof MA_PARCOURS!=="undefined") m.maLesson=maNext(m);
   const les=LESSONS.find(l=>l.id===m.lesson), deal=DEALS.find(d=>d.id===m.deal);
   const dusExo=exoDus(), pExo=exoProchainPalier();
   const T=[
@@ -2641,18 +2701,20 @@ function stageTasks(m){
   if(w<=3) T.push({b:1, k:"etats", nom:"le drill des trois états", min:5, done:!!m.dEtats, ic:"🔗", t:"Drill — les trois états liés", s:"15 variations éclair ; objectif 15/15 deux jours de suite", go:"etatsDrill()"});
   T.push(
    {b:2, k:"lesson", nom:"la leçon", min:15, done:!!m.dLesson, ic:"🎓", t:"Leçon — "+les.title, s:MODULES.find(x=>x.id===les.module).name+" · lis, puis quiz en formulant chaque réponse avant de voir les choix", go:`openLesson('${les.id}')`},
-   {b:2, k:"exo", nom:"les exos", min:20, done:!!m.dExo, ic:dusExo.length?"🔁":"🧮", t:dusExo.length?`Exos — reprise de ${dusExo.length} palier${dusExo.length>1?"s":""}`:(pExo?`Exos — palier ${pExo.n}. ${pExo.titre}`:"Exos — tout est validé"), s:"une série complète, calculs posés sur papier", go:"exoContinuer()"},
+   {b:2, k:"exo", nom:"les exos", min:15, done:!!m.dExo, ic:dusExo.length?"🔁":"🧮", t:dusExo.length?`Exos — reprise de ${dusExo.length} palier${dusExo.length>1?"s":""}`:(pExo?`Exos — palier ${pExo.n}. ${pExo.titre}`:"Exos — tout est validé"), s:"une série complète, calculs posés sur papier", go:"exoContinuer()"},
    {b:3, k:"oral", nom:"l'oral", min:15, done:!!m.dOral, ic:"🎤", t:"L'oral du jour — 3 questions à voix haute", s:w<=2?"technique et motivation, enregistre-toi et réécoute-toi. Si une question de fit tombe sans réponse écrite, rédige-la d'abord":"technique et motivation, 90 s chacune, enregistre-toi et réécoute-toi", go:"oralStart('mix')"},
    Object.assign({b:4, k:"appli", nom:"la mise en situation", min:25, done:!!m.dAppli}, stageAppliTile(m)),
-   {b:5, k:"presse", nom:"la revue de presse", min:5, done:!!m.dPresse, ic:"📰", t:"Revue de presse — un deal de la semaine", s:"5 lignes dans le Journal : qui, combien, pourquoi, comment c'est financé, ton avis", go:"openPresse()"},
-   (()=>{const x=metierDuJour();return {b:5, k:"metier", nom:"le métier du jour", min:5, done:!!m.dMetier, ic:"🧑‍💼", t:"Le métier du jour — "+x.titre, s:"mission, journée type, ce qu'on teste en stage ; puis ton avis", go:"openMetier()"};})(),
-   (()=>{const x=conseilDuJour();return {b:5, k:"conseil", nom:"la fiche conseil", min:5, done:!!m.dConseil, ic:"🧠", t:"Le conseil du jour — "+x.titre, s:"l'outil, comment l'appliquer, le piège ; puis tu l'expliques à voix haute", go:"openConseil()"};})(),
-   {b:5, k:"deal", nom:"le deal du jour", min:10, done:!!m.dDeal, ic:"📖", t:"Le deal du jour — "+deal.title, s:deal.tag+" · "+deal.year+" · histoire + quiz", go:`openDeal('${deal.id}')`},
-   {b:6, k:"cards", nom:"les flashcards", min:10, done:!!m.dCards, ic:"🃏", t:"Flashcards"+(cardsDue().length?" — "+cardsDue().length+" dues":""), s:"la révision espacée garde ce que tu as appris cette semaine", go:"openCardIntro()"}
+   (()=>{const x=structDuJour();return {b:5, k:"struct", nom:"la structuration", min:10, done:!!m.dStruct, ic:"🧩", t:"Structuration — "+x.type, s:x.enonce.slice(0,90)+(x.enonce.length>90?"…":"")+" · 2 min pour poser ta structure", go:"openStruct()"};})(),
+   (()=>{const x=conseilDuJour();return {b:5, k:"conseil", nom:"la fiche conseil", min:5, done:!!m.dConseil, ic:"🧠", t:"Fiche conseil — "+x.titre, s:"l'outil, comment l'appliquer, le piège ; puis tu l'expliques à voix haute", go:"openConseil()"};})(),
+   (()=>{const l=LESSONS.find(x=>x.id===m.maLesson), fait=maFaits(), revis=S.done.lessons.includes(m.maLesson);
+     return {b:6, k:"ma", nom:"la leçon M&A", min:15, done:!!m.dMA, ic:"🤝", t:"Bases M&A — "+l.title, s:(revis?"révision du parcours":"leçon "+(MA_PARCOURS.indexOf(l.id)+1)+"/"+MA_PARCOURS.length+" du parcours")+" · "+fait+"/"+MA_PARCOURS.length+" faites", go:`openLesson('${l.id}')`};})(),
+   {b:7, k:"presse", nom:"la revue de presse", min:5, done:!!m.dPresse, ic:"📰", t:"Revue de presse — un deal de la semaine", s:"5 lignes dans le Journal : qui, combien, pourquoi, comment c'est financé, ton avis", go:"openPresse()"},
+   (()=>{const x=metierDuJour();return {b:7, k:"metier", nom:"le métier du jour", min:5, done:!!m.dMetier, ic:"🧑‍💼", t:"Le métier du jour — "+x.titre, s:"mission, journée type, ce qu'on teste en stage ; puis ton avis", go:"openMetier()"};})(),
+   {b:8, k:"cards", nom:"les flashcards", min:5, done:!!m.dCards, ic:"🃏", t:"Flashcards"+(cardsDue().length?" — "+cardsDue().length+" dues":""), s:"la révision espacée garde ce que tu as appris cette semaine", go:"openCardIntro()"}
   );
   return T;
 }
-const STAGE_BLOCS={1:"Échauffement",2:"Le socle technique",3:"L'oral",4:"Mise en situation",5:"Culture finance & conseil",6:"Mémoire"};
+const STAGE_BLOCS={1:"Échauffement",2:"Le socle technique",3:"L'oral",4:"Mise en situation",5:"Conseil",6:"Bases M&A",7:"Culture",8:"Mémoire"};
 function vJourStage(){
   const m=S.menu, r=rank(), nr=nextRank(), w=stageWeek(), pw=STAGE_PLAN.find(x=>x.s===w);
   const T=stageTasks(m), fait=T.filter(t=>t.done).length;
@@ -2660,7 +2722,7 @@ function vJourStage(){
   const pct=nr?Math.min(100,Math.round((S.xp-r[1])/(nr[1]-r[1])*100)):100;
   const blocs=[...new Set(T.map(t=>t.b))].map((b,i)=>{
     const ts=T.filter(t=>t.b===b), mn=ts.reduce((a,t)=>a+t.min,0);
-    return `<h2 class="sec">${"①②③④⑤⑥"[i]} ${STAGE_BLOCS[b]} — ${mn} min</h2>`+ts.map(t=>
+    return `<h2 class="sec">${"①②③④⑤⑥⑦⑧"[i]} ${STAGE_BLOCS[b]} — ${mn} min</h2>`+ts.map(t=>
       `<div class="act ${t.done?"done":""}" onclick="${t.go}"><div class="ico">${t.ic}</div><div class="t"><b>${esc(t.t)}</b><small>${t.s} (~${t.min} min)</small></div><div class="st">${t.done?"✓":"›"}</div></div>`).join("");
   }).join("");
   const etape=pw.items.find(it=>!S.plan[it[0]]);
@@ -2714,6 +2776,8 @@ const GUIDE_HOW={
  presse:"Ouvre un site d'actualité financière (Les Échos, CFNEWS, Reuters, FT). Choisis un deal de la semaine et écris 5 lignes : qui, combien, pourquoi, comment c'est financé, ton avis.",
  deal:"Lis l'histoire du deal, puis le quiz. Retiens une seule leçon, celle que tu pourrais citer en entretien.",
  formules:"Les cartes des formules. Pour chacune : lis le nom, dis-toi les DEUX façons de la calculer, retourne la carte, puis note-toi honnêtement. Une carte « à revoir » revient jusqu'à ce que tu la saches. Tu pourras en farmer autant que tu veux ensuite.",
+ struct:"Un énoncé de cas de conseil. Lance le chrono de deux minutes, pose ta structure (3 branches, 2-3 sous-branches, MECE), dis-la à voix haute, puis compare avec la structure attendue et coche honnêtement.",
+ ma:"Une leçon du parcours Bases M&A, dans l'ordre : le métier, le process, la valeur, le juridique du deal, le LBO. Lis-la en entier, puis fais le quiz en formulant chaque réponse avant d'afficher les choix.",
  metier:"Découvre un métier de la finance : sa mission, une journée type, ce qu'on teste pour un stage. Réponds à la question « teste-toi », puis donne ton avis.",
  conseil:"Une notion de conseil : lis l'idée, la méthode, l'exemple et le piège. Puis explique-la à voix haute en 30 secondes avec ton propre exemple.",
  cards:"Une session de flashcards. Pour chaque carte, réponds dans ta tête avant de la retourner, et note-toi honnêtement."
@@ -4544,6 +4608,7 @@ function stageRoom(){
     <div class="mod gold" onclick="openRapport()"><div class="ico">📤</div><div class="t"><b>Rapport pour mon coach</b><small>Ta progression et tes textes en un bloc à coller dans ta conversation avec Claude, chaque dimanche.</small></div><div class="pc">›</div></div>
     <div class="mod gold" onclick="formBrowse()"><div class="ico">📖</div><div class="t"><b>Mon formulaire</b><small>${FORMULES_CARDS.length} formules, à réviser en cartes chaque jour. Touche pour révéler.</small></div><div class="pc">${formSues()}/${FORMULES_CARDS.length}</div></div>
     <div class="mod gold" onclick="listeMetiers()"><div class="ico">🧑‍💼</div><div class="t"><b>Les métiers de la finance</b><small>${METIERS.length} fiches, une par jour, et tes avis.</small></div><div class="pc">${Object.keys(S.metierAvis||{}).length}/${METIERS.length}</div></div>
+    <div class="mod gold" onclick="listeStruct()"><div class="ico">🧩</div><div class="t"><b>Les structurations de cas</b><small>${STRUCTURATIONS.length} énoncés de conseil à structurer en deux minutes.</small></div><div class="pc">${Object.keys(S.structDone||{}).length}/${STRUCTURATIONS.length}</div></div>
     <div class="mod gold" onclick="listeConseil()"><div class="ico">🧠</div><div class="t"><b>Les fiches conseil</b><small>${CONSEIL.length} outils et méthodes du conseil.</small></div><div class="pc">${Object.keys(S.conseilVus||{}).length}/${CONSEIL.length}</div></div>
     <div class="mod gold" onclick="dealsRecRoom()"><div class="ico">📰</div><div class="t"><b>Deals récents — et tes fiches</b><small>${DEALS_RECENTS.length} opérations 2025-2026 vérifiées avec sources, et un modèle pour rédiger tes propres fiches. « Parle-moi d'un deal récent » tombe presque toujours.</small></div><div class="pc">${S.mesDeals.length}</div></div>
     ${guidedOn()?`<div class="xptxt" style="margin-top:12px">🔒 Les réglages se débloquent à la fin de la séance du jour.</div>`:`<div class="card" style="margin-top:12px">
