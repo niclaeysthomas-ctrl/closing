@@ -329,11 +329,13 @@
 <script src="data-boite-n3.js"></script>
 <script src="data-deals-tech.js"></script>
 <script src="data-economie.js"></script>
+<script src="data-stage.js"></script>
 <script>
 // ================= ÉTAT =================
 const RANKS=[["Stagiaire",0],["Analyst",150],["Associate",400],["VP",800],["Director",1400],["Managing Director",2200],["Rainmaker",3200]];
 const KEY="closing_v1";
-const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[],mclass:[],eco:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{},journal:[],biz:null,cimetiere:[],bizDone:[],bizRec:{},exos:{cur:1,p:{}},pal:{},lastExport:null};
+const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[],mclass:[],eco:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{},journal:[],biz:null,cimetiere:[],bizDone:[],bizRec:{},exos:{cur:1,p:{}},pal:{},lastExport:null,
+  /* Objectif stage (2026-10-10) */ stage:true,recall:true,oral:{},fit:{},plan:{},mesDeals:[]};
 let S=load();
 function load(){
   let s={};
@@ -348,6 +350,7 @@ function load(){
   o.biz=s.biz||null;
   o.cimetiere=s.cimetiere||[];
   o.pal=s.pal||{};
+  o.oral=s.oral||{}; o.fit=s.fit||{}; o.plan=s.plan||{}; o.mesDeals=s.mesDeals||[];
   o.bizDone=s.bizDone||[];
   o.bizRec=s.bizRec||{};
   o.exos=s.exos||{cur:1,p:{}}; if(!o.exos.p) o.exos.p={}; if(!o.exos.cur) o.exos.cur=1;   /* les records par niveau — il n'y avait rien à battre */
@@ -576,8 +579,11 @@ function ensureMenu(){
      tout le reste de l'Académie, au lieu d'un tirage qui les noie dans
      52 leçons. */
 const LESSON_FOND=["base","ana","valo"];
+/* En mode stage (2026-10-10), l'ordre suit STAGE_PRIO : socle, compta,
+   analyse, valorisation, M&A, LBO, finance d'entreprise — puis le reste. */
+function lessonOrder(){ return (S.stage&&typeof STAGE_PRIO!=="undefined")?STAGE_PRIO:LESSON_FOND; }
 function nextLesson(){
-  for(const mid of LESSON_FOND){
+  for(const mid of lessonOrder()){
     const l=LESSONS.filter(x=>x.module===mid).find(x=>!S.done.lessons.includes(x.id));
     if(l) return l;
   }
@@ -2414,6 +2420,7 @@ function vJour(){
     <div class="xptxt">${nr?`${nr[1]-S.xp} XP avant le grade ${nr[0]}`:"Grade maximal. Reste au sommet."}</div>
   </div>
   <div class="coach">${coachLine()}</div>
+  ${stageTileHtml()}
   ${bizHtml}
   <h2 class="sec">① Échauffement — ~10 min</h2>
   ${chifHtml}
@@ -2785,7 +2792,7 @@ function casDraw(){
       <div class="card"><div class="lab" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--acc);font-weight:800;margin-bottom:8px">Le client</div>
         <div class="story"><p><b>${esc(c.client)}</b></p><p>${c.enonce}</p></div></div>
       <div class="crit" style="margin:10px 0"><b>${c.clarif.q}</b></div>
-      <div id="casOpts">${c.clarif.opts.map((o,i)=>`<div class="mod" id="cl${i}" onclick="casPick(${i})"><div class="ico">○</div><div class="t"><small>${esc(o.t)}</small></div></div>`).join("")}</div>
+      <div id="casOpts">${shuffle(c.clarif.opts.length).map(i=>{const o=c.clarif.opts[i];return `<div class="mod" id="cl${i}" onclick="casPick(${i})"><div class="ico">○</div><div class="t"><small>${esc(o.t)}</small></div></div>`;}).join("")}</div>
       <div id="casOut"></div>
       <button class="btn mt" id="casGo" onclick="casClarif()">Valider mes trois questions</button>
       <button class="btn ghost" onclick="casQuit()">‹ Les cas</button>`);
@@ -2793,16 +2800,18 @@ function casDraw(){
   }
   if(nom==="structure"||nom==="reco"){
     const b=nom==="structure"?c.structure:c.reco;
+    CAS_ST.map=shuffle(b.opts.length);   /* ordre mélangé : la position ne doit rien dire */
     openOv(ovTop(c.ic+" "+c.titre)+head+`
       ${b.rappel?`<div class="card"><div class="story"><p>${b.rappel}</p></div></div>`:""}
       <div class="crit" style="margin:10px 0"><b>${b.q}</b></div>
-      <div id="casOpts">${b.opts.map((o,i)=>`<div class="mod" onclick="casQcm(${i})"><div class="ico">${"ABCD"[i]}</div><div class="t"><small>${esc(o)}</small></div></div>`).join("")}</div>
+      <div id="casOpts">${CAS_ST.map.map((oi,i)=>`<div class="mod" onclick="casQcm(${i})"><div class="ico">${"ABCD"[i]}</div><div class="t"><small>${esc(b.opts[oi])}</small></div></div>`).join("")}</div>
       <div id="casOut"></div>
       <button class="btn ghost mt" onclick="casQuit()">‹ Les cas</button>`);
     return;
   }
   if(nom==="exhibit"){
     const x=c.exhibit;
+    CAS_ST.map=shuffle(x.opts.length);
     openOv(ovTop(c.ic+" "+c.titre)+head+`
       <div class="xptxt" style="margin-bottom:8px">On te tend ce document sans commentaire. Prends trente secondes pour le lire <b>avant</b> de conclure : titre, colonnes, unités, période — puis seulement ce qu'il dit.</div>
       <div class="card"><div class="lab" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--acc);font-weight:800;margin-bottom:8px">${esc(x.titre)}</div>
@@ -2812,7 +2821,7 @@ function casDraw(){
         </table></div>
         ${x.note?`<div class="xptxt" style="margin-top:8px">${esc(x.note)}</div>`:""}</div>
       <div class="crit" style="margin:10px 0"><b>${x.q}</b></div>
-      <div id="casOpts">${x.opts.map((o,i)=>`<div class="mod" onclick="casExhibit(${i})"><div class="ico">${"ABCD"[i]}</div><div class="t"><small>${esc(o)}</small></div></div>`).join("")}</div>
+      <div id="casOpts">${CAS_ST.map.map((oi,i)=>`<div class="mod" onclick="casExhibit(${i})"><div class="ico">${"ABCD"[i]}</div><div class="t"><small>${esc(x.opts[oi])}</small></div></div>`).join("")}</div>
       <div id="casOut"></div>
       <button class="btn ghost mt" onclick="casQuit()">‹ Les cas</button>`);
     return;
@@ -2872,20 +2881,20 @@ function casClarif(){
 }
 function casQcm(i){
   if(!CAS_ST||CAS_ST.verrou) return; CAS_ST.verrou=1;
-  const c=CAS_ST.c, nom=casNom(), b=nom==="structure"?c.structure:c.reco, ok=i===b.a;
+  const c=CAS_ST.c, nom=casNom(), b=nom==="structure"?c.structure:c.reco, ok=CAS_ST.map[i]===b.a;
   CAS_ST.score+=ok?1:0; CAS_ST.total+=1;
   document.getElementById("casOut").innerHTML=`
-    <div class="expl ${ok?"ok":"no"}">${ok?"✅ Juste.":"❌ La réponse est <b>"+"ABCD"[b.a]+"</b> — "+esc(b.opts[b.a])}</div>
-    <div class="crit" style="margin:8px 0">${b.exp}</div>
+    <div class="expl ${ok?"ok":"no"}">${ok?"✅ Juste.":"❌ La réponse est <b>"+"ABCD"[CAS_ST.map.indexOf(b.a)]+"</b> — "+esc(b.opts[b.a])}</div>
+    <div class="crit" style="margin:8px 0">${relabel(b.exp,CAS_ST.map)}</div>
     <button class="btn mt" onclick="casSuivant()">${nom==="structure"?(c.exhibit?"Lire l'exhibit ›":"Chiffrer ›"):"Voir le débriefing ›"}</button>`;
 }
 function casExhibit(i){
   if(!CAS_ST||CAS_ST.verrou) return; CAS_ST.verrou=1;
-  const x=CAS_ST.c.exhibit, ok=i===x.a;
+  const x=CAS_ST.c.exhibit, ok=CAS_ST.map[i]===x.a;
   CAS_ST.score+=ok?1:0; CAS_ST.total+=1;
   document.getElementById("casOut").innerHTML=`
-    <div class="expl ${ok?"ok":"no"}">${ok?"✅ Juste.":"❌ La réponse est <b>"+"ABCD"[x.a]+"</b> — "+esc(x.opts[x.a])}</div>
-    <div class="crit" style="margin:8px 0">${x.exp}</div>
+    <div class="expl ${ok?"ok":"no"}">${ok?"✅ Juste.":"❌ La réponse est <b>"+"ABCD"[CAS_ST.map.indexOf(x.a)]+"</b> — "+esc(x.opts[x.a])}</div>
+    <div class="crit" style="margin:8px 0">${relabel(x.exp,CAS_ST.map)}</div>
     <button class="btn mt" onclick="casSuivant()">Chiffrer ›</button>`;
 }
 function casChiffre(){
@@ -3303,21 +3312,37 @@ function vAcad(){
   <div class="mod gold" onclick="openFeynList()">
     <div class="ico">🧒</div><div class="t"><b>Expliqué simplement — méthode Feynman</b><small>Les concepts clés sans jargon, puis À TOI de les expliquer. Si tu ne peux pas l'expliquer, tu ne l'as pas compris.</small></div>
     <div class="pc">${S.done.feyn.length}/${FEYNMAN.length}</div>
-  </div>`+
-  MODULES.map(m=>{
-    const ls=LESSONS.filter(l=>l.module===m.id);
-    const done=ls.filter(l=>S.done.lessons.includes(l.id)).length;
-    return `<div class="mod" onclick="openModule('${m.id}')">
-      <div class="ico">${m.icon}</div>
-      <div class="t"><b>${m.name}</b><small>${m.desc}</small></div>
-      <div class="pc">${done}/${ls.length}</div>
-    </div>`;
-  }).join("");
+  </div>`+acadModules();
 }
+/* Mode stage : les modules qui tombent en entretien M&A / finance
+   d'entreprise d'abord, dans l'ordre où les travailler ; le reste replié
+   sous « après le stage ». Rien n'est supprimé, tout reste accessible. */
+function acadModTile(m,prio){
+  const ls=LESSONS.filter(l=>l.module===m.id);
+  const done=ls.filter(l=>S.done.lessons.includes(l.id)).length;
+  return `<div class="mod" onclick="openModule('${m.id}')">
+    <div class="ico">${m.icon}</div>
+    <div class="t"><b>${prio?`<span style="color:var(--acc)">${prio}.</span> `:""}${m.name}</b><small>${m.desc}</small></div>
+    <div class="pc">${done}/${ls.length}</div>
+  </div>`;
+}
+function acadModules(){
+  if(!S.stage||typeof STAGE_PRIO==="undefined") return MODULES.map(m=>acadModTile(m)).join("");
+  const prio=STAGE_PRIO.map(id=>MODULES.find(m=>m.id===id)).filter(Boolean);
+  const rest=MODULES.filter(m=>!STAGE_PRIO.includes(m.id));
+  return `<h2 class="sec">🎯 Priorités stage — dans cet ordre</h2>
+    <div class="sub" style="margin-top:-8px;margin-bottom:10px">Ce qui tombe en entretien M&A et finance d'entreprise. Le reste attendra janvier. <a href="#" onclick="stageToggle();return false" style="color:var(--dim)">Tout afficher à plat</a></div>`+
+    prio.map((m,i)=>acadModTile(m,i+1)).join("")+
+    `<details style="margin-top:14px"><summary style="cursor:pointer;color:var(--dim);font-size:14px;padding:8px 0">Après le stage — ${rest.length} modules (droit, fiscalité, restructuring, marchés…)</summary>
+      ${rest.map(m=>acadModTile(m)).join("")}</details>`;
+}
+function stageToggle(){ S.stage=!S.stage; save(); render(); toast(S.stage?"🎯 Mode stage activé : priorités d'abord.":"Mode stage désactivé : tous les modules à plat."); }
+function recallToggle(){ S.recall=!recallOn(); save(); render(); toast(S.recall?"🧠 Les choix restent cachés jusqu'à ce que tu aies formulé ta réponse.":"Les choix s'affichent directement."); }
 
 function vSpar(){
   const dc=S.done.cases.length,dn=S.done.negos.length,dt=S.done.teasers.length,dk=S.done.cascades.length,dp=S.done.plbo.length,nMiss=S.miss.length;
   return `<h1 class="page">Sparring</h1><div class="sub">Ici tu réponds par écrit avant de voir la grille. Le flou ne passe pas.</div>
+  ${typeof ORAL!=="undefined"?`<div class="mod gold" onclick="stageRoom()"><div class="ico">🎯</div><div class="t"><b>Objectif stage — oral, fit, trois états, deals récents</b><small>Ce que les recruteurs M&A et finance d'entreprise testent vraiment, et le plan des six semaines.</small></div><div class="pc">›</div></div>`:""}
   <div class="mod gold" onclick="startInterview()">
     <div class="ico">🎙️</div><div class="t"><b>Mode entretien — 12 questions, 8 minutes</b><small>${S.itv.runs?`Meilleur score : ${S.itv.best}/12 sur ${S.itv.runs} passage${S.itv.runs>1?"s":""}.`:"Jamais tenté. Un vrai entretien ne prévient pas non plus."}</small></div>
     <div class="pc">›</div>
@@ -3371,7 +3396,11 @@ function vProfil(){
     </ul>
   </div>
   <div class="coach">Le grade ne compte pas. Ce qui compte : est-ce que tu répondrais mieux qu'hier si un associé te cuisinait <b>maintenant</b> ?</div>
-  ${joursSansExport()>=14?`<div class="coach" style="border-color:var(--acc)">⚠️ <b>${S.lastExport?"Dernière sauvegarde il y a "+joursSansExport()+" jours.":"Aucune sauvegarde depuis que tu utilises l'app — "+joursSansExport()+" jours."}</b> Rien ne part dans le cloud : un cache vidé ou un téléphone changé, et tout disparaît. Exporte-la maintenant, ça prend dix secondes.</div>`:""}
+  <div class="card"><b style="font-size:14px">Réglages d'entraînement</b>
+    <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin-top:10px"><input type="checkbox" ${S.stage?"checked":""} onchange="stageToggle()" style="margin-top:3px;accent-color:var(--acc)"><span><b>Mode stage</b><br><small style="color:var(--dim)">Priorités M&A et finance d'entreprise d'abord, dans l'Académie, le menu du jour et les entretiens blancs.</small></span></label>
+    <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin-top:10px"><input type="checkbox" ${recallOn()?"checked":""} onchange="recallToggle()" style="margin-top:3px;accent-color:var(--acc)"><span><b>Réponds d'abord</b><br><small style="color:var(--dim)">Les choix des QCM restent cachés tant que tu n'as pas formulé ta réponse. Sans ça, ton score mesure la reconnaissance, pas ce que tu sais dire en entretien.</small></span></label>
+  </div>
+  ${joursSansExport()>=7?`<div class="coach" style="border-color:var(--acc)">⚠️ <b>${S.lastExport?"Dernière sauvegarde il y a "+joursSansExport()+" jours.":"Aucune sauvegarde depuis que tu utilises l'app — "+joursSansExport()+" jours."}</b> Rien ne part dans le cloud : un cache vidé ou un téléphone changé, et tout disparaît. Exporte-la maintenant, ça prend dix secondes.</div>`:""}
   <button class="btn ghost" onclick="exportSave()">Exporter ma progression (copie JSON)</button>
   <button class="btn ghost" onclick="importSave()">Importer une progression</button>
   <button class="danger" onclick="if(confirm('Tout effacer ? XP, streak, révisions, progression. Irréversible.')){localStorage.removeItem(KEY);location.reload()}">Réinitialiser toute la progression</button>`;
@@ -3456,7 +3485,7 @@ function delJEntry(i){
 // ================= OVERLAY =================
 const ov=document.getElementById("ov"),ovin=document.getElementById("ovin");
 function openOv(html){ ovin.innerHTML=html; ov.classList.add("on"); ov.scrollTop=0; }
-function closeOv(){ stopTimer(); ov.classList.remove("on"); render(); }
+function closeOv(){ stopTimer(); if(typeof oralCleanup==="function") oralCleanup(); ov.classList.remove("on"); render(); }
 function ovTop(title,timer){ return `<div class="top"><button class="x" onclick="closeOv()">✕</button><b>${title}</b>${timer?'<span class="timer" id="qtimer">8:00</span>':""}</div>`; }
 
 // ---------- QUIZ ENGINE ----------
@@ -3477,6 +3506,31 @@ function startTimer(sec){
   },1000);
 }
 function stopTimer(){ if(TMR){clearInterval(TMR);TMR=null;} }
+/* ⚠️ RÉPONDS D'ABORD, VÉRIFIE ENSUITE — ajouté le 2026-10-10, après l'audit.
+   Un QCM teste la reconnaissance ; un entretien teste le rappel. Tant que
+   les options sont visibles d'emblée, on « reconnaît » une réponse qu'on
+   aurait été incapable de formuler. Par défaut, les choix sont donc cachés
+   derrière un bouton : on formule sa réponse (dans sa tête ou à voix haute),
+   puis on vérifie. Désactivable dans Profil. Le chrono des modes entretien
+   continue de tourner : formuler vite fait partie de l'épreuve. */
+function recallOn(){ return S.recall!==false; }
+function recallWrap(html){
+  if(!recallOn()) return html;
+  return `<div id="recallGate" class="coach" style="margin:6px 0 10px">🧠 <b>Formule ta réponse avant de voir les choix</b> — dans ta tête ou à voix haute, comme en entretien.
+    <button class="btn ghost" style="margin-top:10px" onclick="recallShow()">J'ai ma réponse — voir les choix</button></div>
+    <div id="recallOpts" style="display:none">${html}</div>`;
+}
+function recallShow(){
+  const g=document.getElementById("recallGate"), o=document.getElementById("recallOpts");
+  if(g) g.remove(); if(o) o.style.display="";
+}
+/* Les explications des « trois réponses » parlent de <b>A</b>, <b>B</b>…
+   selon l'ordre d'écriture. Les options étant désormais mélangées à
+   l'affichage, on traduit chaque lettre d'origine vers la lettre affichée. */
+function relabel(exp,map){
+  const L="ABCD", to={}; map.forEach((orig,pos)=>{ to[L[orig]]=L[pos]; });
+  return String(exp).replace(/<b>([A-D])(?=[\s,.:<])/g,(m,l)=>"<b>"+(to[l]||l));
+}
 function quizStep(){
   const q=Q.items[Q.i];
   Q.map=shuffle(q.opts.length);
@@ -3484,7 +3538,7 @@ function quizStep(){
     <div class="prog">Question ${Q.i+1}/${Q.items.length}${Q.from?` — <span style="color:var(--acc)">${Q.from}</span>`:""}</div>
     ${q.from?`<div class="prog" style="margin-top:-6px">${q.from}</div>`:""}
     <div class="qq">${q.q}</div>
-    ${Q.map.map((oi,pos)=>`<button class="opt" onclick="answer(${pos})">${q.opts[oi]}</button>`).join("")}
+    ${recallWrap(Q.map.map((oi,pos)=>`<button class="opt" onclick="answer(${pos})">${q.opts[oi]}</button>`).join(""))}
     <div id="qexp"></div>`);
   if(Q.timed&&Q.left!=null){const el=document.getElementById("qtimer");if(el){el.textContent=Math.floor(Q.left/60)+":"+String(Q.left%60).padStart(2,"0");if(Q.left<=60)el.classList.add("low");}}
 }
@@ -3498,7 +3552,7 @@ function answer(pos){
     if(Q.map[k]===q.a) b.classList.add("ok");
     else if(k===pos) b.classList.add("ko");
   });
-  document.getElementById("qexp").innerHTML=`<div class="exp"><b style="color:${ok?"var(--ok)":"var(--bad)"}">${ok?"Exact.":"Non."}</b> ${q.exp}</div>
+  document.getElementById("qexp").innerHTML=`<div class="exp"><b style="color:${ok?"var(--ok)":"var(--bad)"}">${ok?"Exact.":"Non."}</b> ${relabel(q.exp,Q.map)}</div>
     <button class="btn" onclick="quizNext()">${Q.i+1<Q.items.length?"Question suivante":"Voir le verdict"}</button>`;
 }
 function quizNext(){ Q.i++; if(Q.i<Q.items.length) quizStep(); else { stopTimer(); const cb=Q.onDone,g=Q.good,t=Q.items.length; Q=null; cb(g,t,false); } }
@@ -3835,23 +3889,27 @@ function palAsk(type,id,key){
   PALQ={type,id,key,items,i:0,good:0};
   palAskStep();
 }
+/* Avant le 2026-10-10, les marches affichaient les options dans l'ordre
+   d'écriture : la bonne réponse était en B 109 fois sur 132. Désormais
+   mélangées, avec les lettres de l'explication traduites (relabel). */
 function palAskStep(){
   const q=PALQ.items[PALQ.i], s=palItem(PALQ.type,PALQ.id);
+  PALQ.map=shuffle(q.opts.length);
   openOv(ovTop(PAL_LAB[PALQ.key]+" — "+s.title)+`
     <div class="prog">Question ${PALQ.i+1}/${PALQ.items.length}</div>
     ${PALQ.key!=="meca"?`<details style="margin-bottom:12px;color:var(--dim);font-size:13px"><summary>Relire l'énoncé</summary><p style="margin-top:8px;color:var(--txt);line-height:1.55">${s.setup}</p></details>`:""}
     <div class="qq">${q.q}</div>
-    ${q.opts.map((o,k)=>`<button class="opt" onclick="palAnswer(${k})"><b style="color:var(--acc)">${"ABCD"[k]}.</b> ${o}</button>`).join("")}
+    ${recallWrap(PALQ.map.map((oi,pos)=>`<button class="opt" onclick="palAnswer(${pos})"><b style="color:var(--acc)">${"ABCD"[pos]}.</b> ${q.opts[oi]}</button>`).join(""))}
     <div id="palexp"></div>`);
 }
-function palAnswer(k){
-  const q=PALQ.items[PALQ.i], ok=k===q.a;
+function palAnswer(pos){
+  const q=PALQ.items[PALQ.i], ok=PALQ.map[pos]===q.a;
   if(ok) PALQ.good++;
   document.querySelectorAll(".opt").forEach((b,j)=>{
     b.disabled=true;
-    if(j===q.a) b.classList.add("ok"); else if(j===k) b.classList.add("ko");
+    if(PALQ.map[j]===q.a) b.classList.add("ok"); else if(j===pos) b.classList.add("ko");
   });
-  document.getElementById("palexp").innerHTML=`<div class="exp"><b style="color:${ok?"var(--ok)":"var(--bad)"}">${ok?"Exact.":"Non."}</b> ${q.exp}</div>
+  document.getElementById("palexp").innerHTML=`<div class="exp"><b style="color:${ok?"var(--ok)":"var(--bad)"}">${ok?"Exact.":"Non."}</b> ${relabel(q.exp,PALQ.map)}</div>
     <button class="btn" onclick="palAskNext()">${PALQ.i+1<PALQ.items.length?"Question suivante":"Marche franchie"}</button>`;
 }
 function palAskNext(){
@@ -4014,12 +4072,231 @@ function startRattrapage(){
   });
 }
 
+// ================= OBJECTIF STAGE (ajouté le 2026-10-10) =================
+/* L'espace qui manquait après l'audit : ce que les recruteurs testent
+   vraiment et que l'app ne travaillait pas — l'oral, le fit, les trois
+   états en réflexe, l'actualité des deals — plus un plan daté sur six
+   semaines. Tout est local, comme le reste de l'app. */
+function stageWeek(){
+  if(!S.stageStart){ S.stageStart=today(); save(); }
+  const d=Math.floor((new Date(today())-new Date(S.stageStart))/864e5);
+  return Math.min(6,Math.floor(d/7)+1);
+}
+function planItems(){ return STAGE_PLAN.reduce((t,w)=>t.concat(w.items),[]); }
+function planDone(){ return planItems().filter(it=>S.plan[it[0]]).length; }
+function oralLvl(id){ const o=S.oral[id]; return o?o.last:-1; }
+function oralSolides(cat){ return ORAL.filter(x=>(!cat||x.cat===cat)&&oralLvl(x.id)>=2).length; }
+function stageTileHtml(){
+  if(!S.stage||typeof ORAL==="undefined") return "";
+  const w=stageWeek(), pw=STAGE_PLAN.find(x=>x.s===w);
+  return `<div class="act rev" onclick="stageRoom()" style="border-color:#453a20">
+      <div class="ico">🎯</div><div class="t"><b>Objectif stage — semaine ${w}/6 : ${esc(pw.t)}</b><small>${planDone()}/${planItems().length} étapes du plan · oral : ${oralSolides()}/${ORAL.length} questions solides</small></div>
+      <div class="st">›</div></div>
+    <div class="act" onclick="oralStart('mix')">
+      <div class="ico">🎤</div><div class="t"><b>L'oral du jour — 3 questions à voix haute</b><small>technique et motivation, 90 secondes chacune, puis tu coches ce que tu as vraiment dit (~8 min)</small></div>
+      <div class="st">›</div></div>`;
+}
+function stageRoom(){
+  const w=stageWeek();
+  const nFit=ORAL.filter(x=>x.cat==="fit").length, fitEcrits=ORAL.filter(x=>x.cat==="fit"&&(S.fit[x.id]||"").trim().length>=200).length;
+  openOv(ovTop("🎯 Objectif stage")+`
+    <div class="sub" style="margin-bottom:12px">Cibles : M&A / banque d'affaires et finance d'entreprise. Les recrutements pour janvier se jouent maintenant — chaque bloc ci-dessous correspond à ce qu'un recruteur teste réellement.</div>
+    <div class="mod gold" onclick="planRoom()"><div class="ico">🗓️</div><div class="t"><b>Le plan des six semaines</b><small>Tu es en semaine ${w}. ${planDone()}/${planItems().length} étapes cochées. Inclut ce que l'app ne peut pas faire à ta place : candidatures, Excel, relances.</small></div><div class="pc">${w}/6</div></div>
+    <div class="mod gold" onclick="oralStart('tech')"><div class="ico">🎤</div><div class="t"><b>Oral technique</b><small>DCF, trois états, EV → fonds propres, WACC, LBO, budget, covenants. À dire à voix haute en 90 secondes, puis tu coches les points attendus.</small></div><div class="pc">${oralSolides("tech")}/${ORAL.length-nFit}</div></div>
+    <div class="mod gold" onclick="fitRoom()"><div class="ico">🗣️</div><div class="t"><b>Motivation et fit — tes réponses</b><small>Pitch, « pourquoi le M&A », « pourquoi la finance d'entreprise », un deal récent, un échec… Une trame, les pièges, ta réponse écrite, puis l'oral.</small></div><div class="pc">${fitEcrits}/${nFit}</div></div>
+    <div class="mod gold" onclick="etatsDrill()"><div class="ico">🔗</div><div class="t"><b>Drill — les trois états liés</b><small>15 variations éclair (amortissement, BFR, dette, dividende, cession…). La question technique n°1. Vise 15/15 deux jours de suite.</small></div><div class="pc">${S.etatsBest!=null?S.etatsBest+"/"+ETATS.length:"›"}</div></div>
+    <div class="mod gold" onclick="dealsRecRoom()"><div class="ico">📰</div><div class="t"><b>Deals récents — et tes fiches</b><small>${DEALS_RECENTS.length} opérations 2025-2026 vérifiées avec sources, et un modèle pour rédiger tes propres fiches. « Parle-moi d'un deal récent » tombe presque toujours.</small></div><div class="pc">${S.mesDeals.length}</div></div>
+    <div class="card" style="margin-top:12px">
+      <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" ${S.stage?"checked":""} onchange="stageToggle()" style="margin-top:3px;accent-color:var(--acc)"><span><b>Mode stage</b><br><small style="color:var(--dim)">Académie et entretiens blancs recentrés sur les modules prioritaires.</small></span></label>
+      <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin-top:10px"><input type="checkbox" ${recallOn()?"checked":""} onchange="recallToggle()" style="margin-top:3px;accent-color:var(--acc)"><span><b>Réponds d'abord</b><br><small style="color:var(--dim)">Les choix des QCM restent cachés tant que tu n'as pas formulé ta réponse. C'est ce qui rend ton score honnête.</small></span></label>
+    </div>`);
+}
+
+/* ---- le plan ---- */
+function planRoom(){
+  const w=stageWeek();
+  openOv(ovTop("🗓️ Le plan des six semaines")+`
+    <div class="sub" style="margin-bottom:12px">Coche au fur et à mesure. Ce qui compte n'est pas d'avoir tout coché, c'est d'arriver en entretien avec le socle solide, deux deals récents maîtrisés et des réponses de fit déjà dites à voix haute.</div>
+    ${STAGE_PLAN.map(wk=>`<div class="card" style="${wk.s===w?"border-color:var(--acc)":""}">
+      <b style="font-size:14px">Semaine ${wk.s} — ${esc(wk.t)}${wk.s===w?' <span style="color:var(--acc)">· en cours</span>':""}</b>
+      ${wk.items.map(it=>`<label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin-top:9px;font-size:14px;line-height:1.45"><input type="checkbox" ${S.plan[it[0]]?"checked":""} onchange="planTog('${it[0]}')" style="margin-top:3px;flex-shrink:0;accent-color:var(--acc);width:17px;height:17px"><span>${esc(it[1])}</span></label>`).join("")}
+    </div>`).join("")}
+    <button class="btn ghost" onclick="stageRoom()">‹ Objectif stage</button>`);
+}
+function planTog(id){ S.plan[id]=!S.plan[id]; if(S.plan[id]) addXP(5); save(); }
+
+/* ---- l'oral ---- */
+let ORL=null, ORLT=null, REC=null, RECSTREAM=null;
+function oralPick(cat,n){
+  const pool=ORAL.filter(x=>cat==="mix"||x.cat===cat);
+  /* jamais faites d'abord, puis les plus faibles ; le hasard départage */
+  return pool.map(x=>({x,k:oralLvl(x.id)+Math.random()*0.9})).sort((a,b)=>a.k-b.k).slice(0,n).map(o=>o.x);
+}
+function oralStart(cat,id){
+  const items=id?ORAL.filter(x=>x.id===id):oralPick(cat,3);
+  if(cat==="mix"&&!id){ /* le mix garantit au moins une question de fit */
+    if(!items.some(x=>x.cat==="fit")) items[items.length-1]=oralPick("fit",1)[0];
+  }
+  ORL={items,i:0,good:0,cat};
+  oralStep();
+}
+function oralCleanup(){
+  if(ORLT){ clearInterval(ORLT); ORLT=null; }
+  try{ if(REC&&REC.state==="recording") REC.stop(); }catch(e){}
+  if(RECSTREAM){ RECSTREAM.getTracks().forEach(t=>t.stop()); RECSTREAM=null; }
+}
+function oralStep(){
+  oralCleanup();
+  const q=ORL.items[ORL.i];
+  const canRec=!!(navigator.mediaDevices&&window.MediaRecorder);
+  openOv(ovTop(q.cat==="fit"?"🗣️ Oral — motivation":"🎤 Oral — technique")+`
+    <div class="prog">Question ${ORL.i+1}/${ORL.items.length}</div>
+    <div class="qq">${esc(q.q)}</div>
+    <div class="coach">Réponds <b>à voix haute</b>, comme face à un recruteur : structure annoncée, phrases complètes, pas de « euh » de remplissage. 90 secondes, c'est la durée d'une bonne réponse.${canRec?" Enregistre-toi : te réécouter est l'exercice le plus utile de toute la préparation.":""}</div>
+    <div style="text-align:center;font-size:34px;font-weight:800;margin:10px 0" id="oralT">1:30</div>
+    <button class="btn" id="oralGo" onclick="oralGo()">Je commence à parler</button>
+    ${canRec?`<button class="btn ghost" id="recBtn" onclick="recToggle()">🎙️ M'enregistrer</button><div id="recOut"></div>`:""}
+    ${q.cat==="fit"&&(S.fit[q.id]||"").trim()?`<details style="margin-top:10px;color:var(--dim);font-size:13px"><summary>Relire ma réponse écrite (après avoir essayé sans)</summary><p style="white-space:pre-wrap;margin-top:8px;color:var(--txt)">${esc(S.fit[q.id])}</p></details>`:""}
+    <button class="btn ghost" onclick="oralReveal()">J'ai fini — voir ce qui était attendu</button>`);
+}
+function oralGo(){
+  const b=document.getElementById("oralGo"); if(b) b.remove();
+  let left=90; const el=document.getElementById("oralT");
+  if(ORLT) clearInterval(ORLT);
+  ORLT=setInterval(()=>{
+    left--; const e=document.getElementById("oralT");
+    if(!e){ clearInterval(ORLT); ORLT=null; return; }
+    e.textContent=(left<0?"−":"")+Math.floor(Math.abs(left)/60)+":"+String(Math.abs(left)%60).padStart(2,"0");
+    e.style.color=left<0?"var(--bad)":left<=15?"var(--acc)":"";
+  },1000);
+}
+async function recToggle(){
+  const btn=document.getElementById("recBtn");
+  if(REC&&REC.state==="recording"){ REC.stop(); if(btn) btn.textContent="🎙️ Réenregistrer"; return; }
+  try{
+    RECSTREAM=await navigator.mediaDevices.getUserMedia({audio:true});
+    const chunks=[]; REC=new MediaRecorder(RECSTREAM);
+    REC.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
+    REC.onstop=()=>{
+      if(RECSTREAM){ RECSTREAM.getTracks().forEach(t=>t.stop()); RECSTREAM=null; }
+      const out=document.getElementById("recOut");
+      if(out&&chunks.length) out.innerHTML=`<audio controls style="width:100%;margin-top:8px" src="${URL.createObjectURL(new Blob(chunks,{type:chunks[0].type||"audio/webm"}))}"></audio><div class="xptxt">Réécoute-toi : combien de « euh » ? as-tu annoncé ta structure ? as-tu conclu ?</div>`;
+    };
+    REC.start(); if(btn) btn.textContent="⏹️ Arrêter l'enregistrement";
+    if(!ORLT) oralGo();
+  }catch(e){ toast("🎙️ Micro indisponible ou refusé. Parle quand même à voix haute — c'est l'essentiel."); }
+}
+function oralReveal(){
+  oralCleanup();
+  const q=ORL.items[ORL.i];
+  openOv(ovTop("Ce qui était attendu")+`
+    <div class="qq" style="font-size:15px">${esc(q.q)}</div>
+    <p class="sub" style="margin:4px 0 10px">Coche <b>uniquement</b> ce que tu as réellement dit à voix haute. Le score se calcule tout seul.</p>
+    ${q.points.map((p,i)=>`<label class="gridpt" style="display:flex;gap:10px;cursor:pointer"><input type="checkbox" class="ochk" style="margin-top:3px;flex-shrink:0;accent-color:var(--acc);width:17px;height:17px"><span><b>${i+1}.</b> ${esc(p)}</span></label>`).join("")}
+    <div class="coachnote"><b>Le piège :</b> ${esc(q.piege)}</div>
+    ${q.cat==="fit"&&FIT_TRAMES[q.id]?`<div class="coachnote" style="margin-top:8px"><b>La trame :</b> ${esc(FIT_TRAMES[q.id])}</div>`:""}
+    <button class="btn" onclick="oralScore()">Valider mon score</button>`);
+}
+function oralScore(){
+  const q=ORL.items[ORL.i];
+  const got=document.querySelectorAll(".ochk:checked").length, tot=q.points.length, r=got/tot;
+  const lvl=r>=0.8?2:r>=0.5?1:0;
+  const prev=S.oral[q.id]||{n:0,best:0};
+  S.oral[q.id]={n:prev.n+1,best:Math.max(prev.best||0,lvl),last:lvl,date:today()};
+  if(lvl===2) ORL.good++;
+  addXP([2,5,10][lvl]); save();
+  const fin=ORL.i+1>=ORL.items.length;
+  openOv(ovTop("Verdict")+`
+    <div class="result"><div class="big">${got}/${tot}</div>
+    <p>${["À reprendre : relis les points manqués à voix haute, puis refais la question demain. Elle reviendra en priorité.","Partiel. Le fond est là, la structure pas encore. Refais-la en annonçant d'abord ton plan en une phrase.","Solide. C'est le niveau attendu — elle reviendra moins souvent."][lvl]}</p></div>
+    ${q.cat==="fit"?`<button class="btn ghost" onclick="fitOpen('${q.id}')">✍️ Retravailler ma réponse écrite</button>`:""}
+    <button class="btn" onclick="${fin?"oralFin()":"ORL.i++;oralStep()"}">${fin?"Terminer":"Question suivante"}</button>`);
+}
+function oralFin(){
+  const g=ORL.good,t=ORL.items.length; ORL=null;
+  openOv(ovTop("Oral terminé")+`<div class="result"><div class="big">${g}/${t}</div><p>réponses solides. L'oral se travaille comme un sport : un peu chaque jour vaut mieux qu'une séance de trois heures la veille.</p></div>
+    <button class="btn" onclick="stageRoom()">‹ Objectif stage</button><button class="btn ghost" onclick="closeOv()">Fermer</button>`);
+}
+
+/* ---- le fit, par écrit ---- */
+function fitRoom(){
+  const fits=ORAL.filter(x=>x.cat==="fit");
+  openOv(ovTop("🗣️ Motivation et fit")+`
+    <div class="sub" style="margin-bottom:12px">Écris d'abord ta réponse (200 caractères minimum, avec tes vrais exemples), puis entraîne-toi à la dire sans la lire. Une réponse de fit improvisée s'entend tout de suite.</div>
+    ${fits.map(x=>{const n=(S.fit[x.id]||"").trim().length, o=S.oral[x.id];
+      return `<div class="act ${n>=200?"done":""}" onclick="fitOpen('${x.id}')"><div class="ico">${n>=200?"✍️":"○"}</div><div class="t"><b>${esc(x.q)}</b><small>${n?n+" caractères écrits":"pas encore rédigée"}${o?" · oral : "+["à reprendre","partiel","solide"][o.last]:""}</small></div><div class="st">›</div></div>`;}).join("")}
+    <button class="btn ghost" onclick="stageRoom()">‹ Objectif stage</button>`);
+}
+function fitOpen(id){
+  oralCleanup();
+  const x=ORAL.find(o=>o.id===id);
+  openOv(ovTop("✍️ "+x.q)+`
+    <div class="coachnote"><b>La trame :</b> ${esc(FIT_TRAMES[id]||"")}</div>
+    <div class="sub" style="margin:10px 0 6px"><b>Ce que le recruteur écoute :</b></div>
+    ${x.points.map(p=>`<div class="gridpt">• ${esc(p)}</div>`).join("")}
+    <div class="coachnote" style="margin-top:8px"><b>Le piège :</b> ${esc(x.piege)}</div>
+    <p class="sub" style="margin:12px 0 6px">Ta réponse — avec <b>tes</b> faits, tes chiffres, tes exemples. Elle est enregistrée au fil de la frappe.</p>
+    <textarea id="fitTxt" placeholder="Écris-la comme tu la dirais…" oninput="S.fit['${id}']=this.value;save();document.getElementById('fitN').textContent=this.value.trim().length">${esc(S.fit[id]||"")}</textarea>
+    <div class="xptxt"><span id="fitN">${(S.fit[id]||"").trim().length}</span> caractères · vise 600 à 1 200 (60 à 90 secondes à l'oral)</div>
+    <button class="btn" onclick="oralStart('fit','${id}')">🎤 La dire à voix haute maintenant</button>
+    <button class="btn ghost" onclick="fitRoom()">‹ Toutes les questions</button>`);
+}
+
+/* ---- le drill des trois états ---- */
+function etatsDrill(){
+  const items=ETATS.slice().sort(()=>Math.random()-.5).map(q=>Object.assign({},q,{from:"Trois états · impôt 25 %"}));
+  startQuiz(items,"🔗 Trois états",(good,total)=>{
+    if(S.etatsBest==null||good>S.etatsBest) S.etatsBest=good;
+    S.etatsLast=(S.etatsLast||[]).concat([{d:today(),g:good}]).slice(-10);
+    const xp=good; addXP(xp); save();
+    quizVerdict(good,total,xp,good===total?" Recommence demain : 15/15 deux jours de suite, et c'est un réflexe.":" Reprends la leçon « Les trois états liés », puis refais le drill.");
+  });
+}
+
+/* ---- les deals récents et tes fiches ---- */
+const FICHE_CHAMPS=[["op","L'opération","Acheteur, cible, vendeur"],["chiffres","Date, prix, multiple","Montant, prime, multiple d'EBITDA ou de CA"],["logique","La logique pour l'acheteur","Pourquoi lui, pourquoi maintenant"],["finance","Le financement","Cash, actions, dette — et qui la fournit"],["risques","Les risques","Réglementaire, intégration, prix payé"],["avis","Ton avis","Bon deal ou pas, et pourquoi — c'est ce qu'on attend de toi"],["source","Tes sources","Articles lus, avec leur date"]];
+function dealsRecRoom(){
+  openOv(ovTop("📰 Deals récents")+`
+    <div class="sub" style="margin-bottom:12px">Vérifiés le 10 octobre 2026, sources jointes. L'actualité bouge : revérifie l'état d'une opération la veille d'un entretien. Le but n'est pas de réciter ces fiches, c'est d'en rédiger <b>deux à toi</b>, sur des deals que tu choisis et dont tu peux défendre un avis.</div>
+    <h2 class="sec">Tes fiches</h2>
+    ${S.mesDeals.map((f,i)=>`<div class="act" onclick="ficheOpen(${i})"><div class="ico">📝</div><div class="t"><b>${esc(f.op||"Fiche sans titre")}</b><small>${FICHE_CHAMPS.filter(c=>(f[c[0]]||"").trim()).length}/${FICHE_CHAMPS.length} rubriques remplies</small></div><div class="st">›</div></div>`).join("")||`<div class="xptxt" style="margin-bottom:8px">Aucune fiche encore. Objectif : deux d'ici la semaine 3.</div>`}
+    <button class="btn ghost" onclick="ficheNew('')">+ Nouvelle fiche</button>
+    <h2 class="sec">Cinq opérations à connaître</h2>
+    ${DEALS_RECENTS.map(d=>`<div class="act" onclick="dealRecOpen('${d.id}')"><div class="ico">📰</div><div class="t"><b>${esc(d.title)}</b><small>${esc(d.tag)} · ${esc(d.date)}</small></div><div class="st">›</div></div>`).join("")}
+    <button class="btn ghost" onclick="stageRoom()">‹ Objectif stage</button>`);
+}
+function dealRecOpen(id){
+  const d=DEALS_RECENTS.find(x=>x.id===id);
+  openOv(ovTop(d.title)+`
+    <div class="meta"><span class="tag">${esc(d.tag)}</span>${esc(d.date)}</div>
+    <div class="card"><b style="font-size:14px">Les faits</b>${d.faits.map(f=>`<div class="gridpt" style="margin-top:8px">${esc(f)}</div>`).join("")}</div>
+    <div class="coach"><b>L'angle d'entretien :</b> ${esc(d.angle)}</div>
+    <div class="card"><b style="font-size:14px">Ce qu'on pourrait te demander</b>${d.questions.map(q=>`<div class="gridpt" style="margin-top:8px">❓ ${esc(q)}</div>`).join("")}</div>
+    <div class="xptxt" style="margin:8px 0">Sources : ${d.sources.map(s=>`<a href="${s[1]}" target="_blank" rel="noopener" style="color:var(--acc)">${esc(s[0])}</a>`).join(" · ")}</div>
+    <button class="btn" onclick="ficheNew(${JSON.stringify(d.title).replace(/"/g,"&quot;")})">✍️ En faire ma fiche, avec mon avis</button>
+    <button class="btn ghost" onclick="dealsRecRoom()">‹ Deals récents</button>`);
+}
+function ficheNew(titre){ S.mesDeals.push({op:titre||"",date:today()}); save(); ficheOpen(S.mesDeals.length-1); }
+function ficheOpen(i){
+  const f=S.mesDeals[i];
+  openOv(ovTop("📝 Ma fiche deal")+`
+    <div class="sub" style="margin-bottom:10px">Enregistrée au fil de la frappe. Quand elle est complète, dis-la à voix haute en deux minutes, sans la lire.</div>
+    ${FICHE_CHAMPS.map(c=>`<div style="margin-bottom:10px"><b style="font-size:13.5px">${c[1]}</b><div class="xptxt">${c[2]}</div>
+      <textarea style="min-height:${c[0]==="avis"?110:64}px" oninput="S.mesDeals[${i}]['${c[0]}']=this.value;save()">${esc(f[c[0]]||"")}</textarea></div>`).join("")}
+    <button class="btn" onclick="dealsRecRoom()">Enregistrer et revenir</button>
+    <button class="danger" onclick="if(confirm('Supprimer cette fiche ?')){S.mesDeals.splice(${i},1);save();dealsRecRoom();}">Supprimer la fiche</button>`);
+}
+
 // ---------- MODE ENTRETIEN ----------
 function startInterview(){
   const pool=[];
+  /* En mode stage, l'entretien blanc ne pioche que dans ce qui tombe vraiment
+     en entretien M&A / finance d'entreprise : leçons prioritaires et deals.
+     Les masterclass sectorielles restent dans le mode normal. */
+  const stage=S.stage&&typeof STAGE_PRIO!=="undefined";
   DEALS.forEach(d=>d.questions.forEach((q,i)=>pool.push(Object.assign({},q,{from:"Deal — "+d.title,base:"D|"+d.id+"|"+i}))));
-  LESSONS.forEach(l=>l.questions.forEach((q,i)=>pool.push(Object.assign({},q,{from:"Leçon — "+l.title,base:"L|"+l.id+"|"+i}))));
-  MASTERCLASS.forEach(c=>c.questions.forEach((q,i)=>pool.push(Object.assign({},q,{from:"Masterclass — "+c.domain,base:"M|"+c.id+"|"+i}))));
+  LESSONS.filter(l=>!stage||STAGE_PRIO.includes(l.module)).forEach(l=>l.questions.forEach((q,i)=>pool.push(Object.assign({},q,{from:"Leçon — "+l.title,base:"L|"+l.id+"|"+i}))));
+  if(!stage) MASTERCLASS.forEach(c=>c.questions.forEach((q,i)=>pool.push(Object.assign({},q,{from:"Masterclass — "+c.domain,base:"M|"+c.id+"|"+i}))));
   const picked=pool.sort(()=>Math.random()-.5).slice(0,12);
   openOv(ovTop("Mode entretien")+`
     <div class="qq" style="margin-top:6px">12 questions. 8 minutes. Tous les sujets.</div>

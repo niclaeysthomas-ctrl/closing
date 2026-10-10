@@ -26,20 +26,16 @@ const CAS = [
     why:"Un problème moyen est presque toujours un problème concentré. Si 80 % de la perte vient d'une gamme ou d'un client, le cas est déjà résolu à moitié."},
    {t:"S'agit-il d'un phénomène propre à l'entreprise ou de tout le secteur ?", bon:true,
     why:"La réponse change complètement la recommandation : un problème d'exécution se corrige en interne, un problème de marché impose un choix stratégique."},
-   {t:"Quelle est la structure de l'actionnariat ?", bon:false,
+   {t:"Qui sont les actionnaires, et attendent-ils un redressement rapide de la marge ?", bon:false,
     why:"Question légitime dans un autre contexte, mais elle n'explique pas une marge qui s'effrite. En entretien, une question qui ne fait pas avancer coûte du temps — et le temps est la note."},
-   {t:"Quel logiciel de gestion utilisent-ils ?", bon:false,
+   {t:"Quel logiciel de gestion utilisent-ils pour suivre leurs coûts et leurs ventes ?", bon:false,
     why:"C'est une question d'exécution, pas de diagnostic. On y viendra peut-être à la fin, jamais au début."},
-   {t:"Combien de salariés compte l'entreprise ?", bon:false,
+   {t:"Combien de salariés compte l'entreprise, au siège et dans les usines ?", bon:false,
     why:"Un chiffre de contexte, pas un chiffre de décision. Il ne permet d'éliminer aucune hypothèse."}
   ]},
  structure:{q:"Par quelle décomposition attaques-tu ?",
   rappel:"Un bon découpage est MECE — sans recouvrement, sans trou — et surtout il est <b>fait pour ce problème-là</b>. Réciter un cadre générique est le signal le plus sûr d'un candidat qui n'a pas réfléchi.",
-  opts:[
-   "Les 4P du marketing : produit, prix, place, promotion",
-   "Résultat = (prix × volume) − coûts fixes − coûts variables, puis on descend dans la branche qui a bougé",
-   "Forces, faiblesses, opportunités, menaces",
-   "Les cinq forces de Porter appliquées au mobilier de bureau"],
+  opts:["Les 4P du marketing : produit, prix, place, promotion, puis on compare au marché","Résultat = prix × volume − coûts fixes − coûts variables, puis la branche qui a bougé","Une matrice SWOT : forces, faiblesses, opportunités, menaces du client","Les cinq forces de Porter appliquées au marché du mobilier de bureau"],
   a:1, exp:"La décomposition arithmétique du profit est la seule qui garantisse de trouver : chaque euro perdu est forcément dans une de ces branches. Les autres cadres sont des grilles d'analyse de marché — utiles plus tard, incapables de localiser une perte. <b>On descend ensuite dans la seule branche qui a bougé</b> : c'est ce qui distingue une structuration d'une liste."},
  chiffres:{contexte:"Tu demandes les chiffres. Le DG revient avec trois années comparées.",
   donnees:[["Chiffre d'affaires année 1",74000000,"€"],["Chiffre d'affaires année 3",80000000,"€"],
@@ -64,11 +60,7 @@ const CAS = [
     cle:"Voilà l'explication complète, et elle tient en une phrase : l'entreprise a acheté 17 % de volume en concédant 7 % de prix, pendant que ses coûts montaient de 12 %."}
   ]},
  reco:{q:"Que recommandes-tu au DG, en une phrase ?",
-  opts:[
-   "Augmenter les volumes pour absorber les coûts fixes",
-   "Arrêter d'acheter du volume au prix, et remonter les prix là où l'élasticité le permet — en acceptant de perdre les clients les moins rentables",
-   "Réduire les coûts fixes de 30 %",
-   "Lancer une nouvelle gamme haut de gamme"],
+  opts:["Pousser les volumes pour mieux absorber les coûts fixes, quitte à baisser encore les prix","Arrêter d'acheter du volume au prix et remonter les tarifs là où l'élasticité le permet","Réduire les coûts fixes de 30 % pour retrouver la marge d'il y a trois ans","Lancer une gamme haut de gamme pour remonter le prix moyen sans toucher à l'existant ni aux clients"],
   a:1, exp:"Le problème n'est pas le volume : c'est que chaque unité vendue rapporte 40 % de moins. Pousser les volumes aggrave. La recommandation doit viser la CAUSE identifiée — la double compression prix/coût — et assumer sa conséquence : perdre des clients. Une recommandation qui ne coûte rien à personne n'est pas une recommandation, c'est un vœu."},
  debrief:`<p><b>Ce cas teste une seule chose : sais-tu que la croissance peut masquer une destruction de valeur ?</b> Le chiffre d'affaires montait de 4 % par an. Tous les voyants « commerciaux » étaient au vert. Et la marge sur coût variable perdait 30 %.</p>
   <p><b>La bonne démarche, dans l'ordre :</b> ① décomposer le profit arithmétiquement ; ② déduire le prix moyen au lieu de le demander ; ③ voir la ciseau — prix qui baisse, coût qui monte ; ④ chiffrer l'écart ; ⑤ conclure sur la cause, pas sur le symptôme.</p>
@@ -92,20 +84,16 @@ const CAS = [
     why:"2,1 millions d'habitants contre plus de 10 : un facteur 5 sur le résultat final. On fixe la géographie avant de compter."},
    {t:"Un jour de semaine ouvré, ou une moyenne annuelle incluant week-ends et août ?", bon:true,
     why:"Paris se vide en août et le week-end. Préciser « jour ouvré » évite de devoir corriger après coup — et montre qu'on sait que les flux de travailleurs comptent plus que les résidents."},
-   {t:"Quel est le prix moyen d'un café ?", bon:false,
+   {t:"Quel est le prix moyen d'un café, au comptoir et en terrasse ?", bon:false,
     why:"Utile pour passer ensuite au marché EN VALEUR, mais inutile pour compter des unités. On ne mélange pas les deux étapes."},
-   {t:"Quelles sont les parts de marché des principales chaînes ?", bon:false,
+   {t:"Quelles sont les parts de marché des principales chaînes de cafés à Paris ?", bon:false,
     why:"C'est une question de la phase suivante — le marché adressable. Elle n'aide pas à dimensionner le total."},
-   {t:"Quelle est la consommation de café en Italie ?", bon:false,
+   {t:"Quelle est la consommation de café par habitant en Italie, à titre de comparaison ?", bon:false,
     why:"Un comparable international peut servir de contrôle à la fin, jamais de point de départ. On construit d'abord son propre chemin."}
   ]},
  structure:{q:"Quelle approche annonces-tu ?",
   rappel:"Deux chemins existent toujours : par la <b>demande</b> (combien de gens, combien de fois) ou par l'<b>offre</b> (combien de points de vente, combien chacun en sert). Le bon réflexe est d'en choisir un, de le dérouler proprement, puis de <b>contrôler avec l'autre</b>.",
-  opts:[
-   "Je cherche la population de Paris et je multiplie par la consommation française moyenne par habitant",
-   "Je segmente la population présente en journée (résidents + travailleurs entrants + touristes), j'applique à chaque segment un taux de consommation hors domicile, puis je contrôle par l'offre (nombre de cafés × tasses/jour)",
-   "Je pars du nombre de cafés et bars parisiens, que j'estime, et j'en déduis tout",
-   "J'extrapole depuis le chiffre d'affaires d'une grande chaîne"],
+  opts:["Population de Paris × consommation moyenne française de café par habitant","Segmenter la population présente en journée, puis contrôler par l'offre","Estimer le nombre de cafés et bars parisiens, puis en déduire tout le reste par ratio","Extrapoler à partir du chiffre d'affaires publié d'une grande chaîne"],
   a:1, exp:"La segmentation par population PRÉSENTE est décisive : Paris compte 2,1 millions d'habitants mais accueille chaque jour près d'un million de travailleurs entrants, qui sont précisément les plus gros consommateurs hors domicile. Partir des seuls résidents sous-estime massivement. Et annoncer d'emblée le <b>contrôle par l'offre</b> montre qu'on sait qu'un sizing sans vérification ne vaut rien."},
  chiffres:{contexte:"Tu poses tes hypothèses au tableau. L'associé les accepte — c'est leur cohérence qui est notée, pas leur exactitude.",
   donnees:[["Résidents de Paris intra-muros",2100000,""],["Travailleurs entrants chaque jour ouvré",900000,""],
@@ -131,11 +119,7 @@ const CAS = [
     cle:"C'est ici que le sizing se valide ou s'effondre. 259 tasses sur une journée de 12 heures, soit une vingtaine par heure : c'est plausible pour un café parisien. Si on était tombé sur 3 000, il aurait fallu revenir sur les hypothèses — à voix haute, devant l'examinateur."}
   ]},
  reco:{q:"Comment présentes-tu ton résultat à l'associé ?",
-  opts:[
-   "« 1 812 000 tasses par jour. »",
-   "« De l'ordre de 1,8 million de tasses par jour ouvré. Le contrôle par l'offre donne 259 tasses par établissement, ce qui est plausible. Mon hypothèse la plus fragile est la fréquence des travailleurs entrants : à 1,2 tasse au lieu de 1,8, le total tombe à 1,5 million. »",
-   "« Entre 1 et 3 millions, difficile d'être plus précis. »",
-   "« Il faudrait une étude de marché pour répondre sérieusement. »"],
+  opts:["« 1 812 000 tasses par jour exactement, selon mon calcul. »","« ~1,8 million par jour ouvré ; contrôle par l'offre plausible ; hypothèse fragile identifiée. »","« Entre 1 et 3 millions par jour : impossible d'être plus précis sans données de marché fiables. »","« Il faudrait une étude de marché pour répondre sérieusement à cette question. »"],
   a:1, exp:"Trois choses font la différence, et ce sont exactement celles qui sont notées : l'ordre de grandeur <b>arrondi</b> (annoncer 1 812 000 est le signe qu'on n'a pas compris ce qu'est une estimation), le <b>contrôle de vraisemblance</b>, et surtout la <b>sensibilité</b> — savoir quelle hypothèse porte le résultat et ce qui se passe si elle est fausse. Répondre « il faudrait une étude » est éliminatoire : c'est précisément ce qu'on te demande de ne pas dire."},
  debrief:`<p><b>Un market sizing ne teste pas ton arithmétique.</b> Il teste trois choses : ta capacité à poser une structure sous pression, la <b>cohérence</b> de tes hypothèses, et ton honnêteté sur leur fragilité.</p>
   <p><b>La faute la plus coûteuse</b> est de partir des 2,1 millions de résidents. Paris est une ville qui double en journée : les travailleurs entrants pèsent ici plus que les habitants. Un candidat qui ne segmente pas la population <i>présente</i> se trompe de 40 % sans le savoir.</p>
@@ -159,20 +143,16 @@ const CAS = [
     why:"Pour un logiciel de gestion, la localisation n'est pas cosmétique : la comptabilité et la fiscalité sont nationales. Ce coût-là décide souvent à lui seul de la rentabilité de l'entrée."},
    {t:"Qui occupe déjà ce marché, et pourquoi un acteur local perdrait-il face à un entrant français ?", bon:true,
     why:"La question qui tue les cas d'entrée. « Marché de même taille » ne signifie pas « marché accessible ». S'il n'existe aucune raison qu'un prospect préfère l'entrant, il n'y a pas de marché adressable."},
-   {t:"Quel est le taux de change euro-euro ?", bon:false,
+   {t:"Quel taux de change appliquer, et faut-il couvrir les revenus encaissés en Espagne ?", bon:false,
     why:"Aucun : les deux pays sont dans la zone euro. Une question qui trahit un cadre appliqué sans réfléchir au contexte."},
-   {t:"Quelle est la croissance du PIB espagnol ?", bon:false,
+   {t:"Quelle est la croissance du PIB espagnol, et comment se compare-t-elle à celle de la France ?", bon:false,
     why:"Chiffre de contexte. Il ne change ni le coût d'entrée, ni la part de marché atteignable, ni la décision."},
-   {t:"Combien de commerciaux sont volontaires pour partir ?", bon:false,
+   {t:"Combien de commerciaux sont volontaires pour partir, et à quel coût d'expatriation ?", bon:false,
     why:"Une contrainte d'exécution, pas un critère de décision. Elle arrive après le « faut-il », jamais avant."}
   ]},
  structure:{q:"Comment structures-tu la décision ?",
   rappel:"Une entrée sur un marché se juge sur trois questions enchaînées, et l'ordre compte : <b>le marché est-il attractif ? · pouvons-nous y gagner ? · cela crée-t-il plus de valeur qu'une autre option ?</b> Beaucoup de candidats répondent aux deux premières et oublient la troisième, qui est pourtant celle du comité.",
-  opts:[
-   "Attractivité du marché → capacité à y gagner → comparaison au meilleur usage alternatif du capital",
-   "SWOT de l'Espagne, puis plan d'action à 90 jours",
-   "Analyse PESTEL du marché espagnol",
-   "Étude des concurrents espagnols, puis recrutement"],
+  opts:["Attractivité du marché → capacité à y gagner → meilleur usage alternatif du capital","SWOT de l'Espagne, puis plan d'action à 90 jours avec jalons, budget et recrutements clés","Analyse PESTEL du marché espagnol, puis taille de marché adressable","Benchmark des concurrents espagnols, puis plan de recrutement local"],
   a:0, exp:"Les trois étages, dans cet ordre. Le troisième est celui qu'on oublie et c'est le plus important : un projet peut être rentable <b>et</b> être le mauvais choix, si le même euro rapporte davantage ailleurs. C'est le lien direct avec le WACC et le coût d'opportunité — <b>palier 11 des exos</b>."},
  chiffres:{contexte:"L'équipe te sort ses hypothèses d'entrée. Tu les prends telles quelles et tu calcules.",
   donnees:[["PME espagnoles dans la cible",180000,""],["Part réellement adressable (taille, secteur)",15,"%"],
@@ -202,11 +182,7 @@ const CAS = [
     cle:"Voilà la vraie question à poser au comité : passer de 3 % à 5 % de part de marché sur un marché occupé, en tant qu'entrant étranger. Est-ce crédible ? C'est une question à laquelle un dirigeant peut répondre — contrairement à « faut-il y aller ? »."}
   ]},
  reco:{q:"Quelle est ta recommandation ?",
-  opts:[
-   "Y aller : la marge logicielle est excellente et le marché est vaste",
-   "Ne pas y aller sous cette forme : le seuil de rentabilité exige 5 % de part de marché, presque le double de l'hypothèse. Tester d'abord via un partenaire local ou un revendeur, sans les 1,8 M€ de localisation, et n'engager les coûts fixes qu'après preuve de traction",
-   "Ne jamais s'internationaliser",
-   "Acquérir un concurrent espagnol immédiatement"],
+  opts:["Y aller : la marge logicielle est excellente et le marché espagnol est vaste et peu équipé","Pas sous cette forme : tester via un partenaire local avant d'engager les coûts fixes","Ne jamais s'internationaliser tant que le marché domestique n'est pas saturé à 100 %","Acquérir immédiatement un concurrent espagnol pour gagner du temps sur la localisation"],
   a:1, exp:"La bonne recommandation ne dit pas « non » : elle dit <b>« pas comme ça »</b>, et elle propose une façon de réduire l'incertitude à moindre coût. C'est la différence entre un consultant et un censeur. Le raisonnement sous-jacent est celui d'une option : on paie peu pour acheter de l'information, et on n'engage le gros du capital qu'une fois le doute levé."},
  debrief:`<p><b>Ce cas teste ta capacité à ne pas valider ce qu'on te demande de valider.</b> Le client a déjà choisi le pays ; il attend une confirmation. Le chiffrage dit l'inverse — et le dire est exactement le métier.</p>
   <p><b>La chaîne qui fait tout</b> : marché total → adressable → part atteignable → clients → chiffre d'affaires → marge → résultat. Chaque étage divise. Partir de « 180 000 PME » et finir sur un résultat négatif en six multiplications, c'est ce qu'on attend d'un candidat en dix minutes.</p>
@@ -230,20 +206,16 @@ const CAS = [
     why:"Elle donne le volume que la baisse rapporterait RÉELLEMENT. Sans elle, « on va gagner des parts de marché » est une croyance, pas une prévision."},
    {t:"Le concurrent peut-il tenir ce prix durablement — quelle est sa structure de coûts, quelle est sa trésorerie ?", bon:true,
     why:"Une guerre des prix se gagne par celui qui survit, pas par celui qui baisse le premier. Si le concurrent brûle du cash pour prendre des parts, attendre est une stratégie."},
-   {t:"Quel est notre chiffre d'affaires total ?", bon:false,
+   {t:"Quel est notre chiffre d'affaires total, sur ce produit et sur l'ensemble de la gamme ?", bon:false,
     why:"Il ne change pas la décision : le calcul se fait en pourcentages, sur la marge unitaire. Un gros chiffre d'affaires ne rend pas une remise plus supportable."},
-   {t:"Depuis combien d'années sommes-nous sur ce marché ?", bon:false,
+   {t:"Depuis combien d'années sommes-nous sur ce marché, et lui depuis combien ?", bon:false,
     why:"Du contexte. Il n'entre dans aucun calcul et ne départage pas les deux directeurs."},
-   {t:"Quel est le taux de satisfaction client ?", bon:false,
+   {t:"Quel est le taux de satisfaction client, et a-t-il évolué depuis l'annonce ?", bon:false,
     why:"Intéressant pour la stratégie de long terme, inutile pour trancher une décision de prix à quinze jours."}
   ]},
  structure:{q:"Sur quoi fondes-tu l'arbitrage ?",
   rappel:"Une remise ne se prend pas sur le prix : elle se prend <b>entièrement sur la marge</b>. La seule question qui tranche est donc : <b>combien de volume en plus faut-il pour retrouver la même marge totale, et le marché me le donne-t-il ?</b>",
-  opts:[
-   "L'effet de la baisse sur le chiffre d'affaires",
-   "La comparaison entre le volume de compensation nécessaire — r/(m−r) — et le volume que l'élasticité donne réellement",
-   "Le ressenti de la force de vente sur le terrain",
-   "La part de marché relative face au concurrent"],
+  opts:["L'effet de la baisse de prix sur le chiffre d'affaires de l'année, comparé au budget initial","Le volume de compensation nécessaire r/(m−r) face au volume que l'élasticité donne","Le ressenti de la force de vente sur le terrain et la pression des clients","La part de marché relative face au concurrent qui a baissé son prix"],
   a:1, exp:"Le chiffre d'affaires est un piège : sur un produit élastique, il peut monter <b>pendant que la marge s'effondre</b>. Le seul arbitrage valide oppose ce qu'il FAUT (r/(m−r)) à ce que le marché DONNE (|e| × r). C'est exactement le <b>palier 16 des exos</b> — et exactement ce que LA BOÎTE te reproche quand tu veux t'aligner."},
  chiffres:{contexte:"Le DAF t'envoie les chiffres dans l'heure.",
   donnees:[["Prix de vente unitaire",180,"€u"],["Coût variable unitaire",99,"€u"],
@@ -271,11 +243,7 @@ const CAS = [
     cle:"Il faudrait une élasticité plus de deux fois supérieure. Ce n'est pas une question d'opinion ni de courage commercial : c'est arithmétiquement perdant."}
   ]},
  reco:{q:"Que tranches-tu ?",
-  opts:[
-   "S'aligner dès lundi pour protéger les parts de marché",
-   "Ne pas s'aligner sur le tarif. Défendre la marge, cibler une remise sélective sur les seuls comptes réellement menacés, et tenir : le concurrent a environ huit mois de trésorerie à ce prix",
-   "Baisser de 7,5 % pour couper la poire en deux",
-   "Augmenter les prix pour signaler la qualité"],
+  opts:["S'aligner dès lundi sur le nouveau tarif pour protéger toutes les parts de marché","Ne pas s'aligner : remises ciblées sur les comptes menacés, et tenir","Baisser de 7,5 % pour couper la poire en deux entre la marge et les volumes perdus","Augmenter les prix pour signaler la qualité face au discounter"],
   a:1, exp:"L'alignement général est perdant (21 % de volume contre 50 % nécessaires). Le demi-alignement est le pire des choix : il détruit de la marge sans convaincre personne — c'est le piège du « compromis raisonnable ». La bonne réponse combine les trois chiffres : <b>défendre le prix affiché</b>, <b>concéder de façon sélective et négociée</b> là où le risque est réel, et <b>utiliser le runway du concurrent</b> comme horizon de la décision."},
  debrief:`<p><b>Ce cas a une bonne réponse, et elle est arithmétique.</b> C'est rare et c'est précieux : la plupart des arbitrages de prix se règlent au rapport de force interne entre commerce et finance, alors qu'ils se calculent en trois lignes.</p>
   <p><b>Les trois chiffres qui tranchent :</b> ce qu'il faut (+50 %), ce que le marché donne (+21 %), et combien de temps l'adversaire tient (8,6 mois). Aucun des deux directeurs ne les avait.</p>
@@ -299,20 +267,16 @@ const CAS = [
     why:"Une synergie annoncée en année 1 et réalisée en année 3 vaut beaucoup moins. Et l'intégration coûte : systèmes, plans sociaux, harmonisation des gammes. Ce coût one-off est presque toujours absent des notes de comité."},
    {t:"Quel est le chevauchement géographique et client entre les deux réseaux ?", bon:true,
     why:"Il commande tout : un fort chevauchement fait de vraies économies de doublons mais attire l'attention de l'autorité de concurrence ; un chevauchement faible, comme ici, donne de la couverture mais peu de synergies de coûts."},
-   {t:"Quelle banque conseille le vendeur ?", bon:false,
+   {t:"Quelle banque conseille le vendeur, et a-t-elle déjà mené des process dans ce secteur ?", bon:false,
     why:"Sans effet sur la valeur. Utile pour anticiper le process, jamais pour l'arbitrage."},
-   {t:"Combien de salariés compte la cible ?", bon:false,
+   {t:"Combien de salariés compte la cible, et quelle est leur ancienneté moyenne ?", bon:false,
     why:"Un chiffre de contexte. Il n'entre pas dans le calcul de ce qu'on peut payer."},
-   {t:"Quelle est l'ancienneté de la marque ?", bon:false,
+   {t:"Quelle est l'ancienneté de la marque de la cible, et quelle est sa notoriété régionale ?", bon:false,
     why:"En distribution B2B, la marque de l'enseigne pèse peu : ce sont la couverture, les prix d'achat et la relation commerciale qui font la valeur."}
   ]},
  structure:{q:"Comment poses-tu la question du prix ?",
   rappel:"Un prix d'acquisition se décompose toujours ainsi : <b>ce que la cible vaut sans toi</b> (stand-alone), plus <b>ce que tu peux en tirer de plus</b> (les synergies nettes). La négociation ne porte que sur une chose : <b>quelle part des synergies tu laisses au vendeur</b>.",
-  opts:[
-   "Je compare le prix au chiffre d'affaires de la cible",
-   "Je décompose : valeur stand-alone + synergies nettes = prix maximum. Puis je regarde quelle part des synergies le prix demandé laisse au vendeur",
-   "Je regarde si nous avons les moyens de financer 58 M€",
-   "Je calcule le retour sur investissement à cinq ans"],
+  opts:["Je compare le prix demandé au chiffre d'affaires de la cible et aux multiples du secteur","Valeur stand-alone + synergies nettes = prix maximum ; puis la part laissée au vendeur","Je vérifie que nous avons les moyens de financer 58 M€ sans dégrader la notation","Je calcule le retour sur investissement à cinq ans et je le compare à notre WACC"],
   a:1, exp:"C'est la seule décomposition qui permette de répondre. Elle donne un <b>prix plafond</b> — au-delà, l'acquéreur détruit de la valeur mécaniquement — et elle transforme la question « est-ce cher ? », qui n'a pas de réponse, en « combien des synergies QUE NOUS CRÉONS sommes-nous en train de payer au vendeur ? », qui en a une."},
  chiffres:{contexte:"Tu obtiens le détail. Les synergies sont bien des synergies de coûts : 2,5 M€ d'achats groupés, 1 M€ de logistique, 0,5 M€ de doublons de siège.",
   donnees:[["Chiffre d'affaires de la cible",90000000,"€"],["Marge d'EBITDA de la cible",6,"%"],
@@ -342,11 +306,7 @@ const CAS = [
     cle:"Un quart de synergies en moins fait basculer l'opération de +1,8 M€ à −5,2 M€. C'est ça, une opération sans marge de sécurité : elle n'a pas le droit de se tromper."}
   ]},
  reco:{q:"Que dis-tu au comité jeudi ?",
-  opts:[
-   "Y aller : l'opération est relutive et la couverture géographique est stratégique",
-   "Ne pas dépasser 50 M€, ou structurer le complément en earn-out adossé aux synergies réellement constatées — à 58 M€, nous payons 92 % de la valeur que nous créons et une synergie manquée sur quatre suffit à détruire 5 M€",
-   "Renoncer définitivement à l'acquisition",
-   "Racheter plutôt un concurrent plus grand"],
+  opts:["Y aller : l'opération est relutive et la couverture géographique est stratégique pour nous","Plafond à 50 M€, ou complément en earn-out adossé aux synergies constatées","Renoncer définitivement : toute prime au-delà de la valeur stand-alone détruit de la valeur","Racheter plutôt un concurrent plus grand pour mutualiser davantage de coûts"],
   a:1, exp:"La recommandation n'est ni « oui » ni « non » : c'est un <b>prix</b> et une <b>structure</b>. L'earn-out est ici l'outil naturel — il déplace le risque d'exécution des synergies vers celui qui les a annoncées. Et le chiffre qui emporte la décision est la sensibilité : une opération qui bascule de +1,8 à −5,2 M€ pour un quart de synergies manquées n'a pas de marge de sécurité."},
  debrief:`<p><b>Ce cas teste une seule idée, et elle est contre-intuitive :</b> dans une acquisition, la valeur ne se crée pas au moment où l'on trouve des synergies. Elle se crée — ou se perd — au moment où l'on fixe le prix.</p>
   <p><b>La décomposition qui résout tout</b> : prix = valeur stand-alone + part des synergies cédée au vendeur. Le prix plafond, c'est stand-alone + synergies nettes ; au-delà, l'acquéreur paie pour travailler. Ici 59,8 M€ — le vendeur en demande 58, soit quasiment tout.</p>
@@ -371,20 +331,16 @@ const CAS = [
     why:"Trois causes, trois plans d'action totalement différents. Un magasin qui vend peu n'a pas le même problème qu'un magasin qui vend autant mais plus cher à servir."},
    {t:"La dispersion est-elle stable dans le temps, ou les magasins changent-ils de quartile d'une année sur l'autre ?", bon:true,
     why:"La question la plus fine du cas. Si les mêmes magasins restent en bas année après année, la cause est structurelle (emplacement). S'ils bougent, elle est managériale (directeur, équipe, exécution) — et là, un plan peut agir."},
-   {t:"Quelle est la notoriété de l'enseigne au niveau national ?", bon:false,
+   {t:"Quelle est la notoriété de l'enseigne au niveau national, et comment a-t-elle évolué ces trois dernières années ?", bon:false,
     why:"Elle est la même pour tous les magasins par construction. Elle ne peut donc pas expliquer une dispersion INTERNE."},
-   {t:"Quel est le budget publicitaire annuel ?", bon:false,
+   {t:"Quel est le budget publicitaire annuel de l'enseigne, et comment est-il réparti entre les canaux ?", bon:false,
     why:"Un chiffre de contexte, national, qui n'explique pas davantage un écart entre magasins d'une même enseigne."},
-   {t:"Depuis combien d'années l'enseigne existe-t-elle ?", bon:false,
+   {t:"Depuis combien d'années l'enseigne existe-t-elle, et combien de magasins a-t-elle ouverts depuis sa création ?", bon:false,
     why:"Sans effet sur l'arbitrage. On cherche la source d'un écart, pas l'histoire de l'entreprise."}
   ]},
  structure:{q:"Comment abordes-tu la question du gain ?",
   rappel:"Devant une dispersion, deux ambitions existent et elles n'ont rien à voir : <b>hisser les plus faibles à la médiane</b> — réaliste, mesurable, souvent l'essentiel du gain — ou <b>amener tout le monde au niveau des meilleurs</b>, qui suppose que l'écart soit entièrement reproductible. Chiffrer les deux, et dire laquelle on retient, EST le cas.",
-  opts:[
-   "Je chiffre le gain si tous les magasins atteignaient 9 %",
-   "Je chiffre les deux ambitions — dernier quartile ramené à la médiane, et réseau entier au niveau du quartile haut — puis je dis laquelle est atteignable et pourquoi",
-   "Je calcule la marge moyenne et je la compare au secteur",
-   "Je propose de fermer les magasins du dernier quartile"],
+  opts:["Je chiffre le gain si tous les magasins atteignaient 9 % de marge","Je chiffre deux ambitions et je dis laquelle est atteignable","Je calcule la marge moyenne du réseau et la compare au secteur","Je propose de fermer les magasins du dernier quartile de marge"],
   a:1, exp:"Chiffrer une seule ambition, c'est accepter le cadrage du client. Chiffrer les deux donne une <b>fourchette</b> et, surtout, permet de dire ce qui sépare les deux chiffres : la part de l'écart qui est reproductible. C'est exactement ce qu'un directeur général ne sait pas et ce pour quoi il paie."},
  chiffres:{contexte:"On te donne la structure du réseau. Le dernier quartile compte 30 magasins.",
   donnees:[["Nombre de magasins",120,""],["Chiffre d'affaires moyen par magasin",2400000,"€"],
@@ -412,11 +368,7 @@ const CAS = [
     cle:"+0,9 point de marge, mais +16 % de résultat. C'est la même confusion points / pour cent que le module de chiffrage : sur la marge, l'écart entre les deux unités est énorme."}
   ]},
  reco:{q:"Que recommandes-tu ?",
-  opts:[
-   "Un plan de performance pour aligner les 120 magasins sur 9 % de marge",
-   "Séparer d'abord l'écart structurel de l'écart d'exécution — en comparant les magasins à zone de chalandise équivalente — puis viser le dernier quartile vers la médiane : 2,5 M€, soit +16 % de résultat, sans demander à personne d'être exceptionnel",
-   "Fermer les 30 magasins du dernier quartile",
-   "Baisser les prix dans les magasins en difficulté pour relancer le volume"],
+  opts:["Un plan de performance pour aligner les 120 magasins sur 9 % de marge en deux ans","Séparer l'écart structurel de l'exécution, puis amener le dernier quartile à la médiane","Fermer les 30 magasins du dernier quartile et redéployer leurs équipes","Baisser les prix dans les magasins en difficulté pour relancer la fréquentation"],
   a:1, exp:"Deux gestes, dans cet ordre. <b>D'abord séparer</b> ce qui vient de l'emplacement de ce qui vient de l'exécution : sans ça, on lance un plan contre une réalité géographique. <b>Puis viser l'ambition atteignable.</b> Fermer les 30 magasins est le réflexe de celui qui n'a pas fait le premier geste : beaucoup contribuent à absorber des coûts de structure, et un magasin à 2 % de marge gagne quand même de l'argent."},
  debrief:`<p><b>Ce cas teste ta capacité à refuser un objectif.</b> « Aligner tout le monde sur les meilleurs » est une phrase qu'on entend dans tous les comités et qui n'a presque jamais de sens : une partie de l'écart entre magasins n'est pas reproductible, parce qu'elle tient à l'emplacement.</p>
   <p><b>La bonne question, celle du troisième choix de cadrage :</b> les mêmes magasins restent-ils en bas d'une année sur l'autre ? Si oui, la cause est structurelle. Si les magasins bougent de quartile, elle est managériale — et là un plan agit. Cette question sépare un diagnostic d'une intuition.</p>
@@ -442,20 +394,16 @@ const CAS = [
     why:"Si le produit décroche, passer à l'abonnement ne fera que faire payer moins cher un produit qu'on n'achète déjà plus. C'est le contrôle d'hypothèse qui évite de résoudre le mauvais problème — et la plainte des commerciaux ne suffit pas à trancher."},
    {t:"Le parc existant migrerait-il, ou seules les nouvelles ventes basculeraient-elles ?", bon:true,
     why:"Deux stratégies totalement différentes. Migrer 2 000 clients payant déjà une maintenance récurrente vers un abonnement, c'est renoncer volontairement à une rente ; ne basculer que les ventes nouvelles limite le trou. Le périmètre doit être fixé avant tout chiffrage."},
-   {t:"Quelle est la part de marché des deux concurrents ?", bon:false,
+   {t:"Quelle est la part de marché des deux concurrents qui ont déjà basculé en abonnement ?", bon:false,
     why:"Un chiffre de contexte. Il ne change ni l'arithmétique de la bascule, ni le périmètre, ni la durée de vie client."},
-   {t:"Quelle technologie utilisent-ils ?", bon:false,
+   {t:"Quelle technologie et quelle infrastructure cloud utilisent-ils pour leur offre ?", bon:false,
     why:"Question d'exécution : elle arrive une fois la décision prise, pas avant."},
-   {t:"Quel est le budget de recherche et développement ?", bon:false,
+   {t:"Quel est le budget de recherche et développement, et quelle part va à la nouvelle version ?", bon:false,
     why:"Il pèsera sur la faisabilité, pas sur le choix de modèle. On ne le regarde qu'après avoir décidé si la bascule a un sens."}
   ]},
  structure:{q:"Comment poses-tu le problème ?",
   rappel:"Le piège de ce cas est de raisonner en <b>chiffre d'affaires annuel</b>, ce que fait le directeur financier. Un changement de modèle de facturation ne se juge pas sur une année : il se juge sur la <b>valeur d'un client sur sa durée de vie</b>, et sur la <b>trajectoire</b> qui mène d'un modèle à l'autre.",
-  opts:[
-   "Je compare le chiffre d'affaires de l'année prochaine dans les deux modèles",
-   "Je compare la valeur d'un client sur sa durée de vie dans les deux modèles, puis je regarde la trajectoire du chiffre d'affaires pendant la transition — et je traite les deux comme deux questions distinctes",
-   "Je regarde les marges des deux concurrents",
-   "J'évalue le coût technique de la migration vers le cloud"],
+  opts:["Je compare le chiffre d'affaires de l'an prochain dans les deux modèles","Valeur vie client dans chaque modèle, puis trajectoire de CA pendant la transition","Je compare les marges des deux concurrents qui ont déjà basculé","J'évalue le coût technique et le calendrier de la migration vers le cloud"],
   a:1, exp:"Deux questions, et il faut refuser de les mélanger. <b>« Le modèle est-il meilleur ? »</b> se répond par client, sur sa durée de vie. <b>« Peut-on survivre à la transition ? »</b> se répond par la trajectoire de trésorerie. Un candidat qui n'en traite qu'une donne une réponse à moitié — et c'est exactement pour ça que le commercial et le financier n'arrivent pas à se parler : ils ne répondent pas à la même question."},
  exhibit:{titre:"Chiffre d'affaires projeté selon le modèle retenu",
   note:"Hypothèse : le parc existant de 2 000 clients reste en maintenance ; seules les ventes nouvelles (250 par an) basculent en abonnement.",
@@ -464,10 +412,7 @@ const CAS = [
           ["3","21,0 M€","19,8 M€","−5,7 %"],["4","22,4 M€","22,8 M€","+2,0 %"],
           ["5","23,7 M€","25,8 M€","+8,9 %"]],
   q:"Qu'en conclus-tu ?",
-  opts:["L'abonnement est moins rentable : il rapporte moins pendant trois ans",
-   "L'abonnement passe devant en année 4, au prix de trois années de chiffre d'affaires inférieur — un creux de 24,6 % la première année",
-   "Les deux trajectoires sont équivalentes",
-   "La licence croît plus vite et restera devant"],
+  opts:["L'abonnement est moins rentable : il rapporte moins pendant trois ans, puis stagne","L'abonnement passe devant en année 4, après trois ans de CA inférieur","Les deux trajectoires sont équivalentes une fois actualisées au WACC","La licence croît plus vite et restera devant sur tout l'horizon du plan"],
   a:1, exp:"La lecture correcte nomme <b>les deux choses</b> : le creux ET le croisement. Dire « moins rentable » confond d'ailleurs chiffre d'affaires et rentabilité — ce tableau ne dit rien des marges.<br><br>⚠️ Et le réflexe qui distingue vraiment : <b>ce qui n'est PAS sur ce tableau</b>. Il s'arrête à cinq ans, alors que l'écart continue de se creuser ensuite. Il est en chiffre d'affaires, pas en trésorerie — or un abonnement encaisse mensuellement là où une licence encaisse d'un coup. Et il suppose zéro perte de clients, ce qui est l'hypothèse la plus fragile de tout le cas."},
  chiffres:{contexte:"Il te donne les chiffres unitaires et te demande de raisonner par client.",
   donnees:[["Prix de la licence",30000,"€"],["Maintenance annuelle",18,"%"],
@@ -496,11 +441,7 @@ const CAS = [
     cle:"Le directeur financier a raison sur les faits et tort sur la conclusion. Ce trou est réel, il dure trois ans, et il se finance — ce n'est pas un argument contre la bascule, c'est le coût d'entrée qu'il faut savoir porter."}
   ]},
  reco:{q:"L'examinateur te dit : « votre client entre dans l'ascenseur. Trente secondes. »",
-  opts:[
-   "Basculer immédiatement l'intégralité du parc en abonnement",
-   "Basculer les ventes nouvelles, garder le parc existant en maintenance, et conditionner la décision à un seul chiffre : une durée de vie client supérieure à cinq ans. Le creux de 4,5 M€ dure trois ans et doit être financé d'avance — c'est un coût d'entrée, pas une objection",
-   "Ne rien changer : la licence rapporte plus",
-   "Baisser le prix de la licence à 12 000 € pour s'aligner"],
+  opts:["Basculer immédiatement tout le parc en abonnement pour accélérer le croisement des courbes","Nouvelles ventes en abonnement, parc en maintenance, condition : durée de vie > 5 ans","Ne rien changer : la licence rapporte plus et finance déjà la R&D","Baisser le prix de la licence à 12 000 € pour s'aligner sur le concurrent"],
   a:1, exp:"La recommandation nomme <b>le périmètre</b> (ventes nouvelles seulement), <b>la condition</b> (la durée de vie client, seul chiffre qui fait basculer la réponse) et <b>le coût assumé</b> (4,5 M€ à financer sur trois ans). La quatrième option est le piège le plus tentant : aligner le prix de la licence sur 12 000 € détruirait la marge sans rien apporter du modèle par abonnement — on prendrait la baisse de prix sans la récurrence."},
  debrief:`<p><b>Ce cas est de niveau 4 pour une raison précise : les deux camps ont raison, et la réponse n'est ni l'un ni l'autre.</b> Le commercial voit qu'on perd des appels d'offres. Le financier voit qu'on perdrait un quart du chiffre d'affaires. Les deux constats sont exacts — ils ne répondent simplement pas à la même question.</p>
   <p><b>Le geste central</b> est de séparer « le modèle est-il meilleur ? » (qui se répond par client, sur sa durée de vie) de « peut-on survivre à la transition ? » (qui se répond par la trésorerie). Un candidat qui mélange les deux tourne en rond, quelle que soit la qualité de ses calculs.</p>
@@ -526,20 +467,16 @@ const CAS = [
     why:"C'est elle qui décidera de la recommandation. Un coût qui reste même sans le client ne doit jamais entrer dans le calcul de ce qu'on économiserait à le perdre."},
    {t:"Ce client bénéficie-t-il de conditions commerciales (remise, délais, niveau de service) différentes du reste du portefeuille ?", bon:true,
     why:"Un compte de 18 % du chiffre d'affaires a presque toujours négocié des conditions à part. Il faut les connaître avant de calculer quoi que ce soit : elles ne sont pas dans le résultat moyen qu'on te montre."},
-   {t:"Depuis combien d'années ce client travaille-t-il avec nous ?", bon:false,
+   {t:"Depuis combien d'années ce client travaille-t-il avec nous, et la relation a-t-elle déjà connu des tensions commerciales ?", bon:false,
     why:"Douze ans est déjà dans l'énoncé et ne change rien au calcul : l'ancienneté n'est ni un coût ni une économie."},
-   {t:"Quelle est la satisfaction de ce client selon la dernière enquête ?", bon:false,
+   {t:"Quelle est la satisfaction de ce client selon la dernière enquête, et quels points d'insatisfaction a-t-il remontés ?", bon:false,
     why:"Utile pour la relation commerciale, sans effet sur l'arithmétique de sa rentabilité."},
-   {t:"Quel est le chiffre d'affaires total de l'entreprise ?", bon:false,
+   {t:"Quel est le chiffre d'affaires total de l'entreprise, et comment a-t-il évolué sur les trois dernières années ?", bon:false,
     why:"Déjà connu — 150 M€ — et il ne sert qu'à calculer une part que l'énoncé donne déjà. Il ne dit rien sur CE client."}
   ]},
  structure:{q:"Comment trancherais-tu, entre les deux directeurs ?",
   rappel:"Le directeur commercial a raison sur la MARGE BRUTE — elle est dans la moyenne. Le DAF a probablement raison sur autre chose : le coût de SERVIR ce client, qui n'apparaît nulle part si on l'alloue au prorata du chiffre d'affaires comme tout le monde. Ce sont deux calculs différents, et un seul répond à la vraie question.",
-  opts:[
-   "Je compare la marge brute de ce client à la moyenne de l'entreprise",
-   "Je construis un compte de résultat par client : marge brute, moins les coûts directement imputables à ce client — pas une moyenne — puis je compare au coût qui disparaîtrait vraiment si on le perdait",
-   "Je regarde s'il paie ses factures à temps",
-   "Je calcule sa part du chiffre d'affaires total et je la compare à sa part de la marge totale"],
+  opts:["Je compare la marge brute de ce client à la moyenne de l'entreprise","Compte de résultat par client, comparé aux coûts qui disparaîtraient vraiment","Je regarde s'il paie ses factures à temps et son risque de crédit","Je compare sa part du chiffre d'affaires à sa part de la marge totale du portefeuille"],
   a:1, exp:"Seule la comptabilité PAR ACTIVITÉ — les coûts qu'on peut rattacher directement à ce client, et non une clé de répartition moyenne — permet de savoir ce qu'il coûte vraiment. Et la deuxième moitié du calcul, presque toujours oubliée, est de distinguer ce qui disparaîtrait de ce qui resterait s'il partait : ce n'est pas la même question que « combien coûte-t-il aujourd'hui »."},
  chiffres:{contexte:"Le DAF te sort le détail qu'il a fait compiler pour la première fois.",
   donnees:[["Chiffre d'affaires facturé au client",27000000,"€"],["Coût d'achat des pièces (% du CA)",70,"%"],
@@ -568,11 +505,7 @@ const CAS = [
     cle:"Bien plus que le résultat « réel » de 3,19 M€ que le client génère aujourd'hui. Les 2,16 M€ de structure générale ne disparaîtraient pas : ils resteraient à répartir sur les clients restants, qui en hériteraient."}
   ]},
  reco:{q:"Que recommandes-tu au comité ?",
-  opts:[
-   "Mettre fin au contrat : la rentabilité réelle est trop faible pour justifier une telle concentration du risque",
-   "Renégocier les conditions spécifiques — niveau de service, fréquence de livraison — pour rapprocher la marge de la moyenne du portefeuille, sans toucher à la relation : perdre le client coûterait net 5,35 M€, bien plus que ce qu'il rapporte réellement, mais le garder sans rien changer laisse de la valeur sur la table chaque année",
-   "Ne rien changer : le résultat réel de 3,19 M€ reste largement positif",
-   "Réduire l'équipe commerciale dédiée de moitié pour limiter les coûts"],
+  opts:["Mettre fin au contrat : la rentabilité réelle est trop faible pour une telle concentration","Renégocier service et livraisons pour remonter sa marge, sans rompre la relation","Ne rien changer : le résultat réel de 3,19 M€ reste largement positif","Réduire de moitié l'équipe commerciale dédiée pour limiter les coûts"],
   a:1, exp:"Ni la rupture ni le statu quo. La rupture ignore que perdre le client coûte net 5,35 M€ — bien plus que ce qu'il rapporte. Le statu quo ignore que 1,67 M€ de marge est cédé chaque année par rapport à un client servi dans des conditions standard. La bonne réponse est de RENÉGOCIER ce qui est évitable — le niveau de service, la remise — en s'appuyant sur le vrai chiffre, pas sur celui que personne n'avait calculé avant ce comité."},
  debrief:`<p><b>Ce cas teste une seule chose : sais-tu qu'une moyenne peut cacher un problème plutôt que le révéler ?</b> En allouant les coûts de structure au prorata du chiffre d'affaires, l'entreprise traitait ce client comme n'importe quel autre — alors qu'il coûtait 2,75 M€ de plus par an à servir que la moyenne du portefeuille.</p>
   <p><b>La démarche qui résout le désaccord</b> : construire un compte de résultat PAR CLIENT avec les coûts directement imputables, pas une clé de répartition moyenne. Le directeur commercial avait raison sur le signe — le client reste rentable, 3,19 M€. Le DAF avait raison sur le fond — ce chiffre est bien inférieur à ce que montrait la comptabilité, et personne ne l'avait jamais isolé.</p>
@@ -597,20 +530,16 @@ const CAS = [
     why:"Le risque commercial doit être chiffré, pas seulement évoqué. Une contrainte contractuelle qui pèse 3 % du chiffre d'affaires ne pèse pas comme une qui en pèse 30 %."},
    {t:"Quel serait le surcoût pour Nord de traiter seule les pics saisonniers que Sud absorbe aujourd'hui — heures supplémentaires, sous-traitance ?", bon:true,
     why:"Transférer la production ne se fait pas à coût nul. Il faut chiffrer ce que coûterait EN PLUS à Nord de faire seule ce que font aujourd'hui les deux usines, sinon on compare la fermeture à un scénario qui n'existe pas."},
-   {t:"Quelle est l'ancienneté de l'usine Sud ?", bon:false,
+   {t:"Quelle est l'ancienneté de l'usine Sud, et quelle était sa production il y a dix ans ?", bon:false,
     why:"Un chiffre de contexte, sans effet sur l'arithmétique de la fermeture."},
-   {t:"Combien de brevets le groupe détient-il ?", bon:false,
+   {t:"Combien de brevets le groupe détient-il, et combien en dépose-t-il chaque année ?", bon:false,
     why:"Aucun lien avec la décision : ni un coût évité, ni un coût créé."},
-   {t:"Quelle est la part de marché du groupe dans l'automobile ?", bon:false,
+   {t:"Quelle est la part de marché du groupe dans l'automobile, en France et en Europe ?", bon:false,
     why:"Un chiffre de contexte général. Il ne dit rien sur ce que coûterait — ou rapporterait — la fermeture d'UNE usine."}
   ]},
  structure:{q:"Comment poses-tu le problème ?",
   rappel:"Le piège de ce cas est de raisonner sur le résultat COMPTABLE de Sud, comme le fait le directeur industriel. La bonne question n'est pas « Sud perd-elle de l'argent ? » mais « le résultat du GROUPE serait-il meilleur ou pire si Sud fermait ? » — et cela se calcule avec les coûts ÉVITABLES, jamais avec les coûts alloués.",
-  opts:[
-   "Je compare le résultat comptable de Sud à celui de Nord",
-   "Je calcule le résultat du groupe dans les deux scénarios — Sud ouverte, Sud fermée — en ne retenant que ce qui change réellement, puis je traite séparément le risque commercial",
-   "Je regarde si Sud pourrait devenir rentable en réduisant ses coûts fixes",
-   "Je compare le taux d'utilisation des deux usines"],
+  opts:["Je compare le résultat comptable de Sud à celui de Nord, usine par usine","Résultat groupe Sud ouverte vs fermée, sur ce qui change vraiment ; puis le risque client","Je regarde si Sud pourrait redevenir rentable en réduisant ses coûts fixes et ses effectifs indirects","Je compare le taux d'utilisation des deux usines et leur productivité"],
   a:1, exp:"Un résultat par usine, en comptabilité complète, répond à une question qui n'est pas celle posée. La seule comparaison valide est <b>avec Sud contre sans Sud</b>, poste par poste. Et il faut séparer explicitement l'arithmétique industrielle du risque commercial — exactement comme dans le cas de l'abonnement : les mélanger, c'est déjà perdre le fil."},
  exhibit:{titre:"Compte de résultat de l'usine Sud — comptabilité analytique complète",
   note:"Méthode actuelle : les coûts de structure du groupe (direction, informatique, R&D) sont répartis entre les deux usines au prorata du chiffre d'affaires.",
@@ -621,10 +550,7 @@ const CAS = [
           ["Coûts de structure groupe alloués (prorata du CA)","−5,0 M€","−22,7 %"],
           ["Résultat","−1,8 M€","−8,2 %"]],
   q:"Qu'en conclus-tu ?",
-  opts:["Sud perd 1,8 M€ chaque année : il faut la fermer",
-   "Le tableau mélange des coûts qui disparaîtraient si Sud fermait et des coûts alloués qui resteraient, réaffectés à Nord — le vrai effet de la fermeture ne se lit pas directement sur la ligne « Résultat »",
-   "Sud redevient rentable une fois les coûts de structure groupe retirés",
-   "Le tableau ne permet aucune conclusion sans données supplémentaires"],
+  opts:["Sud perd 1,8 M€ chaque année : la fermeture s'impose d'elle-même","Le tableau mêle coûts évités et coûts alloués qui resteraient chez Nord","Sud redevient rentable une fois retirés les coûts de structure du groupe","Le tableau ne permet aucune conclusion sans données supplémentaires sur les clients"],
   a:1, exp:"La ligne « −1,8 M€ » répond à « Sud est-elle rentable en comptabilité complète ? », pas à « faut-il fermer Sud ? ». Les 5,0 M€ de structure groupe ne disparaîtront pas avec Sud : ils seront réalloués à Nord, qui affichera alors un résultat plus mauvais sans que rien n'ait changé dans l'entreprise.<br><br>⚠️ Et ce que le tableau ne dit pas : rien n'indique que les coûts fixes propres à Sud (4,5 M€) seraient intégralement évités, ni ce qu'il en coûterait de transférer la production vers Nord. Un exhibit qui s'arrête au résultat comptable est fait pour être dépassé, pas récité."},
  chiffres:{contexte:"Il te donne le détail de ce qui serait réellement évitable si Sud fermait, et ce que coûterait le transfert vers Nord.",
   donnees:[["Chiffre d'affaires de Sud",22000000,"€"],["Coûts variables de Sud",14300000,"€"],
@@ -653,11 +579,7 @@ const CAS = [
     cle:"La décision bascule si le risque commercial double. C'est le vrai enjeu du comité : pas « faut-il fermer », mais « sommes-nous certains de contenir la perte de clientèle aux deux comptes identifiés » ?"}
   ]},
  reco:{q:"L'examinateur te dit : « Le comité de direction se réunit dans deux minutes. Une recommandation. »",
-  opts:[
-   "Fermer Sud immédiatement : la comptabilité analytique montre une perte de 1,8 M€",
-   "Ne rien changer : le risque de perdre les deux clients à double source est trop élevé",
-   "Fermer Sud, mais seulement après avoir sécurisé la double source exigée par les deux clients — par exemple via un sous-traitant qualifié — car le gain net de 2,6 M€ ne devient négatif que si la perte de clientèle dépasse largement les deux comptes identifiés",
-   "Réduire les effectifs de Sud de moitié sans la fermer"],
+  opts:["Fermer Sud immédiatement : la comptabilité analytique montre une perte de 1,8 M€","Ne rien changer : perdre les deux clients à double source coûterait trop cher","Fermer Sud après avoir sécurisé une double source pour les deux clients","Réduire les effectifs de Sud de moitié pour la ramener à l'équilibre"],
   a:2, exp:"La fermeture crée de la valeur pour de bonnes raisons — 4,5 M€ de coûts évités contre 1,9 M€ de surcoût — mais le risque commercial n'est ni à ignorer ni à subir : il est à SÉCURISER avant d'agir. La recommandation n'est ni le tout-ou-rien du directeur industriel, ni le statu quo du directeur commercial : c'est une séquence — sécuriser la double source, puis fermer."},
  debrief:`<p><b>Ce cas est de niveau 4 pour la même raison que le précédent : les deux directeurs ont raison, et ils répondent à deux questions différentes.</b> Le directeur industriel voit une perte comptable de 1,8 M€. Le directeur commercial voit un risque réel de perdre deux clients stratégiques. Aucun des deux ne mesure ce qui compte vraiment : l'effet NET sur le résultat du groupe.</p>
   <p><b>Le geste qui résout tout</b> est de retirer du calcul ce qui ne changerait pas — les 5,0 M€ de structure groupe, simplement réalloués à Nord — pour ne garder que ce qui bouge réellement : 4,5 M€ de coûts évités, contre 1,9 M€ de surcoût de transfert. Le vrai gain de la fermeture n'est pas 1,8 M€ : il est de 2,6 M€, et pour une raison entièrement différente de celle affichée en comptabilité.</p>

@@ -16,6 +16,7 @@ Ouvrir `index.html` dans un navigateur, ou servir le dossier (`python3 -m http.s
 | `data-sparring.js` | 12 cas DAF, 10 négociations, 26 brain teasers (auto-évalués) |
 | `data-drills.js` | 8 cascades comptables, 6 paper LBO, 16 missions terrain, 24 questions d'entretien en anglais |
 | `data-lexique.js` | 97 termes FR/EN du deal-maker |
+| `data-stage.js` | Objectif stage (janvier) : module Finance d'entreprise, leçons M&A/LBO/analyse ajoutées, oral technique et fit, drill des trois états, 5 deals récents sourcés, plan de six semaines |
 | `anki-closing.txt` | Deck Anki de 184 cartes (lexique, multiples sectoriels, IPO, LBO, vérités du métier) |
 | `anki-fondamentaux.txt` | Deck Anki de 44 cartes — les formules seules (CAF, FCFF, FCFE, WACC, bêta, ROCE/ROE, DCF, multiples, élasticité), téléchargeable depuis Les exos |
 | `sw.js`, `manifest.webmanifest` | Hors-ligne + installation PWA |
@@ -31,6 +32,14 @@ Ouvrir `index.html` dans un navigateur, ou servir le dossier (`python3 -m http.s
 - **Le mémo du dimanche** : mémo d'investissement guidé en 6 sections, exporté pour correction par le coach.
 - **XP et grades** : Stagiaire → Analyst → Associate → VP → Director → Managing Director → Rainmaker.
 - **Sauvegarde** : export/import JSON depuis l'onglet Profil (la progression vit en localStorage).
+
+- **Objectif stage** : tuile en tête du menu du jour et du Sparring. Oral à voix haute (90 s, enregistrement possible, points attendus à cocher), réponses de fit rédigées puis dites, drill des trois états, deals récents et fiches personnelles, plan de six semaines.
+- **Mode stage** (Profil) : Académie, leçon du jour et entretiens blancs recentrés sur les modules prioritaires (bases, compta, analyse, valo, M&A, LBO, finance d'entreprise).
+- **Réponds d'abord** (Profil, activé par défaut) : les choix d'un QCM restent cachés tant qu'on n'a pas formulé sa réponse.
+
+## Règle d'écriture des QCM
+
+La bonne réponse ne doit pas se reconnaître à sa forme : longueurs comparables, distracteurs plausibles, justification dans `exp` et non dans l'option. Les options sont mélangées à l'affichage partout (quiz, marches, cas) ; dans `exp`, une lettre en gras (`<b>A</b>`) est traduite vers la lettre affichée. Avant l'audit du 2026-10-10, la bonne réponse était la plus longue dans 96 % des 578 questions ; elle l'est désormais dans environ 24 % des cas, le niveau du hasard.
 
 ## Ajouter du contenu
 

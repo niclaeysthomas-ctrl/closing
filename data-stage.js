@@ -1,0 +1,269 @@
+// LE CLOSING — OBJECTIF STAGE (janvier)
+// Ajouté le 2026-10-10, après l'audit : « aide-moi à décrocher un stage en
+// janvier ». Cibles déclarées : M&A / banque d'affaires ET finance
+// d'entreprise. L'app était réglée pour « devenir DAF un jour » ; ce fichier
+// la règle pour « passer des entretiens dans six semaines ».
+//
+// Ce qu'il ajoute :
+//   — un module « Finance d'entreprise · le métier » et des leçons qui
+//     manquaient aux modules M&A, LBO et Analyse (le métier d'analyste,
+//     l'equity bridge, le football field, le paper LBO, les trois états) ;
+//   — ORAL : questions techniques à dérouler À VOIX HAUTE, avec les points
+//     qu'un recruteur attend (on coche ce qu'on a vraiment dit) ;
+//   — FIT : les questions de motivation, avec une structure, les pièges, et
+//     un brouillon que l'utilisateur rédige lui-même ;
+//   — ETATS : drill éclair sur les liens entre les trois états financiers ;
+//   — DEALS_RECENTS : cinq opérations 2025-2026 vérifiées, avec sources ;
+//   — STAGE_PLAN : le plan des six semaines, à cocher.
+//
+// RÈGLE D'ÉCRITURE DES QCM (ajoutée avec ce fichier, valable pour tous) :
+// la bonne réponse ne doit PAS être reconnaissable à sa forme. Longueurs
+// comparables, distracteurs plausibles, justification dans `exp`, jamais
+// dans l'option. L'audit avait trouvé la bonne réponse la plus longue dans
+// 96 % des 578 questions : on répondait juste sans rien savoir.
+
+/* ═══════════ LES PRIORITÉS ═══════════ */
+const STAGE_PRIO = ["base","cpt","ana","valo","ma","lbo","fpa"];
+
+/* ═══════════ LE MODULE MANQUANT ═══════════ */
+MODULES.push({id:"fpa", name:"Finance d'entreprise · le métier", icon:"🏢",
+  desc:"Contrôle de gestion, FP&A, trésorerie : ce que fait vraiment une direction financière, et ce qu'on attend d'un stagiaire dès la première semaine."});
+
+/* ═══════════ LES LEÇONS AJOUTÉES ═══════════ */
+LESSONS.push(
+
+{id:"a3", module:"ana", title:"Les trois états liés : la question n°1 d'entretien",
+content:[
+"En entretien technique, presque tout part de là : « si l'amortissement augmente de 10, que se passe-t-il ? ». La question ne teste pas ta mémoire, elle teste si tu vois les trois états comme UNE seule machine. Le compte de résultat dit ce qu'on a gagné, le tableau de flux dit ce qui est entré et sorti de la banque, le bilan dit ce qu'on possède et ce qu'on doit à la fin. Ils sont reliés par deux coutures, et il faut les connaître par cœur.",
+"Couture n°1 : le résultat net est la première ligne du tableau de flux, et il s'ajoute aux capitaux propres au bilan (via les réserves, moins les dividendes). Couture n°2 : la trésorerie de fin de période calculée par le tableau de flux est exactement la ligne « trésorerie » de l'actif. Si ton bilan ne s'équilibre pas après une variation, c'est que tu as oublié de faire passer l'effet par l'une de ces deux coutures.",
+"La méthode à réciter, toujours dans le même ordre : 1) compte de résultat — quel est l'effet avant impôt, puis l'impôt (on prend 25 %), puis le résultat net ; 2) tableau de flux — on part du résultat net, on rajoute ce qui n'est pas du cash (amortissements, dépréciations), on corrige la variation de BFR, puis les flux d'investissement et de financement ; 3) bilan — actif (trésorerie, immobilisations, BFR) et passif (dette, capitaux propres), et on vérifie que les deux côtés bougent du même montant.",
+"L'exemple qu'il faut savoir faire en vingt secondes : amortissement +10, impôt 25 %. Résultat : EBIT −10, impôt −2,5, résultat net −7,5. Flux : −7,5 + 10 (non cash) = +2,5 de trésorerie. Bilan : immobilisations −10, trésorerie +2,5, donc actif −7,5 ; capitaux propres −7,5. Équilibré. Le +2,5, c'est l'économie d'impôt : l'amortissement ne coûte rien en cash mais réduit l'impôt. Entraîne-toi sur le drill « Trois états » de l'espace Objectif stage jusqu'à ce que ce soit un réflexe."
+],
+questions:[
+{q:"Quelles sont les deux « coutures » entre les trois états ?", opts:["Le chiffre d'affaires relie le compte de résultat au bilan, et l'EBITDA relie le bilan aux flux","Le résultat net (flux et capitaux propres) et la trésorerie de clôture (bilan)","Les amortissements, qui figurent dans les trois états avec le même signe","La dette nette, qui relie les flux de financement au compte de résultat via les intérêts"], a:1, exp:"Le résultat net ouvre le tableau de flux et alimente les capitaux propres ; la trésorerie de fin de période du tableau de flux est la trésorerie du bilan. Toute variation passe par ces deux points."},
+{q:"Une société comptabilise 20 de dépréciation de stocks, déductible, impôt 25 %. Effet sur la trésorerie ?", opts:["−20","+5","−15","0"], a:1, exp:"Résultat net −15 (20 × 0,75). Au tableau de flux, la dépréciation n'est pas du cash : −15 + 20 = +5. C'est l'économie d'impôt. Au bilan : stocks −20, trésorerie +5, actif −15 = capitaux propres −15."},
+{q:"Dans quel ordre déroules-tu une variation en entretien ?", opts:["Bilan, puis compte de résultat, puis tableau de flux","Compte de résultat, tableau de flux, bilan","Tableau de flux, puis bilan, puis compte de résultat pour finir","L'ordre n'a pas d'importance si le résultat final est juste"], a:1, exp:"Compte de résultat (avec l'impôt), tableau de flux (en partant du résultat net), bilan (et on vérifie l'équilibre). L'ordre montre que tu as la mécanique, pas seulement le résultat."}
+]},
+
+{id:"m3", module:"ma", title:"Le métier d'analyste M&A : ce que tu feras vraiment",
+content:[
+"Un stagiaire en M&A ne négocie pas les deals : il les fabrique. Ses livrables, par ordre de fréquence : les pitch books (présentations pour convaincre un client de nous confier un mandat), les comparables boursiers et transactionnels, les modèles (DCF, LBO, accretion/dilution), la liste d'acheteurs potentiels, et, une fois le mandat signé, les documents du process : teaser (2 pages anonymes), CIM ou mémorandum d'information (le « livre » de la société), lettres de process, data room et réponses aux questions des acheteurs.",
+"Un process de cession type, côté vendeur, dure quatre à six mois : préparation (documents, vendor due diligence) ; premier tour (envoi du teaser, NDA, CIM, offres indicatives non engageantes) ; second tour (data room, rencontres avec le management, offres fermes avec un SPA annoté) ; négociation exclusive ; signing ; puis closing après les autorisations. Savoir situer chaque document dans ce calendrier est une question d'entretien classique.",
+"Ce qu'on attend de toi dans les deux premières semaines : la rigueur, pas le génie. Une virgule fausse dans une table de comparables décrédibilise tout le pitch. Les réflexes : sourcer chaque chiffre, vérifier que les totaux bouclent, harmoniser les unités et les dates, relire le PowerPoint comme si c'était le client qui le lisait. Le banquier junior qui n'a jamais besoin d'être corrigé deux fois est celui qu'on veut garder.",
+"Côté acheteur (buy-side), le travail s'inverse : évaluer la cible, construire le business plan, chiffrer les synergies, coordonner les due diligences, structurer le financement et préparer les offres. En entretien, montre que tu sais distinguer les deux rôles, et que tu connais le prix humain du métier : des horaires lourds, des urgences le week-end, et un travail dont 80 % est de l'exécution précise. Le dire avec lucidité vaut mieux que le nier."
+],
+questions:[
+{q:"Quel document envoie-t-on en premier aux acheteurs potentiels dans un process de cession ?", opts:["Le mémorandum d'information complet, sous NDA","Le teaser anonyme","Le projet de SPA annoté par les avocats du vendeur","L'accès à la data room, pour accélérer le premier tour"], a:1, exp:"Le teaser (2 pages, sans nom) sert à mesurer l'intérêt. Seuls ceux qui signent un NDA reçoivent le CIM ; la data room et le SPA arrivent au second tour."},
+{q:"Qu'est-ce qui distingue le premier tour du second tour d'enchères ?", opts:["Premier tour : offres fermes ; second tour : offres indicatives","Premier tour : offres indicatives ; second tour : offres fermes avec SPA annoté","Le premier tour est réservé aux fonds, le second aux industriels","Aucune différence : on répète le premier tour avec moins de candidats"], a:1, exp:"Le premier tour (sur la base du CIM) produit des offres indicatives non engageantes ; le second, après data room et rencontres avec le management, des offres fermes et un SPA annoté."},
+{q:"Quelle qualité compte le plus pour un stagiaire en M&A les premières semaines ?", opts:["La créativité, pour proposer des stratégies originales au client","La rigueur : des chiffres sourcés et des totaux qui bouclent","L'aisance commerciale, pour participer aux réunions client","La maîtrise du droit des sociétés, pour relire le SPA"], a:1, exp:"Le stagiaire fabrique les livrables. Une erreur dans une table décrédibilise tout le document. On te confiera plus quand on n'aura plus besoin de tout revérifier derrière toi."}
+]},
+
+{id:"m4", module:"ma", title:"De la valeur d'entreprise au prix par action : l'equity bridge",
+content:[
+"Un DCF ou un multiple d'EBITDA te donne une valeur d'entreprise (EV) : la valeur de l'outil industriel, qui appartient à TOUS les financeurs. L'actionnaire, lui, veut savoir combien vaut son action. Le pont entre les deux s'appelle l'equity bridge, et c'est une source d'erreurs (et de questions d'entretien) inépuisable.",
+"La règle : on part de l'EV et on retire tout ce qui a une créance sur l'outil avant l'actionnaire, puis on ajoute ce que l'actionnaire possède en dehors de l'outil. Equity value = EV − dette financière + trésorerie − intérêts minoritaires − actions de préférence − éléments assimilés à de la dette (engagements de retraite non financés, dette locative IFRS 16 si l'EBITDA utilisé est post-IFRS 16, earn-outs dus, litiges probables) + participations mises en équivalence et actifs non opérationnels.",
+"Le principe de cohérence : tout ce qui contribue à l'EBITDA sans t'appartenir doit être retiré (les minoritaires : leur filiale est consolidée à 100 % dans l'EBITDA alors que tu n'en possèdes qu'une partie). Tout ce qui t'appartient sans être dans l'EBITDA doit être ajouté (les mises en équivalence : leur résultat est sous l'EBITDA). Même logique pour IFRS 16 : si le multiple est appliqué à un EBITDA qui exclut les loyers, la dette locative doit être retirée ; sinon, non.",
+"Dernière étape : diviser par le nombre d'actions DILUÉ. Les options et actions gratuites dans la monnaie créent des actions nouvelles. Méthode du rachat d'actions (treasury stock method) : 100 options au prix d'exercice de 40, action à 50 → 100 actions créées, mais les 4 000 encaissés rachètent 80 actions → dilution nette de 20 actions. Oublier la dilution surévalue le prix par action, et les recruteurs le savent."
+],
+questions:[
+{q:"Une filiale détenue à 70 % est consolidée à 100 % dans l'EBITDA du groupe. Dans le bridge, que fais-tu de la part des minoritaires ?", opts:["Tu l'ajoutes à la valeur des fonds propres","Tu la retires","Tu l'ignores : elle est déjà dans le résultat net","Tu la retires puis tu l'ajoutes, l'effet est nul"], a:1, exp:"L'EV calculée sur 100 % de l'EBITDA inclut des flux qui reviennent aux minoritaires (30 %). Il faut retirer la valeur de leurs intérêts pour obtenir la valeur revenant aux actionnaires du groupe."},
+{q:"EV 1 000, dette financière 300, trésorerie 50, mises en équivalence 40, minoritaires 30. Valeur des fonds propres ?", opts:["720","760","680","820"], a:1, exp:"1 000 − 300 + 50 − 30 + 40 = 760. Les mises en équivalence s'ajoutent (elles t'appartiennent hors EBITDA), les minoritaires se retranchent (dans l'EBITDA sans t'appartenir)."},
+{q:"100 options à 40 €, action à 50 €. Combien d'actions nettes crée la méthode du rachat d'actions ?", opts:["100","20","80","0"], a:1, exp:"Exercice : 100 actions créées et 4 000 € encaissés. Ces 4 000 € rachètent 4 000 / 50 = 80 actions. Dilution nette : 20 actions."}
+]},
+
+{id:"m5", module:"ma", title:"Le football field : présenter une fourchette, pas un chiffre",
+content:[
+"Aucun banquier ne présente « la » valeur d'une société. Il présente un football field : un graphique à barres horizontales où chaque méthode donne une fourchette de valeur, côte à côte. C'est la page la plus regardée d'un pitch ou d'une fairness opinion, et tu dois savoir la lire et la construire.",
+"Les barres habituelles : les comparables boursiers (multiples de sociétés cotées similaires, sans prime de contrôle), les transactions comparables (multiples payés lors de rachats, qui incluent une prime de contrôle — donc généralement plus hauts), le DCF (fourchette issue de la matrice WACC × croissance perpétuelle), l'analyse LBO (ce qu'un fonds peut payer pour atteindre son TRI cible : souvent un plancher dans un process concurrentiel), et pour une société cotée, le plus haut et le plus bas sur 52 semaines et les objectifs de cours des analystes.",
+"Lire le graphique, c'est repérer la zone où les méthodes se recoupent : c'est là que se situe la fourchette de négociation crédible. Une barre isolée très au-dessus des autres doit être expliquée (une transaction de bulle, un DCF trop optimiste). Une barre LBO plus haute que les comparables signale un marché du crédit très ouvert.",
+"En entretien, la question type est : « pourquoi les transactions comparables sont-elles plus élevées que les comparables boursiers ? » (la prime de contrôle et les synergies payées). Et sa suite : « quelle méthode préfères-tu ? ». La bonne réponse n'est pas une méthode : c'est de dire qu'on croise les approches, et que le choix dépend des données disponibles et de la nature de la société (DCF peu fiable pour une start-up sans flux, comparables difficiles pour une société unique)."
+],
+questions:[
+{q:"Pourquoi la barre des transactions comparables est-elle souvent au-dessus de celle des comparables boursiers ?", opts:["Parce que les transactions sont plus anciennes","Elle intègre une prime de contrôle","Parce que les banquiers retiennent la valeur la plus flatteuse","Parce qu'elle est calculée sur la dette brute et non nette"], a:1, exp:"Un acquéreur paie pour le contrôle et les synergies attendues, typiquement 20 à 40 % au-dessus du cours. Les comparables boursiers valorisent des participations minoritaires, sans cette prime."},
+{q:"Dans un football field, à quoi sert l'analyse LBO ?", opts:["À estimer le prix maximal qu'un industriel peut payer avec ses synergies","Montrer ce qu'un fonds peut payer pour son TRI cible : un plancher","À calculer le WACC de la société cible sans recourir au CAPM","À remplacer le DCF lorsque la société n'a pas de dette"], a:1, exp:"L'analyse LBO répond à « combien un fonds peut-il payer en visant, disons, 20 % de TRI ? ». Dans un process avec des fonds, c'est une référence basse : les industriels, avec synergies, peuvent souvent payer plus."},
+{q:"« Quelle méthode de valorisation préfères-tu ? » La meilleure réponse :", opts:["Le DCF, car c'est la seule méthode fondée sur les flux futurs","On croise les méthodes ; le choix dépend des données et de la société","Les multiples, car ils reflètent ce que le marché paie vraiment","La méthode qui donne la valeur la plus élevée pour le client"], a:1, exp:"Chaque méthode a ses limites. Un DCF est fragile sans historique de flux ; les comparables manquent pour une société unique. On croise, et on explique les écarts entre les barres."}
+]},
+
+{id:"l4", module:"lbo", title:"Le paper LBO en cinq minutes : la méthode",
+content:[
+"Le paper LBO est l'épreuve reine des entretiens en private equity et fréquente en M&A : on te donne quelques hypothèses à l'oral ou sur une feuille, sans Excel, et tu dois calculer le multiple et le TRI en cinq minutes. Ce qui est noté : la méthode, la vitesse et la propreté des calculs, bien plus que le chiffre exact au dixième.",
+"Étape 1, l'entrée : EV d'entrée = EBITDA × multiple d'entrée. Dette = levier × EBITDA. Equity investi = EV − dette (+ frais si on te les donne). Exemple : EBITDA 100, entrée à 10× = 1 000, dette à 6× = 600, equity = 400. Étape 2, les flux : sur la durée de détention, FCF disponible pour rembourser la dette ≈ EBITDA − capex − variation du BFR − intérêts − impôts. On cumule le FCF pour obtenir la dette remboursée.",
+"Étape 3, la sortie : EV de sortie = EBITDA de sortie × multiple de sortie (par prudence, le même qu'à l'entrée). Equity de sortie = EV de sortie − dette restante. Exemple : EBITDA porté à 130 en 5 ans, sortie à 10× = 1 300, 250 de dette remboursée, il en reste 350 ; equity = 950. Étape 4, le rendement : MOIC = 950 / 400 ≈ 2,4×. TRI : 2,4× sur 5 ans ≈ 19 %.",
+"Les repères de TRI à connaître par cœur, parce qu'on ne calcule pas une racine cinquième de tête : 2× en 3 ans ≈ 26 % ; 2× en 5 ans ≈ 15 % ; 2,5× en 5 ans ≈ 20 % ; 3× en 5 ans ≈ 25 %. Et la règle de 72 : à 15 %, l'argent double en un peu moins de 5 ans. Termine toujours par une phrase d'analyse : d'où vient le rendement (désendettement, croissance de l'EBITDA, expansion de multiple) et quel est le risque principal."
+],
+questions:[
+{q:"EBITDA 50, entrée à 8×, dette à 5×. Equity investi (hors frais) ?", opts:["250","150","400","200"], a:1, exp:"EV = 50 × 8 = 400. Dette = 50 × 5 = 250. Equity = 400 − 250 = 150."},
+{q:"Un fonds investit 150 et récupère 300 au bout de 5 ans. TRI approximatif ?", opts:["Environ 26 %","Environ 15 %","Environ 20 %","Environ 10 %"], a:1, exp:"2× en 5 ans ≈ 15 % (1,15^5 ≈ 2,01). 2× en 3 ans serait ≈ 26 %. Ces repères évitent de calculer une racine de tête."},
+{q:"Pourquoi suppose-t-on par défaut un multiple de sortie égal au multiple d'entrée ?", opts:["Parce que la loi interdit de valoriser plus haut à la sortie","Par prudence : le rendement ne doit pas dépendre du marché","Parce que les multiples ne varient jamais sur cinq ans","Parce que les banques prêteuses l'imposent dans le contrat de crédit"], a:1, exp:"L'expansion de multiple dépend du marché, pas du travail du fonds. Un cas d'investissement sain se tient avec un multiple de sortie constant ; l'expansion est un bonus, pas une hypothèse."}
+]},
+
+{id:"fp1", module:"fpa", title:"La direction financière : qui fait quoi",
+content:[
+"Une direction financière de groupe n'est pas un bloc : c'est une demi-douzaine de métiers, et un stage s'effectue presque toujours dans l'un d'eux. La comptabilité et la consolidation produisent les comptes (clôtures mensuelles, normes, audit). Le contrôle de gestion et le FP&A (financial planning & analysis) construisent le budget, les prévisions et le reporting, et expliquent les écarts. La trésorerie gère le cash, les financements, les relations bancaires et les couvertures. S'y ajoutent la fiscalité, le corporate development (les acquisitions vues de l'entreprise) et les relations investisseurs dans un groupe coté.",
+"Le cœur du stage en FP&A ou contrôle de gestion, c'est le cycle mensuel : la clôture (les comptes du mois arrivent quelques jours ouvrés après la fin du mois), le reporting (réel contre budget, contre l'an dernier, contre le dernier forecast), l'analyse des écarts, puis la mise à jour du forecast. Une fois par an, le budget ; une ou deux fois, le plan à moyen terme. Tu seras jugé sur la fiabilité de tes fichiers et la clarté de tes commentaires.",
+"La compétence qui fait la différence : passer du chiffre au « so what ». « La marge baisse de 1,2 point » est un constat. « La marge baisse de 1,2 point parce que le mix s'est déplacé vers la gamme d'entrée, ce qui va durer tant que la promotion court » est une analyse qu'un directeur financier peut utiliser. Le contrôleur de gestion est le traducteur entre les opérationnels et les chiffres : on l'appelle business partner.",
+"Pour l'entretien, retiens la différence avec la banque d'affaires : en entreprise, tu vis avec les conséquences de tes chiffres (le budget que tu as aidé à construire, tu le suis pendant douze mois), les horaires sont plus prévisibles, et la valeur ajoutée vient de la connaissance intime d'un seul business. Dire pourquoi cela t'attire est une bien meilleure réponse que « c'est moins dur qu'en banque »."
+],
+questions:[
+{q:"Quel métier de la direction financière construit le budget et explique les écarts ?", opts:["La trésorerie","Le contrôle de gestion / FP&A","La consolidation","Les relations investisseurs"], a:1, exp:"Le FP&A et le contrôle de gestion pilotent budget, forecast et reporting, et analysent les écarts. La consolidation produit les comptes du groupe ; la trésorerie gère le cash et les financements."},
+{q:"Qu'est-ce qui distingue une analyse d'un simple constat dans un reporting ?", opts:["L'utilisation de graphiques en couleur plutôt que de tableaux","La cause de l'écart et ce qu'elle implique pour la suite","Le nombre de décimales affichées dans les tableaux","Le fait de comparer au budget plutôt qu'à l'année précédente"], a:1, exp:"Un constat dit ce qui a bougé ; une analyse dit pourquoi, combien de temps cela va durer et ce qu'il faut faire. C'est ce qui fait du contrôleur un business partner."},
+{q:"Pourquoi « c'est moins dur qu'en banque » est-elle une mauvaise réponse à « pourquoi la finance d'entreprise ? » ?", opts:["Parce que c'est faux : les horaires sont identiques","Elle parle de ce que tu fuis, pas de ce qui t'attire","Parce que les recruteurs d'entreprise viennent tous de la banque","Parce qu'il ne faut jamais parler des horaires en entretien"], a:1, exp:"Une motivation par défaut inquiète. Parle de ce que tu cherches : vivre avec les conséquences de tes chiffres, connaître un business en profondeur, travailler avec les opérationnels."}
+]},
+
+{id:"fp2", module:"fpa", title:"Le reporting mensuel : budget, réel, forecast",
+content:[
+"Le reporting mensuel compare le réel à trois références : le budget (l'engagement de début d'année), l'année précédente (la tendance), et le dernier forecast (la meilleure estimation récente). Chaque comparaison répond à une question différente : tenons-nous nos engagements ? progressons-nous ? nos prévisions sont-elles fiables ?",
+"L'analyse des écarts de chiffre d'affaires se décompose en effets. Effet volume = (quantités réelles − quantités budget) × prix budget. Effet prix = (prix réel − prix budget) × quantités réelles. S'il y a plusieurs produits à marges différentes, on isole un effet mix : vendre la même quantité totale mais davantage de produits peu margés dégrade la marge sans qu'aucun prix n'ait bougé. La somme des effets doit toujours retomber exactement sur l'écart total : c'est ton contrôle.",
+"Les KPI ne sont pas que financiers : nombre de clients, panier moyen, taux de churn, délai de paiement des clients (DSO), taux de service, productivité. Un bon reporting relie les KPI opérationnels aux chiffres financiers : si le DSO passe de 45 à 55 jours, combien de trésorerie cela immobilise-t-il ? (dix jours de chiffre d'affaires).",
+"Ce que ton manager attend de toi : un fichier propre (sources, onglets lisibles, pas de chiffres saisis en dur au milieu des formules), des commentaires courts qui commencent par la conclusion, et des alertes tôt. Un écart découvert le 3 du mois est une information ; le même écart découvert à la clôture du trimestre est un problème."
+],
+questions:[
+{q:"Budget : 1 000 unités à 20 €. Réel : 1 100 unités à 19 €. Effet volume et effet prix ?", opts:["Volume +2 000 €, prix −1 000 €","Volume +2 000 €, prix −1 100 €","Volume +1 900 €, prix −1 000 €","Volume +100 €, prix −1 €"], a:1, exp:"Volume = (1 100 − 1 000) × 20 = +2 000. Prix = (19 − 20) × 1 100 = −1 100. Total +900, soit exactement 20 900 − 20 000."},
+{q:"Le chiffre d'affaires est au budget, mais la marge brute baisse sans hausse de coûts unitaires. Première piste ?", opts:["Une erreur de saisie dans le système comptable","Un effet mix : plus de produits peu margés","Une hausse de l'impôt sur les sociétés","Une baisse des volumes compensée par l'inflation"], a:1, exp:"À chiffre d'affaires et coûts unitaires constants, seul un déplacement des ventes vers des produits moins margés fait baisser la marge brute. C'est l'effet mix."},
+{q:"Le DSO passe de 45 à 55 jours sur un CA annuel de 36,5 M€. Trésorerie immobilisée en plus ?", opts:["Environ 10 M€","Environ 1 M€","Environ 0,1 M€","Environ 5,5 M€"], a:1, exp:"Un jour de CA = 36,5 / 365 = 0,1 M€. Dix jours de plus = environ 1 M€ de créances en plus, donc de trésorerie en moins."}
+]},
+
+{id:"fp3", module:"fpa", title:"La trésorerie d'entreprise : prévoir, financer, protéger",
+content:[
+"Le trésorier a une obligation absolue : ne jamais être à court de cash. Son premier outil est la prévision de trésorerie : à court terme, le plan à 13 semaines (encaissements et décaissements réels, semaine par semaine), à moyen terme, la prévision mensuelle sur l'année, reliée au forecast du contrôle de gestion. L'écart entre le cash prévu et le cash réel est l'indicateur de qualité d'une équipe trésorerie.",
+"Le financement : une entreprise dispose en général d'une ligne de crédit renouvelable confirmée (RCF), qu'elle ne tire qu'en cas de besoin et qui sert d'assurance de liquidité, de dettes bancaires ou obligataires à terme, parfois d'affacturage (céder ses créances clients pour encaisser plus tôt) ou de NEU CP (titres de créance à court terme pour les grandes sociétés). Le trésorier surveille l'échéancier pour ne jamais avoir un « mur » de remboursements la même année, et le respect des covenants.",
+"La gestion du cash au quotidien : centraliser la trésorerie des filiales (cash pooling) pour compenser les excédents des unes et les besoins des autres, placer les excédents sans risque (dépôts à terme, fonds monétaires), et sécuriser les paiements. La fraude au président (un faux dirigeant qui exige un virement urgent et confidentiel) vise précisément les équipes trésorerie : la règle est de ne jamais déroger aux procédures de validation, même sous pression.",
+"Les couvertures : une entreprise qui vend en dollars et paie en euros est exposée au change ; une entreprise endettée à taux variable est exposée aux taux. Le trésorier couvre selon une politique écrite validée par la direction (quelle part, quel horizon, quels instruments). Une couverture ne fait pas gagner d'argent : elle remplace l'incertitude par de la visibilité."
+],
+questions:[
+{q:"À quoi sert principalement une ligne de crédit renouvelable confirmée (RCF) non tirée ?", opts:["À financer les dividendes de fin d'année","D'assurance de liquidité, mobilisable en cas de besoin","À placer les excédents de trésorerie à un taux garanti","À couvrir le risque de change sur les ventes à l'export"], a:1, exp:"Une RCF confirmée est une réserve de liquidité : la banque s'engage à prêter sur demande. On paie une commission de non-utilisation pour cette assurance."},
+{q:"Qu'est-ce que le cash pooling ?", opts:["Un placement collectif des excédents en actions","Centraliser la trésorerie des filiales pour compenser excédents et besoins","Un emprunt groupé auprès de plusieurs banques","Le paiement groupé de tous les fournisseurs du groupe une fois par mois, par la holding"], a:1, exp:"Le cash pooling remonte (physiquement ou notionnellement) les soldes des filiales vers une centrale : les excédents des unes financent les besoins des autres, ce qui réduit l'endettement et les frais."},
+{q:"Un « directeur général » appelle et exige un virement urgent et confidentiel. Bon réflexe ?", opts:["Exécuter : la demande vient de la direction générale","Appliquer la procédure de validation, sans exception","Exécuter, puis prévenir la conformité dans la journée","Demander un e-mail de confirmation à l'adresse indiquée par l'appelant"], a:1, exp:"C'est le schéma de la fraude au président : urgence, confidentialité, autorité. Seule la procédure (double validation, rappel sur un numéro connu) protège. Un e-mail fourni par l'appelant ne prouve rien."}
+]}
+);
+
+/* ═══════════ ORAL — à dire à voix haute ═══════════
+   {id, cat:"tech"|"fit", q, points:[ce qu'un recruteur attend], piege} */
+const ORAL = [
+{id:"o1", cat:"tech", q:"Walk me through a DCF — en français, en une minute.", points:["Projeter les flux de trésorerie disponibles (FCFF) sur 5 à 10 ans","Les actualiser au WACC","Calculer une valeur terminale (Gordon ou multiple de sortie) et l'actualiser","Somme = valeur d'entreprise, puis − dette nette = valeur des fonds propres","Mentionner la sensibilité (WACC × g) et le poids de la valeur terminale"], piege:"Oublier le passage de l'EV aux fonds propres, ou actualiser un FCFF au coût des fonds propres."},
+{id:"o2", cat:"tech", q:"L'amortissement augmente de 10. Déroule les trois états (impôt 25 %).", points:["Compte de résultat : EBIT −10, impôt −2,5, résultat net −7,5","Flux : −7,5 + 10 (non cash) = trésorerie +2,5","Bilan : immobilisations −10, trésorerie +2,5 → actif −7,5","Capitaux propres −7,5 : le bilan est équilibré","Conclure : le +2,5 est l'économie d'impôt"], piege:"Dire que la trésorerie baisse de 10 ou qu'elle ne bouge pas."},
+{id:"o3", cat:"tech", q:"Comment passe-t-on de la valeur d'entreprise à la valeur des fonds propres ?", points:["Retirer la dette financière, ajouter la trésorerie (dette nette)","Retirer minoritaires et actions de préférence","Retirer les éléments assimilés à de la dette (retraites, IFRS 16 selon l'EBITDA)","Ajouter les mises en équivalence et actifs non opérationnels","Diviser par le nombre d'actions dilué pour le prix par action"], piege:"Ajouter les minoritaires au lieu de les retrancher, ou oublier la dilution."},
+{id:"o4", cat:"tech", q:"Pourquoi utilise-t-on EV/EBITDA plutôt que le PER pour comparer des sociétés ?", points:["EV/EBITDA est indépendant de la structure financière (avant intérêts)","Il neutralise les politiques d'amortissement","Cohérence : l'EV (tous financeurs) face à l'EBITDA (flux avant service de la dette)","Le PER est affecté par le levier et la fiscalité","Limite : l'EBITDA ignore capex et BFR"], piege:"Dire que l'EBITDA « est du cash »."},
+{id:"o5", cat:"tech", q:"Quelles sont les composantes du WACC, et comment calcules-tu le coût des fonds propres ?", points:["WACC = E/V × Ke + D/V × Kd × (1 − t)","Ke par le CAPM : taux sans risque + bêta × prime de risque du marché","Bêta désendetté puis réendetté à la structure cible","Kd après impôt : les intérêts sont déductibles","Pondérations à la structure cible, en valeur de marché"], piege:"Oublier le (1 − t) ou utiliser les valeurs comptables."},
+{id:"o6", cat:"tech", q:"Qu'est-ce qui fait une bonne cible de LBO ?", points:["Flux de trésorerie stables et prévisibles","Faible besoin d'investissement (capex) et BFR maîtrisé","Position de marché défendable, faible cyclicité","Peu de dette existante, leviers d'amélioration identifiés","Équipe de management solide, sortie identifiable"], piege:"Citer « une forte croissance » comme premier critère."},
+{id:"o7", cat:"tech", q:"Paper LBO : EBITDA 100, entrée et sortie à 10×, dette 6×, EBITDA 130 dans 5 ans, 250 de dette remboursée. MOIC et TRI ?", points:["EV entrée 1 000, dette 600, equity 400","EV sortie 1 300, dette restante 350, equity 950","MOIC ≈ 2,4×","TRI ≈ 19 % (2,5× en 5 ans ≈ 20 %)","Sources du rendement : croissance de l'EBITDA et désendettement"], piege:"Oublier de retirer la dette restante à la sortie."},
+{id:"o8", cat:"tech", q:"Une acquisition payée en actions : comment sais-tu si elle est relutive ?", points:["Comparer le PER de l'acquéreur au PER payé pour la cible","PER acquéreur > PER payé → relutif (en tout-actions)","En cash/dette : rendement bénéficiaire de la cible vs coût de la dette après impôt","Intégrer les synergies et les coûts d'intégration","Relutif ne veut pas dire créateur de valeur"], piege:"S'arrêter à la relution sans parler de création de valeur."},
+{id:"o9", cat:"tech", q:"Qu'est-ce que le BFR, et pourquoi une entreprise rentable peut-elle manquer de cash ?", points:["BFR = stocks + créances clients − dettes fournisseurs","C'est du cash immobilisé dans le cycle d'exploitation","La croissance augmente le BFR avant d'encaisser","Résultat positif mais trésorerie qui baisse : l'effet ciseau","Leviers : délais clients, délais fournisseurs, rotation des stocks"], piege:"Confondre BFR et dette à court terme."},
+{id:"o10", cat:"tech", q:"Comment valorises-tu une société qui perd de l'argent ?", points:["Multiples de chiffre d'affaires (EV/CA) de comparables en croissance","DCF avec une phase longue jusqu'à la rentabilité, plus incertain","Indicateurs opérationnels : croissance, marge brute, unit economics (LTV/CAC)","Scénarios ou valeur pondérée par probabilité","Dire clairement les limites de chaque méthode"], piege:"Affirmer qu'elle ne vaut rien ou qu'on ne peut pas la valoriser."},
+{id:"o11", cat:"tech", q:"Quelle est la différence entre le FCFF et le FCFE ?", points:["FCFF : flux pour tous les financeurs, avant service de la dette","FCFF = NOPAT + D&A − capex − ΔBFR","FCFE = FCFF − intérêts après impôt + variation nette de dette","FCFF actualisé au WACC, FCFE au coût des fonds propres","FCFF → EV ; FCFE → valeur des fonds propres directement"], piege:"Actualiser le FCFE au WACC."},
+{id:"o12", cat:"tech", q:"Qu'est-ce que le goodwill et quand apparaît-il ?", points:["Prix payé − juste valeur des actifs nets identifiables","N'apparaît qu'en cas d'acquisition","D'abord allocation aux actifs identifiables (PPA), le reste en goodwill","En IFRS : pas d'amortissement, test de dépréciation annuel","Une dépréciation = l'acquisition valait moins que son prix, sans sortie de cash"], piege:"Dire que le goodwill s'amortit en IFRS."},
+{id:"o13", cat:"tech", q:"Comment construirais-tu un budget annuel pour une business unit ?", points:["Partir des volumes et des prix par produit/segment","Coûts variables liés aux volumes, coûts fixes par nature","Hypothèses explicites et validées avec les opérationnels","Cohérence avec la trésorerie (BFR, capex)","Comparer à l'historique de réalisation des budgets passés"], piege:"Ajouter « +x % » au réel de l'an dernier sans hypothèses."},
+{id:"o14", cat:"tech", q:"Le chiffre d'affaires est au-dessus du budget mais l'EBITDA en dessous. Comment analyses-tu ?", points:["Décomposer l'écart de CA : volume, prix, mix","Regarder la marge brute : mix ou coûts unitaires ?","Analyser les charges fixes : dépassements ou décalages ?","Distinguer ponctuel et structurel","Conclure par une action et un impact sur le forecast"], piege:"Commenter le CA sans expliquer la marge."},
+{id:"o15", cat:"tech", q:"Qu'est-ce qu'un covenant bancaire et que se passe-t-il s'il est violé ?", points:["Engagement contractuel de respecter des ratios (ex. dette nette/EBITDA)","Testé périodiquement (maintenance) ou lors d'une action (incurrence)","Violation : la banque peut exiger le remboursement anticipé","En pratique : demande de waiver, payée en frais et marge","Anticiper : négocier avant le test, pas après"], piege:"Dire que la violation entraîne automatiquement la faillite."},
+{id:"o16", cat:"tech", q:"Pourquoi les acquéreurs paient-ils une prime de contrôle ?", points:["Le contrôle permet de changer la stratégie et le management","Il permet de capter les synergies","Il donne accès aux flux de trésorerie (dividendes, refinancement)","Typiquement 20 à 40 % au-dessus du cours non affecté","Limite : la prime ne doit pas dépasser la valeur des synergies"], piege:"Dire qu'elle est imposée par la réglementation."},
+{id:"fit1", cat:"fit", q:"Présente-toi en 90 secondes.", points:["Une accroche : qui tu es, en une phrase","Ton parcours en 2-3 étapes, reliées par un fil logique","Une expérience précise avec un résultat concret","Pourquoi ce poste maintenant (lien avec le parcours)","Finir sur ce que tu apportes, pas sur une liste de cours"], piege:"Réciter le CV ligne par ligne ou dépasser deux minutes."},
+{id:"fit2", cat:"fit", q:"Pourquoi le M&A ?", points:["Ce qui t'attire concrètement (exposition aux décisions stratégiques, rythme d'apprentissage)","Un déclic réel : un deal suivi, une rencontre, un cours, une expérience","Lucidité sur le métier (horaires, exécution, rigueur)","Ce que tu veux apprendre en stage","Pas de discours sur l'argent ni le prestige"], piege:"« J'aime les challenges » sans exemple."},
+{id:"fit3", cat:"fit", q:"Pourquoi la finance d'entreprise plutôt que la banque ?", points:["Voir les conséquences de ses chiffres dans la durée","Connaître un business en profondeur, travailler avec les opérationnels","Un exemple ou un intérêt pour le secteur de l'entreprise","Ce que tu peux apporter dès le stage (rigueur, Excel, analyse)","Jamais « parce que c'est moins dur »"], piege:"Présenter l'entreprise comme un choix par défaut."},
+{id:"fit4", cat:"fit", q:"Pourquoi notre banque / notre entreprise, et pas un concurrent ?", points:["Deux ou trois faits précis et récents (deals, résultats, stratégie)","Le lien entre ces faits et ce que tu cherches","Une rencontre ou un échange avec quelqu'un de la maison si possible","La taille de l'équipe et ce qu'elle implique pour un stagiaire","Ne pas réciter le site web"], piege:"Une réponse interchangeable qui marcherait pour n'importe qui."},
+{id:"fit5", cat:"fit", q:"Parle-moi d'un deal récent que tu as suivi.", points:["Les parties, le montant, la date : des faits exacts","La logique stratégique pour l'acheteur","La valorisation (multiple) et le financement","Les risques : réglementaire, intégration, prix payé","Ton avis argumenté : bon deal ou pas, et pourquoi"], piege:"Raconter l'article sans avis personnel, ou se tromper sur les chiffres."},
+{id:"fit6", cat:"fit", q:"Raconte un échec et ce que tu en as tiré.", points:["Un vrai échec, pas une fausse modestie","Le contexte en deux phrases (méthode STAR)","Ta part de responsabilité, assumée","Ce que tu as changé concrètement ensuite","Une preuve que la leçon a servi"], piege:"« Mon défaut est d'être perfectionniste. »"},
+{id:"fit7", cat:"fit", q:"Un exemple de travail en équipe sous pression.", points:["Situation et enjeu clairs (délai, volume)","Ton rôle précis dans l'équipe","Une action concrète que tu as prise","Le résultat, chiffré si possible","Ce que tu referais différemment"], piege:"Parler de « nous » sans dire ce que tu as fait."},
+{id:"fit8", cat:"fit", q:"Quelles questions as-tu pour nous ?", points:["Deux ou trois questions préparées et spécifiques","Sur le quotidien d'un stagiaire et les dossiers en cours","Sur ce qui distingue un bon stagiaire dans l'équipe","Une question sur l'interlocuteur lui-même (son parcours, un deal)","Ne pas demander ce qui est sur le site ni parler salaire en premier"], piege:"« Non, je n'ai pas de question. »"},
+{id:"fit9", cat:"fit", q:"Pitch-moi une entreprise cotée que tu aimes.", points:["Ce que fait l'entreprise, en une phrase","Ce qui la rend intéressante : position, marges, croissance","Un ou deux chiffres clés (CA, marge, multiple)","Le principal risque","Ta conclusion : sous- ou surévaluée, et pourquoi"], piege:"Choisir une entreprise sans en connaître les chiffres."},
+{id:"fit10", cat:"fit", q:"Où te vois-tu dans cinq ans ?", points:["Une ambition cohérente avec le poste","Montrer l'envie d'apprendre et de monter en responsabilité","Rester crédible et réaliste","Relier au métier visé (banque ou direction financière)","Éviter de dire que tu veux partir ailleurs"], piege:"« À votre place » ou « dans un fonds » face à une banque."}
+];
+
+/* ═══════════ FIT — trames de réponse à rédiger ═══════════ */
+const FIT_TRAMES = {
+fit1:"Accroche (1 phrase) → parcours en 3 étapes avec un fil logique → une réalisation concrète → pourquoi ce stage maintenant → ce que j'apporte.",
+fit2:"Le déclic (un fait réel) → ce qui m'attire concrètement → je sais ce que le métier exige → ce que je veux apprendre pendant le stage.",
+fit3:"Ce que je cherche (impact, durée, opérationnels) → pourquoi ce secteur → ce que j'apporte dès le stage.",
+fit4:"Fait 1 (deal ou résultat récent) → fait 2 → lien avec mon projet → une rencontre ou un échange avec l'équipe.",
+fit5:"Qui, quoi, combien, quand → pourquoi l'acheteur le fait → prix et financement → risques → mon avis.",
+fit6:"Situation → ce que j'ai fait (et raté) → ce que j'en ai tiré → la fois suivante, ce qui a changé.",
+fit7:"Situation et délai → mon rôle → mon action → le résultat → ce que je ferais autrement.",
+fit8:"Question sur le quotidien → question sur les dossiers en cours → question sur l'interlocuteur.",
+fit9:"L'entreprise en une phrase → pourquoi elle est intéressante → 2 chiffres → le risque → ma conclusion.",
+fit10:"Apprendre le métier à fond → prendre des responsabilités → rester cohérent avec le poste visé."
+};
+
+/* ═══════════ ETATS — drill éclair sur les trois états (impôt 25 %) ═══════════ */
+const ETATS = [
+{q:"Amortissements +10. Variation de trésorerie ?", opts:["−10","+2,5","0","−7,5"], a:1, exp:"Résultat net −7,5 ; on rajoute 10 (non cash) : +2,5. C'est l'économie d'impôt."},
+{q:"Achat de stocks pour 20, payé comptant, non encore vendus. Effet sur le résultat net ?", opts:["−20","0","−15","+20"], a:1, exp:"Un achat stocké n'est pas une charge tant qu'il n'est pas vendu : résultat inchangé. Trésorerie −20, stocks +20."},
+{q:"Achat d'une machine de 100, payée comptant. Variation de trésorerie de l'année (avant amortissement) ?", opts:["0","−100","−75","−25"], a:1, exp:"Flux d'investissement −100. Au bilan, immobilisations +100 et trésorerie −100. Pas d'effet sur le compte de résultat avant amortissement."},
+{q:"Émission d'une dette de 50. Effet sur le résultat net ?", opts:["+50","0","+37,5","−50"], a:1, exp:"Emprunter n'est pas un produit : résultat inchangé. Flux de financement +50, trésorerie +50, dette +50."},
+{q:"Intérêts payés de 10, déductibles. Variation de trésorerie ?", opts:["−10","−7,5","0","−2,5"], a:1, exp:"Résultat net −10 × 0,75 = −7,5, entièrement décaissé : trésorerie −7,5. Capitaux propres −7,5."},
+{q:"Remboursement de 30 de capital d'emprunt. Effet sur le résultat net ?", opts:["−30","0","−22,5","+30"], a:1, exp:"Rembourser le principal n'est pas une charge. Flux de financement −30, trésorerie −30, dette −30."},
+{q:"Un client règle une créance de 40. Effet sur le résultat net ?", opts:["+40","0","+30","−40"], a:1, exp:"Le chiffre d'affaires a déjà été constaté à la vente. Encaisser transforme une créance en trésorerie : créances −40, trésorerie +40."},
+{q:"Vente à crédit de 100, coût du stock vendu 60, impôt payé comptant. Variation de trésorerie ?", opts:["+30","−10","+40","0"], a:1, exp:"Résultat avant impôt +40, impôt −10, résultat net +30. Flux : 30 + 60 (stocks en baisse) − 100 (créances en hausse) = −10, c'est l'impôt payé."},
+{q:"Dépréciation de goodwill de 50, non déductible. Variation de trésorerie ?", opts:["−50","0","−37,5","+12,5"], a:1, exp:"Résultat net −50, mais aucun cash ne sort et aucun impôt n'est économisé (non déductible) : trésorerie inchangée. Goodwill −50, capitaux propres −50."},
+{q:"Versement d'un dividende de 20. Effet sur le résultat net ?", opts:["−20","0","−15","+20"], a:1, exp:"Le dividende est une distribution du résultat, pas une charge. Trésorerie −20, capitaux propres −20."},
+{q:"Dépréciation de stocks de 30, déductible. Variation de trésorerie ?", opts:["−30","+7,5","−22,5","0"], a:1, exp:"Résultat net −22,5 ; on rajoute 30 (non cash) : +7,5 grâce à l'économie d'impôt."},
+{q:"Un client paie d'avance 50 pour un service rendu l'an prochain. Effet sur le chiffre d'affaires de l'année ?", opts:["+50","0","+37,5","+25"], a:1, exp:"Aucune prestation rendue : pas de chiffre d'affaires. Trésorerie +50, produits constatés d'avance (passif) +50."},
+{q:"Rachat d'actions pour 40. Effet sur les capitaux propres ?", opts:["0","−40","−30","+40"], a:1, exp:"Le rachat d'actions réduit les capitaux propres (actions propres en déduction) et la trésorerie de 40. Aucun effet sur le résultat."},
+{q:"Cession d'une machine (valeur nette 80) pour 100, impôt sur la plus-value payé. Variation de trésorerie ?", opts:["+100","+95","+20","+15"], a:1, exp:"Plus-value 20, impôt 5, résultat net +15. Flux : 15 − 20 (plus-value retirée de l'exploitation) + 100 (cession) = +95. Immobilisations −80, trésorerie +95 : actif +15 = capitaux propres +15."},
+{q:"Les dettes fournisseurs augmentent de 15 (achats déjà consommés et comptabilisés). Effet sur la trésorerie ?", opts:["−15","+15","0","+11,25"], a:1, exp:"La charge est déjà dans le résultat ; ne pas encore l'avoir payée laisse 15 de plus en caisse. Une hausse des dettes fournisseurs réduit le BFR : trésorerie +15."}
+];
+
+/* ═══════════ DEALS RÉCENTS — vérifiés le 2026-10-10 ═══════════
+   Faits relevés dans les sources citées. « État » = situation connue à
+   cette date : à revérifier avant un entretien, l'actualité bouge. */
+const DEALS_RECENTS = [
+{id:"r1", title:"Paramount Skydance – Warner Bros. Discovery", date:"2025-2026", tag:"Bataille d'enchères · médias",
+ faits:["Décembre 2025 : WBD accepte l'offre de Netflix sur son studio et son streaming, à 27,75 $ par action (près de 83 Md$ dette comprise).","Paramount surenchérit sur la totalité du groupe : 31 $ par action, environ 111 Md$ dette comprise, avec une lourde dette et des fonds propres apportés notamment par Larry Ellison et des fonds souverains étrangers.","26 février 2026 : le conseil de WBD juge l'offre de Paramount supérieure ; Netflix refuse de surenchérir, jugeant le deal « plus financièrement attractif ».","Paramount ajoute une ticking fee (0,25 $ par action et par trimestre de retard) et une indemnité de rupture réglementaire de 7 Md$.","23 avril 2026 : les actionnaires de WBD approuvent la fusion. Revue antitrust (DOJ et autres pays) en cours à la dernière vérification."],
+ angle:"Un cas d'école sur la différence entre prix par action et périmètre (Netflix achetait une partie, Paramount le tout), sur le rôle d'une offre supérieure (« superior proposal ») et sur les protections contre le risque réglementaire (ticking fee, reverse termination fee).",
+ questions:["Pourquoi comparer 27,75 $ et 31 $ par action ne suffit-il pas à comparer les deux offres ?","À quoi sert une ticking fee pour les actionnaires de la cible ?","Quel est le risque d'un financement aussi endetté pour l'ensemble combiné ?"],
+ sources:[["KWQC / AP, 26 février 2026","https://www.kwqc.com/2026/02/26/warner-bros-discovery-deems-paramounts-takeover-bid-superior-netflix-deal/"],["KVIA, vote des actionnaires, 23 avril 2026","https://kvia.com/news/top-stories/2026/04/23/warner-bros-discovery-shareholders-approve-paramount-takeover-3/"]]},
+{id:"r2", title:"Electronic Arts – PIF, Silver Lake, Affinity Partners", date:"Annonce 2025 · closing 4 août 2026", tag:"Plus gros LBO de l'histoire",
+ faits:["Retrait de la cote d'Electronic Arts pour environ 55 Md$, présenté comme le plus gros LBO de l'histoire.","Prix : 210 $ par action en cash, soit une prime de 25 % sur le cours non affecté de 168,32 $.","Fonds propres d'environ 36 Md$ (PIF, Silver Lake, Affinity Partners, plus l'apport par le PIF de sa participation de 9,9 %).","Dette de 20 Md$ arrangée par J.P. Morgan, dont 18 Md$ tirés au closing.","Toutes les autorisations obtenues le 30 juillet 2026 ; closing le 4 août 2026."],
+ angle:"Le LBO version 2025 : une part de fonds propres élevée (environ deux tiers), un fonds souverain comme investisseur principal, et une cible aux revenus récurrents (jeux à franchise, services en ligne). Parfait pour un paper LBO : prix, prime, structure de financement.",
+ questions:["Calcule la part de fonds propres dans le financement. Pourquoi est-elle si élevée pour un LBO ?","Qu'est-ce qui fait d'EA une cible acceptable pour un LBO ?","Que veut dire « rouler » sa participation (rollover) pour le PIF ?"],
+ sources:[["TheWrap, 4 août 2026","https://thewrap.com/industry-news/deals-ma/electronic-arts-goes-private-55-billion-buyout-closes"]]},
+{id:"r3", title:"L'Oréal – Kering Beauté", date:"Annonce octobre 2025 · finalisé fin mars 2026", tag:"Carve-out · luxe français",
+ faits:["L'Oréal rachète Kering Beauté pour 4 Md€.","Le périmètre comprend la maison de parfums Creed et des licences exclusives de 50 ans pour la beauté et les parfums de Bottega Veneta et Balenciaga.","L'Oréal obtient aussi le droit de conclure une licence exclusive de 50 ans pour Gucci, à l'expiration de la licence actuelle détenue par Coty.","Les deux groupes étudient une coentreprise dans le bien-être et la longévité.","Finalisation annoncée fin mars 2026, après l'autorisation des autorités de concurrence."],
+ angle:"Un carve-out : un groupe (Kering) cède une division non stratégique à un spécialiste (L'Oréal) qui en tirera plus de valeur. Intéressant pour parler de licences comme actif, de recentrage stratégique et de la logique « meilleur propriétaire ».",
+ questions:["Pourquoi un groupe de luxe cèderait-il sa division beauté plutôt que de la développer lui-même ?","Que vaut une licence de 50 ans dans une valorisation ?","Qui est le « meilleur propriétaire » d'une activité, et pourquoi cela crée-t-il de la valeur ?"],
+ sources:[["Cosmetics Business, 1er avril 2026","https://www.cosmeticsbusiness.com/lor%C3%A9al-finalises-4-billion-acquisition-of-kering-beaute"],["Premium Beauty News, 24 décembre 2025","https://www.premiumbeautynews.com/fr/le-rachat-de-kering-beaute-par-l,26833"]]},
+{id:"r4", title:"Google – Wiz", date:"Annonce mars 2025 · closing 11 mars 2026", tag:"Tech · cybersécurité",
+ faits:["Google (Alphabet) acquiert Wiz, plateforme de sécurité du cloud basée à New York, pour 32 Md$.","Annonce en mars 2025, closing le 11 mars 2026, après environ douze mois de revue.","Autorisations inconditionnelles notamment aux États-Unis, de la Commission européenne, en Australie, en Israël, en Arabie saoudite, en Afrique du Sud et en Turquie.","Wiz rejoint Google Cloud."],
+ angle:"Un acquéreur stratégique paie une valeur très élevée pour une société en hypercroissance : ici, un multiple d'EBITDA n'a aucun sens, on raisonne en multiple de revenus récurrents (ARR) et en valeur stratégique pour Google Cloud face à AWS et Microsoft.",
+ questions:["Comment justifier un prix de 32 Md$ pour une société encore jeune ?","Pourquoi la revue antitrust a-t-elle pris un an alors que les autorisations ont été inconditionnelles ?","Quel multiple utiliserais-tu pour valoriser Wiz ?"],
+ sources:[["Cleary Gottlieb, closing de l'opération","https://www.clearygottlieb.com/news-and-insights/news-listing/google-completes-32-billion-acquisition-of-wiz"]]},
+{id:"r5", title:"Union Pacific – Norfolk Southern", date:"Annonce 29 juillet 2025 · en cours", tag:"Méga-fusion · antitrust",
+ faits:["Union Pacific propose de racheter Norfolk Southern pour environ 85 Md$, soit 320 $ par action.","Contrepartie : une action Union Pacific plus 88,82 $ en cash par action Norfolk Southern ; les actionnaires de Norfolk détiendraient environ 27 % de l'ensemble.","Prime de 25 % sur le cours moyen pondéré sur 30 jours au 16 juillet 2025.","Le régulateur ferroviaire (STB) rejette le premier dossier en janvier 2026 ; dossier amendé déposé le 30 avril 2026 et accepté le 28 mai 2026.","Indemnité de rupture inversée de 2,5 Md$ si la STB bloque l'opération. Closing visé début 2027 ; opposition d'autres compagnies ferroviaires, de syndicats et de chargeurs."],
+ angle:"Une fusion « mixte » (actions + cash) dont le principal risque est réglementaire : idéal pour parler de calendrier long, de reverse termination fee, et de la façon dont le marché price la probabilité de réalisation (l'écart entre le cours de la cible et le prix offert).",
+ questions:["Pourquoi payer en partie en actions et en partie en cash ?","À quoi sert une indemnité de rupture inversée de 2,5 Md$ ?","Comment le cours de Norfolk Southern reflète-t-il le risque que le deal échoue ?"],
+ sources:[["Wikipédia (synthèse sourcée)","https://en.wikipedia.org/wiki/Proposed_merger_between_Union_Pacific_and_Norfolk_Southern"],["Railway Journal","https://www.railjournal.com/regions/north-america/us-class-1-merger-confirmed/"]]}
+];
+
+/* ═══════════ LE PLAN DES SIX SEMAINES ═══════════
+   À cocher. Les recrutements pour janvier se jouent en octobre-novembre :
+   le plan suppose des entretiens dès la semaine 3. */
+const STAGE_PLAN = [
+{s:1, t:"Le socle comptable", items:[
+ ["p11","Leçons « Rappels » et « Les trois états liés »"],
+ ["p12","Drill « Trois états » : 15/15 deux jours de suite"],
+ ["p13","Rédiger ton pitch de 90 secondes (fiche fit n°1)"],
+ ["p14","Lister 15 cibles de stage (banques, boutiques, directions financières) et leurs dates"]]},
+{s:2, t:"Valorisation", items:[
+ ["p21","Leçons DCF, WACC, multiples, equity bridge"],
+ ["p22","Oral technique : 3 questions par jour à voix haute"],
+ ["p23","Fiche deal récent n°1 rédigée et dite à voix haute en 2 minutes"],
+ ["p24","Envoyer les premières candidatures"]]},
+{s:3, t:"M&A et LBO", items:[
+ ["p31","Leçons M&A (métier, process, football field) et paper LBO"],
+ ["p32","Deux paper LBO sur papier, chronométrés"],
+ ["p33","Sur Excel : un mini-modèle trois états qui boucle (P&L, bilan, flux)"],
+ ["p34","Fiche deal récent n°2"]]},
+{s:4, t:"Finance d'entreprise", items:[
+ ["p41","Module « Finance d'entreprise · le métier »"],
+ ["p42","Rédiger les réponses fit n°2, n°3 et n°4"],
+ ["p43","Sur Excel : un paper LBO avec MOIC et TRI (fonction TRI)"],
+ ["p44","Deux entretiens blancs (mode entretien FR et EN)"]]},
+{s:5, t:"Entretiens blancs", items:[
+ ["p51","Un entretien blanc par jour, en t'enregistrant"],
+ ["p52","Rattrapage vidé"],
+ ["p53","Un cas de conseil et une série de chiffrage par jour"],
+ ["p54","Préparer 3 questions pour chaque entreprise ciblée"]]},
+{s:6, t:"Affûtage", items:[
+ ["p61","Relire toutes tes fiches fit et deals, à voix haute"],
+ ["p62","Revue de presse : 3 deals de la semaine, avec ton avis"],
+ ["p63","Oral technique : toutes les questions au moins « solide »"],
+ ["p64","Relances des candidatures sans réponse"]]}
+];
