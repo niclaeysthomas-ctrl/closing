@@ -309,6 +309,7 @@
   <button data-v="profil"><i>👑</i>Profil</button>
 </div></nav>
 
+<script src="/forge/forge-sync.js"></script>
 <script src="data-deals.js"></script>
 <script src="data-academy.js"></script>
 <script src="data-sparring.js"></script>
@@ -360,7 +361,7 @@ function load(){
     o.biz.horizon=o.biz.horizon||36; o.biz.capacity=o.biz.capacity||1; }
   return o;
 }
-function save(){ localStorage.setItem(KEY,JSON.stringify(S)); }
+function save(){ localStorage.setItem(KEY,JSON.stringify(S)); if(window.AppsSync) AppsSync.soon(4000,["closing"]); }
 function today(){ return new Date().toISOString().slice(0,10); }
 function addDays(n){ const d=new Date(Date.now()+n*864e5); return d.toISOString().slice(0,10); }
 function yesterday(){ return addDays(-1); }
@@ -4973,6 +4974,18 @@ if(location.protocol.startsWith("http")&&"serviceWorker" in navigator){
   navigator.serviceWorker.addEventListener("controllerchange",()=>{ if(swRecharge||!navigator.serviceWorker.controller) return; swRecharge=true; location.reload(); });
 }
 nav("jour");
+/* ── synchro téléphone ↔ ordi (même coffre privé que Le Pointage) ──
+   À l'ouverture et au retour sur l'app : on récupère ce que l'autre appareil
+   a fait. En quittant l'app, et 4 s après chaque changement : on envoie. */
+if (window.AppsSync) {
+  AppsSync.onChange(l => { if (l.indexOf('closing') < 0) return;
+    S = load(); try { if (!(typeof guidedOn === 'function' && guidedOn())) render(); } catch (e) {} });
+  const appsGo = () => { if (AppsSync.enabled()) AppsSync.run(['closing']); };
+  appsGo();
+  document.addEventListener('visibilitychange', () => { if (!AppsSync.enabled()) return;
+    if (document.visibilityState === 'visible') appsGo(); else AppsSync.soon(0, ['closing']); });
+}
+
 </script>
 </body>
 </html>

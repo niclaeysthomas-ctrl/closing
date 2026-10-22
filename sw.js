@@ -1,5 +1,5 @@
 // LE CLOSING — service worker : cache-first, app 100 % hors-ligne
-const CACHE = "closing-v46-libre";
+const CACHE = "closing-v47-synchro";
 const ASSETS = [
   "./",
   "./index.html",
@@ -42,7 +42,7 @@ self.addEventListener("activate", e => {
 });
 
 self.addEventListener("fetch", e => {
-  if (e.request.method !== "GET") return;
+  if (e.request.method !== "GET" || !e.request.url.startsWith(self.location.origin) || e.request.url.includes("/forge/forge-sync.js")) return;
   e.respondWith(
     caches.match(e.request, { ignoreSearch: true }).then(hit =>
       hit ||
