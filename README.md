@@ -15,6 +15,9 @@ Ouvrir `index.html` dans un navigateur, ou servir le dossier (`python3 -m http.s
 | `data-academy.js` | 11 modules, 62 leçons (bases → restructuring, fiscalité, macro, consolidation), quiz inclus |
 | `data-sparring.js` | 12 cas DAF, 10 négociations, 26 brain teasers (auto-évalués) |
 | `data-drills.js` | 8 cascades comptables, 6 paper LBO, 16 missions terrain, 24 questions d'entretien en anglais |
+| `data-recitation.js` | 10 structures à dérouler de tête (compte de résultat, SIG, actif, passif, FR/BFR/trésorerie, CAF, tableau de flux, FCFF, pont de valorisation, cascade d'un amortissement) |
+| `data-pensees.js` | 10 lectures philosophiques (le temps, l'incertitude, la valeur, le jugement, le désir, la promesse, la responsabilité, la mesure, le hasard, le langage) — lecture + idées à garder + penseurs + quiz |
+| `data-masterclass.js` | 23 masterclass : **17 sectorielles** (comment un secteur gagne de l'argent) et **6 métiers** (private equity, secondaire & liquidité, capital-risque, processus M&A, destruction de valeur en M&A, mécanique du SPA) — lecture longue + modèles mentaux + ordres de grandeur + œil de l'investisseur + quiz |
 | `data-lexique.js` | 97 termes FR/EN du deal-maker |
 | `data-stage.js` | Objectif stage (janvier) : module Finance d'entreprise, leçons M&A/LBO/analyse ajoutées, oral technique et fit, drill des trois états, 5 deals récents sourcés, plan de six semaines |
 | `anki-closing.txt` | Deck Anki de 184 cartes (lexique, multiples sectoriels, IPO, LBO, vérités du métier) |
@@ -23,7 +26,11 @@ Ouvrir `index.html` dans un navigateur, ou servir le dossier (`python3 -m http.s
 
 ## Mécaniques
 
-- **Menu du jour** : 1 deal + 1 leçon + 1 sparring (rotation sur 5 types) = journée validée, streak.
+- **Aucun verrou de progression** (depuis le 2026-11-08) : les **62 paliers des exos** sont ouverts dès le premier jour — plus besoin de valider le précédent — et le **mode socle**, qui réduisait la journée à trois blocs et rangeait deals, sparring, cas et boîte jusqu'à ce que les fondamentaux tiennent, a été retiré. L'ordre reste affiché et conseillé partout ; il n'est plus imposé. L'avancement du socle (12 paliers, 10 structures) reste suivi dans le Profil, comme repère. Seuls verrous conservés : les **niveaux de Ma boîte** (le 2 s'ouvre en finissant le 1) et, dans les cas, l'obligation de **poser le chiffre et sa justification avant de voir les options**.
+- **La récitation** : les lignes d'une structure arrivent mélangées, avec des intrus, et il faut les remettre dans l'ordre — sans aucun retour avant d'avoir validé. Puis trois questions « ça tombe où ? ». Ordre parfait = bloc du jour validé ; ordre parfait **et** 3/3 = la boîte avance (J+1, J+3, J+7, puis entretien à 21 jours). Une erreur, la boîte retombe à zéro.
+- **Menu du jour** : 1 lecture + 1 leçon + 1 sparring (rotation sur 5 types) + chiffrage + exos + flashcards = journée validée, streak. La récitation s'y ajoute les jours où une structure est due ; elle reste proposée tous les autres jours tant que les 10 ne sont pas acquises, sans bloquer la validation.
+- **La lecture du jour** : un seul créneau, trois registres en rotation sur quatre jours — 2 jours un **deal réel** (ce qui s'est passé), 1 jour une **masterclass** (comment un secteur — ou un métier de la finance — gagne de l'argent), 1 jour une **pensée** (pourquoi on fait ce métier comme ça). Les trois valident le même bloc : la journée ne s'allonge pas, elle change de registre.
+- **Les masterclass, deux familles** : les **sectorielles** expliquent comment un secteur gagne ou perd de l'argent ; les **métiers** expliquent comment gagnent de l'argent ceux qui sont assis en face de la table — fonds de LBO, secondaire, capital-risque, banquier M&A, acquéreur, négociateur du contrat — et surtout ce que leur mode de rémunération les pousse réellement à faire. Elles partagent le même créneau de lecture : le stock grandit, la cadence ne bouge pas.
 - **Révision espacée** : chaque contenu terminé revient à J+3, J+7, J+21. Trois révisions tenues = acquis.
 - **Rattrapage** : toute question de quiz ratée reste au tableau jusqu'à être réussie.
 - **Modes entretien** : 12 questions aléatoires, 8 minutes chrono, verdict du recruteur — en français et en anglais.
@@ -38,7 +45,7 @@ Ouvrir `index.html` dans un navigateur, ou servir le dossier (`python3 -m http.s
 - **Formules en cartes** (`data-quotidien.js`) : 45 formules, recto = nom, verso = formule ; révision espacée (1, 2, 4, 7, 14, 30 jours), cartes ratées reprises dans la séance. Formulaire complet consultable dans l'Académie.
 - **Conseil et bases M&A chaque jour** : une structuration de cas (30 énoncés, 2 minutes chrono, structure attendue et grille), une fiche conseil, deux cas de conseil par semaine, et une leçon du parcours Bases M&A (18 leçons dans l'ordre : métier, process, valeur, juridique du deal, LBO).
 - **Métier du jour / conseil du jour** (`data-quotidien.js`) : 30 métiers de la finance et 30 fiches de conseil, un de chaque par jour, dans l'ordre.
-- **Mode stage** (Profil) : Académie, leçon du jour et entretiens blancs recentrés sur les modules prioritaires (bases, compta, analyse, valo, M&A, LBO, finance d'entreprise).
+- **Mode stage** (Profil) : Académie, leçon du jour et entretiens blancs recentrés sur les modules prioritaires (bases, compta, analyse, valo, M&A, LBO, finance d'entreprise).  ⚠️ **Deux programmes de journée coexistent** (fusion du 2026-11-23) : mode stage activé → le programme en 13 blocs de `data-stage.js` fait foi, et il ne contient **ni la récitation ni la lecture du jour** (deal / masterclass / pensée) ; mode stage désactivé → le menu du jour historique, qui les contient. Les pensées et les masterclass restent atteignables par l'onglet Lectures dans les deux cas ; la récitation, seulement hors mode stage. À arbitrer quand le programme sera recentré sur le stage de private equity.
 - **Réponds d'abord** (Profil, activé par défaut) : les choix d'un QCM restent cachés tant qu'on n'a pas formulé sa réponse.
 
 ## Règle d'écriture des QCM

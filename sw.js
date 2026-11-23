@@ -1,5 +1,5 @@
 // LE CLOSING — service worker : cache-first, app 100 % hors-ligne
-const CACHE = "closing-v47-synchro";
+const CACHE = "closing-v48-recitation-pensees";
 const ASSETS = [
   "./",
   "./index.html",
@@ -26,6 +26,8 @@ const ASSETS = [
   "./data-economie.js",
   "./data-stage.js",
   "./data-quotidien.js",
+  "./data-recitation.js",
+  "./data-pensees.js",
   "./manifest.webmanifest"
 ];
 
@@ -36,7 +38,8 @@ self.addEventListener("install", e => {
 self.addEventListener("activate", e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(keys => Promise.all(
+        keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });

@@ -278,6 +278,25 @@
   .catpick{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0}
   .catpick button{background:var(--bg3);border:1px solid var(--line);color:var(--txt);border-radius:20px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer}
   .catpick button.on{background:var(--acc);color:#1a1300;border-color:var(--acc)}
+  /* LA RÉCITATION — les lignes à remettre dans l'ordre, et la cascade en construction.
+     Les puces sont larges et espacées : on les touche au pouce, souvent vite,
+     et une erreur de doigt sur une récitation de quinze lignes est rageante. */
+  .recchips{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 4px}
+  .recchips button{background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:999px;
+    padding:10px 13px;font-size:12.5px;line-height:1.25;font-weight:600;cursor:pointer;text-align:left;max-width:100%}
+  .recchips button:active{background:#2a2213;border-color:var(--acc)}
+  .recstack{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:4px 12px;margin:10px 0}
+  .recstack .rl{display:flex;gap:9px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px;line-height:1.4}
+  .recstack .rl:last-child{border-bottom:none}
+  .recstack .rl i{font-family:var(--mono);font-style:normal;font-size:10.5px;color:var(--dim);flex:0 0 20px;font-weight:800}
+  .recstack .rl span{flex:1}
+  .recstack .rl.ok span{color:var(--ok)}
+  .recstack .rl.ko span{color:var(--bad)}
+  .recstack .rl small{display:block;color:var(--dim);font-size:11.5px;line-height:1.45;margin-top:3px}
+  .recstack .rl.vide{color:var(--dim);font-size:12.5px;font-style:italic}
+  .recvide{color:var(--dim);font-size:12.5px;font-style:italic;padding:10px 0}
+  .verrou{background:var(--bg2);border:1px dashed var(--line);border-radius:var(--r);padding:13px 14px;margin-bottom:8px;font-size:13px;line-height:1.55;color:var(--dim)}
+  .verrou b{color:var(--txt)}
   #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
   #toast b{color:var(--acc)}
 </style>
@@ -333,11 +352,13 @@
 <script src="data-economie.js"></script>
 <script src="data-stage.js"></script>
 <script src="data-quotidien.js"></script>
+<script src="data-recitation.js"></script>
+<script src="data-pensees.js"></script>
 <script>
 // ================= ÉTAT =================
 const RANKS=[["Stagiaire",0],["Analyst",150],["Associate",400],["VP",800],["Director",1400],["Managing Director",2200],["Rainmaker",3200]];
 const KEY="closing_v1";
-const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[],mclass:[],eco:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{},journal:[],biz:null,cimetiere:[],bizDone:[],bizRec:{},exos:{cur:1,p:{}},pal:{},lastExport:null,
+const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[],mclass:[],eco:[],pensees:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{},journal:[],biz:null,cimetiere:[],bizDone:[],bizRec:{},exos:{cur:1,p:{}},rec:{p:{}},pal:{},lastExport:null,
   /* Objectif stage (2026-10-10) */ stage:true,recall:true,guided:true,oral:{},fit:{},plan:{},mesDeals:[]};
 let S=load();
 function load(){
@@ -356,6 +377,7 @@ function load(){
   o.oral=s.oral||{}; o.fit=s.fit||{}; o.plan=s.plan||{}; o.mesDeals=s.mesDeals||[];
   o.bizDone=s.bizDone||[];
   o.bizRec=s.bizRec||{};
+  o.rec=s.rec||{p:{}}; if(!o.rec.p) o.rec.p={};   /* la récitation : ajoutée le 2026-10-07 */
   o.exos=s.exos||{cur:1,p:{}}; if(!o.exos.p) o.exos.p={}; if(!o.exos.cur) o.exos.cur=1;   /* les records par niveau — il n'y avait rien à battre */
   if(o.biz){ o.biz.loans=o.biz.loans||[]; o.biz.level=o.biz.level||1;
     o.biz.horizon=o.biz.horizon||36; o.biz.capacity=o.biz.capacity||1; }
@@ -395,6 +417,7 @@ function renderTicker(){
     ["JOURNÉE",dayOk?"VALIDÉE ▲":"EN COURS",dayOk?"up":""],
     ["DEALS",S.done.deals.length+"/"+DEALS.length,""],
     ["LEÇONS",S.done.lessons.length+"/"+LESSONS.length,""],
+    ["SOCLE",recAcquises()+"/"+RECITATIONS.length,recToutesAcquises()?"up":"dn"],
     ["CARTES DUES",due,due>0?"dn":"up"],
     ["RÉVISIONS",revN,revN>0?"dn":"up"],
     ["RATTRAPAGE",missN,missN>0?"dn":"up"],
@@ -519,11 +542,13 @@ function revLabel(e){
   if(e.t==="feyn"){const x=FEYNMAN.find(y=>y.id===e.id); return x?["🧒","Feynman — "+x.title]:null;}
   if(e.t==="mclass"){const x=MASTERCLASS.find(y=>y.id===e.id); return x?[x.icon,"Masterclass — "+x.domain]:null;}
   if(e.t==="eco"){const x=ECO_CHAPITRES.find(y=>y.id===e.id); return x?[x.icon,"Éco — "+x.titre]:null;}
+  if(e.t==="pensee"){const x=PENSEES.find(y=>y.id===e.id); return x?[x.icon,"Pensée — "+x.titre]:null;}
   return null;
 }
 function openRev(t,id){
   if(t==="deal") return dealQuiz(id);
   if(t==="mclass") return mcQuiz(id);
+  if(t==="pensee") return penseeQuiz(id);
   if(t==="eco") return chapitreQuiz(id);
   if(t==="lesson") return lessonQuiz(id);
   if(t==="teaser") return openTeaser(id);
@@ -537,8 +562,8 @@ function missItems(){
   const out=[];
   for(const m of S.miss){
     const [k,id,qi]=m.split("|");
-    const src=k==="D"?DEALS.find(d=>d.id===id):k==="M"?MASTERCLASS.find(x=>x.id===id):k==="E"?ECO_CHAPITRES.find(x=>x.id===id):LESSONS.find(l=>l.id===id);
-    const label=k==="D"?"Deal — "+(src?src.title:""):k==="M"?"Masterclass — "+(src?src.domain:""):k==="E"?"Éco — "+(src?src.titre:""):"Leçon — "+(src?src.title:"");
+    const src=k==="D"?DEALS.find(d=>d.id===id):k==="M"?MASTERCLASS.find(x=>x.id===id):k==="E"?ECO_CHAPITRES.find(x=>x.id===id):k==="P"?PENSEES.find(x=>x.id===id):LESSONS.find(l=>l.id===id);
+    const label=k==="D"?"Deal — "+(src?src.title:""):k==="M"?"Masterclass — "+(src?src.domain:""):k==="E"?"Éco — "+(src?src.titre:""):k==="P"?"Pensée — "+(src?src.titre:""):"Leçon — "+(src?src.title:"");
     if(src&&src.questions[qi]) out.push({ref:m,q:src.questions[qi],from:label});
   }
   return out;
@@ -561,16 +586,28 @@ function ensureMenu(){
     if(S.menu.readMode===undefined){ S.menu.readMode="deal"; if(!S.menu.mclass) S.menu.mclass=nextUndone(MASTERCLASS,S.done.mclass).id; save(); } // migration masterclass
     if(S.menu.dExo===undefined){ S.menu.dExo=exoJourClos(); S.menu.dChif=false; save(); } // migration séance à 2h : chiffrage + exos rejoignent la journée
     if(S.stage&&!S.menu.stageV&&typeof STAGE_PLAN!=="undefined"){ stageMenuInit(S.menu); save(); } // passage au programme stage en cours de journée
+    if(S.menu.dRec===undefined){ S.menu.dRec=false; save(); } // migration : la récitation entre dans la journée
+    if(S.menu.pensee===undefined){ S.menu.pensee=nextUndone(PENSEES,S.done.pensees).id; save(); } // migration pensées : le menu du jour déjà tiré n'en avait pas
     return;
   }
   const doy=Math.floor((new Date()-new Date(new Date().getFullYear(),0,0))/864e5);
   const sparType=SPARROT[doy%SPARROT.length];
-  // La "lecture du jour" alterne : 2 jours sur 3 un deal, 1 jour sur 3 une masterclass sectorielle
-  const readMode=(doy%3===2)?"mclass":"deal";
+  /* La "lecture du jour" tourne sur QUATRE temps, et c'est un seul créneau —
+     pas un bloc de plus. Deux jours sur quatre un deal, un jour une masterclass
+     sectorielle, un jour une PENSÉE : le temps, l'incertitude, la valeur, le
+     jugement, le désir. Ajouté le 2026-11-04, sur « davantage de lectures du
+     jour philosophiques / intéressantes », puis « continue de rajouter des
+     textes » le 2026-11-04 : le stock grandit (5 → 10), la CADENCE ne bouge
+     pas. La journée ne s'allonge pas d'une minute, elle change juste de
+     registre un matin sur quatre. Comprendre pourquoi on actualise vaut
+     mieux qu'un quinzième deal — mais pas au prix d'un septième bloc. */
+  const readMode=["deal","mclass","deal","pensee"][doy%4];
   S.menu={date:t,readMode,deal:nextUndone(DEALS,S.done.deals).id,mclass:nextUndone(MASTERCLASS,S.done.mclass).id,
+    pensee:nextUndone(PENSEES,S.done.pensees).id,
     lesson:nextLesson().id,
     sparType,spar:nextUndone(SPAR[sparType].l(),SPAR[sparType].d()).id,
-    dDeal:false,dLesson:false,dSpar:false,dCards:false,dExo:exoJourClos(),dChif:false,validated:false};
+    dDeal:false,dLesson:false,dSpar:false,dCards:false,dRec:false,
+    dExo:exoJourClos(),dChif:false,validated:false};
   if(S.stage&&typeof STAGE_PLAN!=="undefined") stageMenuInit(S.menu);
   save();
 }
@@ -583,7 +620,12 @@ function ensureMenu(){
    — tant que les leçons de base ne sont pas closes, elles passent devant
      tout le reste de l'Académie, au lieu d'un tirage qui les noie dans
      52 leçons. */
-const LESSON_FOND=["base","ana","valo"];
+/* 2026-10-07 : « les fondamentaux de fondamentaux (compta etc…) ». Le
+   module « Comptabilité — l'écart au réel » passe devant l'analyse et la
+   valorisation. Neuf leçons sur l'engagement contre la trésorerie, les
+   amortissements, les provisions, le goodwill : c'est exactement ce que
+   la récitation lui demande de savoir ranger. */
+const LESSON_FOND=["base","cpt","ana","valo"];
 /* En mode stage (2026-10-10), l'ordre suit STAGE_PRIO : socle, compta,
    analyse, valorisation, M&A, LBO, finance d'entreprise — puis le reste. */
 const STAGE_SOCLE=["base","cpt","ana","valo","fpa"];   /* le M&A et le LBO ont leur propre parcours quotidien */
@@ -595,13 +637,42 @@ function nextLesson(){
   }
   return nextUndone(LESSONS,S.done.lessons);
 }
+/* ⚠️ CE QUE LA JOURNÉE DEMANDE N'EST PLUS FIXE.
+   Avant le 2026-10-07, six blocs, tous les jours, pour tout le monde :
+   chiffrage, exos, deal, leçon, sparring, flashcards. Deux heures, dont
+   une heure et demie de culture posée sur des fondations absentes.
+   En MODE SOCLE, la journée vaut trois blocs : la récitation, un palier
+   de calcul, une leçon de base. Hors mode socle, la séance complète
+   revient — et la récitation s'y ajoute les jours où une structure est
+   due, parce qu'une structure qu'on ne revoit pas se reperd en trois
+   semaines. La barre bouge donc, mais toujours dans le même sens :
+   vers ce qui manque. */
+const LAB_BLOC={dRec:"la récitation",dExo:"les exos du socle",dLesson:"la leçon",
+  dChif:"le chiffrage",dDeal:"le deal",dSpar:"le sparring",dCards:"les flashcards"};
+/* Le créneau de lecture porte trois registres : son libellé doit suivre, sinon
+   le coach envoie chercher « le deal » un jour de masterclass ou de pensée.
+   Le défaut existait déjà depuis les masterclass ; la pensée l'a rendu visible. */
+function labBloc(k){
+  if(k!=="dDeal") return LAB_BLOC[k];
+  const r=S.menu&&S.menu.readMode;
+  return r==="pensee"?"la pensée du jour":r==="mclass"?"la masterclass":"le deal";
+}
+/* Ce que la journée demande pour être validée. La récitation s'ajoute les
+   jours où une structure est DUE — elle reste proposée tous les autres
+   jours tant que les dix ne sont pas acquises, mais sans bloquer la
+   validation : proposer n'est pas exiger. */
+function menuAttendu(){
+  return ["dChif","dExo","dDeal","dLesson","dSpar","dCards"].concat(recDues().length?["dRec"]:[]);
+}
 function checkMenu(kind,id){
   const m=S.menu; if(!m||m.date!==today()) return;
   const avant=(m.stageV&&S.stage&&S.guided!==false&&typeof guideCur==="function")?guideCur():null;
   if(kind==="deal"&&id===m.deal) m.dDeal=true;
   if(kind==="mclass"&&id===m.mclass) m.dDeal=true; // la masterclass valide le slot "lecture du jour"
+  if(kind==="pensee"&&id===m.pensee) m.dDeal=true;  // la pensée aussi — un seul créneau de lecture, trois registres
   if(kind==="lesson"&&id===m.lesson) m.dLesson=true;
   if(kind==="cards") m.dCards=true;
+  if(kind==="rec") m.dRec=true;
   if(kind==="exo") m.dExo=true;
   if(kind==="chif") m.dChif=true;
   if(SPAR[kind]&&kind===m.sparType&&id===m.spar) m.dSpar=true;
@@ -615,7 +686,10 @@ function checkMenu(kind,id){
   if(kind==="conseil") m.dConseil=true;
   if(m.stageV&&kind===m.appli&&(kind!=="cas"||!m.appliId||id===m.appliId)) m.dAppli=true;
   if(m.stageV&&SPAR[m.appli]&&m.dSpar) m.dAppli=true;
-  const complet=(m.stageV&&S.stage) ? stageTasks(m).every(t=>t.done) : (m.dDeal&&m.dLesson&&m.dSpar&&m.dCards&&m.dExo&&m.dChif);
+  /* Fusion du 2026-11-23 : en programme stage, la liste des tâches fait
+     foi ; sinon c'est menuAttendu(), qui ajoute la récitation les jours
+     où une structure est due. */
+  const complet=(m.stageV&&S.stage&&typeof stageTasks==="function") ? stageTasks(m).every(t=>t.done) : menuAttendu().every(k=>m[k]);
   if(complet&&!m.validated){
     m.validated=true;
     S.streak=(S.lastVal===yesterday())?S.streak+1:1;
@@ -2329,11 +2403,24 @@ function coachPriorites(){
     const c=(typeof bizCase==="function")?bizCase(B.pending):null;
     p.push({k:"biz", t:"🏭 <b>Une décision t'attend dans "+esc(B.name)+"</b>"+(c?" — "+esc(c.title):"")+". Le mois ne passe pas sans elle."});
   }
+  /* LE MODE SOCLE A ÉTÉ RETIRÉ LE 2026-11-08 : le coach ne cache plus le
+     reste de l'échelle derrière les douze premiers paliers. Il continue de
+     pointer ce qui manque — récitation due, paliers à reprendre, bases non
+     ouvertes — dans cet ordre, mais il ne range plus rien.
+     Chaque priorité porte un .reste — le fragment de phrase utilisé quand
+     la journée est déjà validée. */
   const faits=(typeof exosFaits==="function")?exosFaits():0;
   const dus=(typeof exoDus==="function")?exoDus():[];
   const totalExo=(typeof EXOS!=="undefined")?EXOS.length:0;
-  if(dus.length) p.push({k:"reprise", t:"🔁 <b>"+dus.length+" palier"+(dus.length>1?"s":"")+" de calcul à reprendre.</b> Ce qu'on ne révise pas, on l'a juste loué."});
-  else if(faits<totalExo) p.push({k:"exos", t:"🧮 <b>Les bases avant tout le reste.</b> Tu as "+faits+"/"+totalExo+" paliers validés. Le premier est une soustraction — il te prendra trois minutes, et tout le reste de l'app s'appuie dessus."});
+  if(recDues().length) p.push({k:"rec",
+    t:"↻ <b>"+recDues().length+" structure"+(recDues().length>1?"s":"")+" à réciter aujourd'hui.</b> Le socle est acquis, il ne se garde qu'en le redéroulant.",
+    reste:"<b>"+recDues().length+" structure"+(recDues().length>1?"s":"")+"</b> à réciter"});
+  if(dus.length) p.push({k:"reprise",
+    t:"🔁 <b>"+dus.length+" palier"+(dus.length>1?"s":"")+" de calcul à reprendre.</b> Ce qu'on ne révise pas, on l'a juste loué.",
+    reste:"<b>"+dus.length+" palier"+(dus.length>1?"s":"")+"</b> de calcul à reprendre"});
+  else if(faits<totalExo) p.push({k:"exos",
+    t:"🧮 <b>Les bases avant tout le reste.</b> Tu as "+faits+"/"+totalExo+" paliers validés. Le premier est une soustraction — il te prendra trois minutes, et tout le reste de l'app s'appuie dessus.",
+    reste:"tes <b>paliers de calcul</b> à ouvrir"});
   return p;
 }
 function coachLine(){
@@ -2345,18 +2432,17 @@ function coachLine(){
   if(m.validated){
     const restes=[];
     if(nRev>0) restes.push("<b>"+nRev+" révision"+(nRev>1?"s":"")+"</b> en retard");
-    P.filter(x=>x.k!=="biz").forEach(x=>restes.push(x.k==="reprise"
-      ? "<b>"+exoDus().length+" palier"+(exoDus().length>1?"s":"")+"</b> de calcul à reprendre"
-      : "tes <b>paliers de calcul</b> à ouvrir"));
+    P.filter(x=>x.k!=="biz"&&x.reste).forEach(x=>restes.push(x.reste));
     if(restes.length) return "Journée validée — mais il te reste "+restes.join(" et ")+" ci-dessous. Ce qu'on ne révise pas, on l'a juste loué.";
     return "Journée validée, révisions à jour, calculs repris. C'est le niveau attendu, pas un exploit. <b>Reviens demain.</b>";
   }
-  if(dispStreak()===0) return "Streak à <b>zéro</b>. En M&A, la régularité n'est pas une qualité, c'est le ticket d'entrée. Deux heures, fondamentaux d'abord. Maintenant.";
+  if(dispStreak()===0) return "Streak à <b>zéro</b>. En M&A, la régularité n'est pas une qualité, c'est le ticket d'entrée. Les fondamentaux d'abord. Maintenant.";
   if(P.length) return P[0].t;
   const stg=m.stageV&&S.stage&&typeof stageTasks==="function", TT=stg?stageTasks(m):null;
-  const left=stg?TT.filter(t=>!t.done).map(t=>t.nom):[!m.dChif&&"le chiffrage",!m.dExo&&"les fondamentaux",!m.dDeal&&"le deal",!m.dLesson&&"la leçon",!m.dSpar&&"le sparring",!m.dCards&&"les flashcards"].filter(Boolean);
+  const att=menuAttendu();
+  const left=stg?TT.filter(t=>!t.done).map(t=>t.nom):att.filter(k=>!m[k]).map(labBloc);
   if(stg&&left.length===TT.length) return "Rien de fait aujourd'hui. Deux heures, dans l'ordre : <b>on s'échauffe, on apprend, on le dit à voix haute, on l'applique</b>. Commence par le chiffrage.";
-  if(left.length>=6) return "Rien de fait aujourd'hui. Le chiffrage t'attend — <b>on s'échauffe d'abord, on tranche ensuite</b>.";
+  if(!stg&&left.length>=att.length) return "Rien de fait aujourd'hui. Le chiffrage t'attend — <b>on s'échauffe d'abord, on tranche ensuite</b>.";
   return "Il te reste <b>"+left.join(" et ")+"</b>. On ne laisse pas un menu à moitié terminé — c'est exactement le flou qu'on chasse.";
 }
 
@@ -2865,8 +2951,17 @@ function vJour(){
   const m=S.menu,r=rank(),nr=nextRank();
   const deal=DEALS.find(d=>d.id===m.deal),les=LESSONS.find(l=>l.id===m.lesson);
   const mc=MASTERCLASS.find(x=>x.id===m.mclass);
+  const pen=PENSEES.find(x=>x.id===m.pensee);
   const isMC=m.readMode==="mclass"&&mc;
-  const readHtml=isMC
+  const isPen=m.readMode==="pensee"&&pen;
+  /* Un seul créneau, trois registres : le deal (ce qui s'est passé), la
+     masterclass (comment un secteur gagne de l'argent), la pensée (pourquoi
+     on fait ce métier comme ça). Les trois valident le même slot. */
+  const readHtml=isPen
+    ? `<div class="act ${m.dDeal?"done":""}" onclick="openPensee('${pen.id}')">
+        <div class="ico">${pen.icon}</div><div class="t"><b>La pensée du jour — ${esc(pen.titre)}</b><small>${esc(pen.tag)} · lecture + quiz (~10 min)</small></div>
+        <div class="st">${m.dDeal?"✓":"›"}</div></div>`
+    : isMC
     ? `<div class="act ${m.dDeal?"done":""}" onclick="openMC('${mc.id}')">
         <div class="ico">${mc.icon}</div><div class="t"><b>Masterclass du jour — ${mc.domain}</b><small>${mc.tag} · l'expertise condensée d'un secteur + quiz (~10 min)</small></div>
         <div class="st">${m.dDeal?"✓":"›"}</div></div>`
@@ -2932,38 +3027,57 @@ function vJour(){
   const missHtml=nMiss?`<div class="act rev" onclick="startRattrapage()">
     <div class="ico">🩹</div><div class="t"><b>Rattrapage — ${nMiss} question${nMiss>1?"s":""} ratée${nMiss>1?"s":""}</b><small>tes erreurs t'attendent. Elles ne partiront pas seules.</small></div>
     <div class="st">›</div></div>`:"";
-  return `
-  <h1 class="page">Le menu du jour</h1>
-  <div class="sub">${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})} — environ 2 heures, les fondamentaux d'abord, zéro excuse.</div>
-  <div class="hero">
+  /* ⚠️ LA RÉCITATION DU JOUR EST LE PREMIER BLOC, ET EN MODE SOCLE LE SEUL
+     QUI NE SE DISCUTE PAS. Elle se valide à l'ORDRE PARFAIT ; l'acquisition
+     (ordre + les trois questions, trois fois, espacé) décide seule de la
+     sortie du mode socle. */
+  const rec=recDuJour(), recD=recDue(rec.id);
+  const recHtml=`<div class="act ${m.dRec?"done":""}" onclick="recStart('${rec.id}')">
+    <div class="ico">${recD?"↻":rec.ic}</div><div class="t"><b>${recD?"Révision — ":"Récitation — "}${esc(rec.titre)}</b><small>${rec.lignes.length} lignes à remettre dans l'ordre, de tête, intrus compris · ${esc(recEtatLabel(rec.id))}</small></div>
+    <div class="st">${m.dRec?"✓":"›"}</div></div>`;
+  const lessonHtml=`<div class="act ${m.dLesson?"done":""}" onclick="openLesson('${les.id}')">
+    <div class="ico">🎓</div><div class="t"><b>Leçon — ${les.title}</b><small>${MODULES.find(x=>x.id===les.module).name} · cours + quiz (~10 min)</small></div>
+    <div class="st">${m.dLesson?"✓":"›"}</div>
+  </div>`;
+  const cardsHtml=`<div class="act ${m.dCards?"done":""}" onclick="openCardIntro()">
+    <div class="ico">🃏</div><div class="t"><b>Flashcards${cardsDue().length?" — "+cardsDue().length+" due"+(cardsDue().length>1?"s":""):""}</b><small>${m.dCards?"session du jour faite — les intervalles font le reste":cardsDue().length?"une session (~5 min)":"une session, jusqu'à 15 nouvelles cartes (~5 min)"}</small></div>
+    <div class="st">${m.dCards?"✓":"›"}</div>
+  </div>`;
+  const heroHtml=`<div class="hero">
     <div class="rank">${r[0]}</div>
     <div class="big">${S.xp} XP</div>
     <div class="xpbar"><i style="width:${pct}%"></i></div>
     <div class="xptxt">${nr?`${nr[1]-S.xp} XP avant le grade ${nr[0]}`:"Grade maximal. Reste au sommet."}</div>
   </div>
-  <div class="coach">${coachLine()}</div>
+  <div class="coach">${coachLine()}</div>`;
+  const dateTxt=new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
+
+  /* ================= LE MENU DU JOUR, EN ENTIER =================
+     Il n'y a plus qu'un seul menu : le mode socle, qui en rangeait les
+     trois quarts tant que les fondamentaux ne tenaient pas, a été retiré
+     le 2026-11-08. L'ordre des trois temps — échauffement, fondamentaux,
+     culture — porte seul l'argument. ====================== */
+  return `
+  <h1 class="page">Le menu du jour</h1>
+  <div class="sub">${dateTxt} — environ 2 heures, les fondamentaux d'abord, zéro excuse.</div>
+  ${heroHtml}
   ${stageTileHtml()}
   ${bizHtml}
   <h2 class="sec">① Échauffement — ~10 min</h2>
   ${chifHtml}
   <h2 class="sec">② Les fondamentaux — ~30 à 60 min</h2>
-  <div class="sub" style="margin-top:-8px;margin-bottom:10px">Tant que le socle n'est pas posé, il passe devant le reste : c'est lui qui porte tout ce qui suit.</div>
+  <div class="sub" style="margin-top:-8px;margin-bottom:10px">${recToutesAcquises()?"Socle acquis — on l'entretient. Une structure qu'on ne redéroule pas se reperd en trois semaines.":"On commence par la structure : <b>"+recAcquises()+"/"+RECITATIONS.length+" structures acquises</b>. Le calcul vient après — réciter sans calculer c'est du par-cœur, calculer sans réciter c'est de la chance."}</div>
+  ${recDues().length||m.dRec||!recToutesAcquises()?recHtml:""}
   ${exoBlockHtml}
   ${caseHtml}
   <h2 class="sec">③ Culture, cas réels &amp; mémoire — ~35 à 45 min</h2>
   ${readHtml}
-  <div class="act ${m.dLesson?"done":""}" onclick="openLesson('${les.id}')">
-    <div class="ico">🎓</div><div class="t"><b>Leçon — ${les.title}</b><small>${MODULES.find(x=>x.id===les.module).name} · cours + quiz (~10 min)</small></div>
-    <div class="st">${m.dLesson?"✓":"›"}</div>
-  </div>
+  ${lessonHtml}
   <div class="act ${m.dSpar?"done":""}" onclick="openSpar('${m.sparType}','${spar.id}')">
     <div class="ico">${sparIco}</div><div class="t"><b>${sparLabel} — ${spar.title||spar.cat}</b><small>tu réponds par écrit AVANT de voir la grille (~10 min)</small></div>
     <div class="st">${m.dSpar?"✓":"›"}</div>
   </div>
-  <div class="act ${m.dCards?"done":""}" onclick="openCardIntro()">
-    <div class="ico">🃏</div><div class="t"><b>Flashcards${cardsDue().length?" — "+cardsDue().length+" due"+(cardsDue().length>1?"s":""):""}</b><small>${m.dCards?"session du jour faite — les intervalles font le reste":cardsDue().length?"une session pour valider la journée (~5 min)":"une session (jusqu'à 15 nouvelles cartes) pour valider la journée (~5 min)"}</small></div>
-    <div class="st">${m.dCards?"✓":"›"}</div>
-  </div>
+  ${cardsHtml}
   <h2 class="sec">Le réel de la semaine — l'app ne suffit pas</h2>
   <div class="act ${missionDone?"done":""} rev" onclick="openMission()">
     <div class="ico">🌍</div><div class="t"><b>Mission terrain — ${wm.m.title}</b><small>${missionDone?"validée cette semaine (+30 XP)":"une par semaine, preuve écrite exigée (+30 XP)"}</small></div>
@@ -2977,20 +3091,41 @@ function vJour(){
 }
 
 function vDeals(){
-  return `<h1 class="page">Lectures</h1><div class="sub">Deals réels et masterclass sectorielles — la culture qui fait la différence en entretien comme en salle de marché.</div>
+  return `<h1 class="page">Lectures</h1><div class="sub">Deals réels, masterclass sectorielles et pensées — la culture qui fait la différence en entretien comme en salle de marché.</div>
+  <h2 class="sec">Pensées — ${S.done.pensees.length}/${PENSEES.length}</h2>
+  <div class="sub" style="margin-top:-2px">Les idées anciennes qui tiennent sous un métier de chiffres : le temps, l'incertitude, la valeur, le jugement, le désir, la promesse, la responsabilité, la mesure, le hasard, le langage. Chacune finit sur ce qu'elle change dans un modèle, une décision ou une carrière — et sur un quiz, parce qu'une lecture sans question ne laisse rien au bout de trois jours.</div>`+
+  PENSEES.map(x=>`
+  <div class="act ${S.done.pensees.includes(x.id)?"done":""}" onclick="openPensee('${x.id}')">
+    <div class="ico">${x.icon}</div><div class="t"><b>${esc(x.titre)}</b><small><span class="tag">${esc(x.tag)}</span>${esc(x.sujet)}</small></div>
+    <div class="st">${S.done.pensees.includes(x.id)?"✓":"›"}</div>
+  </div>`).join("")+
+  `
   <h2 class="sec">Deals réels — ${S.done.deals.length}/${DEALS.length}</h2>`+
   DEALS.map(d=>`
   <div class="act ${S.done.deals.includes(d.id)?"done":""}" onclick="openDeal('${d.id}')">
     <div class="ico">📖</div><div class="t"><b>${d.title}</b><small><span class="tag">${d.tag}</span>${d.year} · ${d.place}</small></div>
     <div class="st">${S.done.deals.includes(d.id)?"✓":"›"}</div>
   </div>`).join("")+
-  `<h2 class="sec">Masterclass sectorielles — ${S.done.mclass.length}/${MASTERCLASS.length}</h2>
-  <div class="sub" style="margin-top:-2px">L'équivalent condensé de plusieurs heures d'audition d'un grand opérateur : comment chaque secteur gagne (ou perd) vraiment de l'argent.</div>`+
-  MASTERCLASS.map(c=>`
+  /* Deux familles depuis le 2026-11-08. Les sectorielles expliquent comment
+     un SECTEUR gagne de l'argent ; les métiers expliquent comment gagne de
+     l'argent celui qui est assis en face de la table — le fonds, le banquier,
+     l'acquéreur. L'absence de champ `famille` vaut "secteur". */
+  (()=>{
+    const ligne=c=>`
   <div class="act ${S.done.mclass.includes(c.id)?"done":""}" onclick="openMC('${c.id}')">
     <div class="ico">${c.icon}</div><div class="t"><b>${c.domain}</b><small><span class="tag">${c.tag}</span>vu par « ${c.title} »</small></div>
     <div class="st">${S.done.mclass.includes(c.id)?"✓":"›"}</div>
-  </div>`).join("");
+  </div>`;
+    const fam=k=>MASTERCLASS.filter(c=>(c.famille||"secteur")===k);
+    const faits=l=>l.filter(c=>S.done.mclass.includes(c.id)).length;
+    const met=fam("metier"), sec=fam("secteur");
+    return `<h2 class="sec">Masterclass métiers — ${faits(met)}/${met.length}</h2>
+  <div class="sub" style="margin-top:-2px">Private equity, capital-risque, M&amp;A : comment gagnent de l'argent ceux qui sont assis en face de toi, et ce que leur mode de rémunération les pousse à faire. C'est la moitié du métier qu'aucune lecture sectorielle ne donne.</div>`
+    + met.map(ligne).join("")
+    + `<h2 class="sec">Masterclass sectorielles — ${faits(sec)}/${sec.length}</h2>
+  <div class="sub" style="margin-top:-2px">L'équivalent condensé de plusieurs heures d'audition d'un grand opérateur : comment chaque secteur gagne (ou perd) vraiment de l'argent.</div>`
+    + sec.map(ligne).join("");
+  })();
 }
 
 /* ================================================================
@@ -3000,9 +3135,11 @@ function vDeals(){
    d'abord marge nette EBITDA etc… puis le niveau progresse FCFF […]
    les bêtas […] mais ça tout à la fin, fais d'abord toujours
    toujours toujours commencer par fixer des bases solides. »
-   D'où : douze paliers, VERROUILLÉS les uns derrière les autres. Le
-   palier 1 est une soustraction. Les bêtas sont au 12 et ne sont pas
-   atteignables avant d'avoir validé les onze autres.
+   D'où une échelle qui monte marche par marche : le palier 1 est une
+   soustraction, les bêtas arrivent bien plus haut. L'ORDRE EST RESTÉ,
+   le verrou a été retiré le 2026-11-08 — les paliers étaient fermés
+   tant que le précédent n'était pas validé, ils sont tous ouverts
+   désormais. L'échelle conseille, elle n'interdit plus.
    Les chiffres sont tirés à chaque série : on ne mémorise pas une
    réponse, on apprend un geste. ================================= */
 const EXO_SERIE=3;        /* exercices par séance (chacun porte 2 à 4 questions) */
@@ -3108,9 +3245,11 @@ function exoDeLaPiste(k){ return EXOS.filter(p=>(p.piste||"socle")===k); }
    laisse un module inutilisé. */
 function exoEntree(k){
   const l=exoDeLaPiste(k); if(!l.length) return null;
-  let der=l[0];
-  l.forEach(p=>{ if(exoOuvert(p.n)) der=p; });
-  return der.n;
+  /* Toutes les marches étant ouvertes, « la plus haute ouverte » serait le
+     sommet de la piste : le point d'entrée utile est la première non
+     validée, sinon un renvoi depuis LA BOÎTE atterrissait tout en haut. */
+  const p=l.find(x=>!exoEtat(x.n).valide);
+  return (p||l[0]).n;
 }
 function exoVersPiste(k){ const n=exoEntree(k); if(n) exoPalRoom(n); }
 /* Le palier suivant à travailler, tous pistes confondues : le premier
@@ -3123,12 +3262,13 @@ function exoContinuer(){
   if(p) return exoPalRoom(p.n);
   return exosRoom();
 }
-function exoOuvert(n){
-  const p=exoPal(n); if(!p) return false;
-  const k=p.piste||"socle";
-  const avant=exoDeLaPiste(k).filter(x=>x.n<n).sort((a,b)=>b.n-a.n)[0];
-  return !avant || exoEtat(avant.n).valide;
-}
+/* ⚠️ PLUS DE VERROU SUR L'ÉCHELLE, 2026-11-08, sur « l'app verrouille les
+   différentes parties tant que le truc du jour n'est pas fait, enlève ».
+   Un palier ne s'ouvrait que si le précédent était validé : on pouvait
+   avoir besoin du bêta un mardi soir et tomber sur un cadenas. L'ordre
+   reste AFFICHÉ — les pistes, la numérotation, les ✓ et les 🔁 disent
+   toujours où on en est — il n'est simplement plus IMPOSÉ. */
+function exoOuvert(n){ return !!exoPal(n); }
 function exoRng(){
   /* Générateur simple : on veut du hasard à chaque série, pas de la
      reproductibilité — l'intérêt est justement que les chiffres changent. */
@@ -3585,6 +3725,225 @@ function chifFin(){
   CHF=null;
 }
 
+/* ================================================================
+   LA RÉCITATION — dérouler une structure DE TÊTE, dans l'ordre.
+   Demandée le 2026-10-07 : « tant que je ne sais pas dérouler par
+   cœur un compte de résultat etc, ça ne sert à rien ».
+   Le format et le POURQUOI de la mécanique sont en tête de
+   data-recitation.js. Ici, trois règles de fonctionnement :
+   — AUCUN retour pendant la construction. On valide d'un bloc, sinon
+     la récitation devient un jeu d'essais-erreurs ;
+   — l'ordre parfait valide le bloc du jour. L'ordre parfait ET les
+     trois questions font avancer la boîte de révision : on peut
+     réciter juste sans comprendre, et ça ne vaut pas une acquisition ;
+   — une récitation ratée retombe à zéro et reste celle du jour. On ne
+     « passe » pas un compte de résultat.
+   Boîtes : 0 → J+1 → J+3 → J+7 → acquise, puis entretien tous les
+   21 jours. Trois passages nets ESPACÉS, pas trois d'affilée.
+   (Nom de variable RCT et pas REC : la vue de fin de partie de LA
+   BOÎTE déclare déjà un REC local pour son record.) ============== */
+let RCT=null; // {id, chips:[{t,ord}], pris:[idx], aide, justes, parfait, intrusPris, oui, ouBons}
+const RCT_IVL={1:1,2:3,3:7}, RCT_ENTRETIEN=21;
+
+function recSt(){ if(!S.rec) S.rec={p:{}}; if(!S.rec.p) S.rec.p={}; return S.rec; }
+function recFiche(id){ return RECITATIONS.find(r=>r.id===id); }
+function recEtat(id){ const st=recSt(); return Object.assign({box:0,due:null,runs:0,best:0,vu:false}, st.p[id]||{}); }
+function recSet(id,o){ const st=recSt(); st.p[id]=Object.assign(recEtat(id),o); save(); }
+function recAcquise(id){ return recEtat(id).box>=3; }
+/* Une structure ratée garde une échéance : « due aujourd'hui ». Sans ça,
+   boîte à zéro et échéance nulle la faisaient DISPARAÎTRE du menu complet
+   — une structure non acquise qu'on ne reverrait jamais. */
+function recDue(id){ const e=recEtat(id); return !!e.due && e.due<=today(); }
+function recDues(){ return RECITATIONS.filter(r=>recDue(r.id)).map(r=>r.id); }
+function recAcquises(){ return RECITATIONS.filter(r=>recAcquise(r.id)).length; }
+function recToutesAcquises(){ return recAcquises()>=RECITATIONS.length; }
+/* La récitation du jour : ce qui est dû d'abord — une structure qu'on ne
+   revoit pas n'est pas acquise, elle est seulement récente — puis la
+   première qui ne l'est pas, dans l'ordre d'écriture. Cet ordre n'est pas
+   négociable : le compte de résultat avant le bilan, le bilan avant les
+   flux, les flux avant la valorisation. */
+function recDuJour(){
+  const d=RECITATIONS.find(r=>recDue(r.id));
+  if(d) return d;
+  return RECITATIONS.find(r=>!recAcquise(r.id)) || RECITATIONS[0];
+}
+function recJJ(d){ return d?d.split("-").reverse().slice(0,2).join("/"):""; }
+function recEtatLabel(id){
+  const e=recEtat(id);
+  if(recDue(id)) return recAcquise(id)?"entretien dû":(e.box?"révision "+(e.box+1)+"/3 due":"à reprendre — pas encore nette");
+  if(recAcquise(id)) return "acquise";
+  if(!e.runs) return "jamais tentée";
+  if(!e.box) return "à reprendre · record "+e.best+" ligne"+(e.best>1?"s":"")+" dans l'ordre";
+  return "boîte "+e.box+"/3 · revient le "+recJJ(e.due);
+}
+
+function recRoom(){
+  const n=recAcquises(), dues=recDues().length;
+  openOv(ovTop("🗣️ La récitation")+`
+    <p class="sub">En entretien, on ne te demande pas de reconnaître la bonne réponse : on te demande de <b>dérouler</b>. Ici les lignes arrivent mélangées, avec des intrus, et tu les remets dans l'ordre sans aucun retour avant d'avoir validé.</p>
+    <div class="coach"><b>${n}/${RECITATIONS.length} structures acquises.</b> Une structure l'est après <b>trois récitations parfaites espacées</b> — J+1, J+3, J+7. Une erreur et la boîte retombe à zéro. C'est volontaire : un compte de résultat qu'on déroule « presque » ne se déroule pas.</div>
+    ${dues?`<div class="coach">↻ <b>${dues} structure${dues>1?"s":""} à revoir aujourd'hui.</b> Elles passent avant les nouvelles.</div>`:""}
+    ${RECITATIONS.map(r=>{
+      const due=recDue(r.id), acq=recAcquise(r.id);
+      return `<div class="mod${acq?" gold":""}" onclick="recStart('${r.id}')">
+        <div class="ico">${due?"↻":acq?"✅":r.ic}</div>
+        <div class="t"><b>${esc(r.titre)}</b><small>${esc(r.sujet)} · ${r.lignes.length} lignes · <b style="color:${due?"var(--acc)":acq?"var(--ok)":"var(--dim)"}">${recEtatLabel(r.id)}</b></small></div>
+        <div class="pc">${acq?"★":"›"}</div></div>`;}).join("")}
+    <div class="xptxt" style="margin-top:10px">L'ordre d'écriture est l'ordre d'apprentissage. Rien n'interdit de sauter une structure — rien ne le recommande.</div>`);
+}
+
+function recStart(id){
+  const f=recFiche(id); if(!f) return;
+  const e=recEtat(id);
+  const chips=f.lignes.map((l,i)=>({t:l.t,ord:i})).concat(f.intrus.map(x=>({t:x.t,ord:-1})));
+  for(let i=chips.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=chips[i]; chips[i]=chips[j]; chips[j]=t; }
+  RCT={id, chips, pris:[], aide:!e.vu, justes:0, parfait:false, intrusPris:[], oui:0, ouBons:0};
+  recDraw();
+}
+function recQuit(){ RCT=null; recRoom(); }
+
+function recDraw(){
+  if(!RCT) return;
+  const f=recFiche(RCT.id);
+  const dispo=RCT.chips.map((c,i)=>({c,i})).filter(x=>RCT.pris.indexOf(x.i)<0);
+  openOv(ovTop("🗣️ "+esc(f.titre))+`
+    <div class="meta"><span class="tag">${f.ic} récitation ${f.n}</span>${esc(f.duree)} · ${esc(recEtatLabel(RCT.id))}</div>
+    ${RCT.aide?`<div class="lead"><span class="lbl">LE RAPPEL — LIS-LE UNE FOIS, PUIS RÉCITE SANS</span><p>${f.avant}</p></div>`
+      :`<button class="btn ghost" style="margin:0 0 10px" onclick="RCT.aide=1;recDraw()">Revoir le rappel (ce n'est pas réciter)</button>`}
+    <div class="coach"><b>Touche les lignes dans l'ordre.</b> Certaines n'ont rien à faire dans cette structure — ne les prends pas. Aucun retour avant que tu valides.</div>
+    <div class="recstack">${RCT.pris.length?RCT.pris.map((i,k)=>`
+      <div class="rl"><i>${k+1}</i><span>${esc(RCT.chips[i].t)}</span></div>`).join("")
+      :`<div class="recvide">Ta cascade est vide. Première ligne ?</div>`}</div>
+    <div class="recchips">${dispo.length?dispo.map(x=>`<button onclick="recTap(${x.i})">${esc(x.c.t)}</button>`).join("")
+      :`<div class="recvide">Plus aucune ligne disponible — si ta cascade contient un intrus, retire-le.</div>`}</div>
+    ${RCT.pris.length?`<button class="btn ghost" onclick="recUndo()">↩︎ Retirer la dernière ligne</button>`:""}
+    <button class="btn" ${RCT.pris.length<3?"disabled":""} onclick="recValider()">Valider ma cascade</button>
+    <button class="btn ghost" onclick="recQuit()">Abandonner</button>`);
+}
+function recTap(i){ if(!RCT) return; if(RCT.pris.indexOf(i)<0) RCT.pris.push(i); recDraw(); }
+function recUndo(){ if(!RCT) return; RCT.pris.pop(); recDraw(); }
+
+function recValider(){
+  if(!RCT) return;
+  const f=recFiche(RCT.id);
+  const att=f.lignes.map(l=>l.t);
+  const mis=RCT.pris.map(i=>RCT.chips[i].t);
+  let justes=0;
+  for(let k=0;k<att.length;k++) if(mis[k]===att[k]) justes++;
+  RCT.justes=justes;
+  RCT.intrusPris=RCT.pris.map(i=>RCT.chips[i]).filter(c=>c.ord<0).map(c=>c.t);
+  RCT.parfait = mis.length===att.length && justes===att.length;
+  const corps=f.lignes.map((l,k)=>{
+    const ok=mis[k]===l.t;
+    return `<div class="rl ${ok?"ok":"ko"}"><i>${ok?"✓":"✗"}</i><span><b>${esc(l.t)}</b>
+      ${ok?"":`<small style="color:var(--bad)">tu avais mis : ${mis[k]?esc(mis[k]):"— rien, ta cascade s'arrêtait avant"}</small>`}
+      <small>${esc(l.k)}</small></span></div>`;}).join("");
+  const horsPlan=mis.slice(att.length).filter(t=>RCT.intrusPris.indexOf(t)<0);
+  const intrus=RCT.intrusPris.length
+    ? `<div class="card" style="border-color:var(--bad)">
+        <div style="font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--bad);font-weight:800;margin-bottom:8px">Les intrus que tu as pris</div>
+        ${f.intrus.filter(x=>RCT.intrusPris.indexOf(x.t)>=0).map(x=>`<div class="bldfix" style="padding:8px 0"><b>${esc(x.t)}</b><br>${esc(x.k)}</div>`).join("")}</div>`
+    : `<div class="exp" style="border-left-color:var(--ok)">✅ <b>Aucun intrus pris.</b> Refuser une ligne fait partie de la récitation — tu l'as fait.</div>`;
+  openOv(ovTop("🗣️ "+esc(f.titre))+`
+    <div class="card" style="text-align:center;border-color:${RCT.parfait?"var(--ok)":"var(--line)"}">
+      <div style="font-size:38px">${RCT.parfait?"🎯":justes>=att.length*0.7?"🔁":"❌"}</div>
+      <h2 style="font-size:24px;margin-top:6px">${justes} / ${att.length}</h2>
+      <div class="sub" style="margin-top:8px">${RCT.parfait?"La cascade est exacte, dans l'ordre, sans intrus. C'est ce qu'on attend d'un entretien."
+        :justes>=att.length*0.7?"La structure est là, l'ordre non. Une cascade juste à 80 % donne un chiffre faux à 100 %."
+        :"Ce n'est pas encore une structure, c'est une liste de souvenirs. Relis le rappel et reprends-la aujourd'hui."}</div>
+    </div>
+    <h2 class="sec">L'ordre attendu, ligne par ligne</h2>
+    <div class="recstack">${corps}</div>
+    ${horsPlan.length?`<div class="exp" style="border-left-color:var(--bad)">Tu as posé ${horsPlan.length} ligne${horsPlan.length>1?"s":""} de plus que la structure n'en compte. Une cascade a une fin : savoir où elle s'arrête fait partie de la connaître.</div>`:""}
+    ${intrus}
+    <button class="btn" onclick="recOuDraw()">Les trois questions — ça tombe où ?</button>`);
+}
+
+/* Les trois questions « ça tombe où ? ». L'ordre prouve la mémoire ;
+   elles prouvent qu'il comprend ce qu'il range. */
+function recOuDraw(){
+  if(!RCT) return;
+  const f=recFiche(RCT.id), q=f.ou[RCT.oui];
+  if(!q) return recFin();
+  openOv(ovTop("🗣️ Ça tombe où ?")+`
+    <div class="meta">question ${RCT.oui+1} / ${f.ou.length} · ${RCT.ouBons} juste${RCT.ouBons>1?"s":""}</div>
+    <div class="qq">${q.q}</div>
+    ${q.opts.map((o,k)=>`<button class="opt" onclick="recOuRep(${k})">${o}</button>`).join("")}
+    <div id="recOut"></div>`);
+}
+function recOuRep(k){
+  if(!RCT||RCT.verrou) return; RCT.verrou=1;
+  const f=recFiche(RCT.id), q=f.ou[RCT.oui], ok=k===q.bon;
+  if(ok) RCT.ouBons++;
+  document.querySelectorAll(".opt").forEach((b,j)=>{
+    b.disabled=true;
+    if(j===q.bon) b.classList.add("ok");
+    else if(j===k) b.classList.add("ko");
+  });
+  const dernier=RCT.oui===f.ou.length-1;
+  document.getElementById("recOut").innerHTML=`
+    <div class="exp" style="border-left-color:${ok?"var(--ok)":"var(--bad)"}">${ok?"✅ Juste.":"❌ Non."} ${q.exp}</div>
+    <button class="btn" onclick="RCT.verrou=0;RCT.oui++;${dernier?"recFin()":"recOuDraw()"}">${dernier?"Voir le verdict":"Question suivante"}</button>`;
+}
+
+function recFin(){
+  if(!RCT) return;
+  const f=recFiche(RCT.id), e=recEtat(RCT.id);
+  const toutJuste=RCT.ouBons===f.ou.length;
+  const propre=RCT.parfait&&toutJuste;
+  let box=e.box, due=e.due, promu=false;
+  if(propre){
+    if(box>=3) due=addDays(RCT_ENTRETIEN);
+    else { box=box+1; due=addDays(RCT_IVL[box]); promu=box>=3; }
+  } else { box=0; due=today(); }
+  recSet(RCT.id,{box,due,runs:e.runs+1,best:Math.max(e.best,RCT.justes),vu:true});
+  addXP(4+(RCT.parfait?8:0)+(propre?10:0)+(promu?20:0));
+  /* L'ordre parfait suffit à valider le bloc du jour : c'est la
+     récitation qu'on lui demande. Les trois questions décident de
+     l'ACQUISITION, qui ouvre la suite de l'app — pas de sa journée. */
+  if(RCT.parfait) checkMenu("rec");
+  save();
+  const suite=propre
+    ? (box>=3?"<b>Acquise.</b> Elle reviendra en entretien dans trois semaines — pas pour t'embêter, pour vérifier que c'est resté."
+             :"Boîte "+box+"/3. Elle revient le "+recJJ(due)+" : trois passages nets ESPACÉS, pas trois d'affilée.")
+    : "La boîte retombe à <b>zéro</b>. Elle reste la récitation du jour jusqu'à ce qu'elle soit nette. On ne négocie pas un compte de résultat.";
+  const nuance=RCT.parfait&&!toutJuste?"L'ordre est parfait, la compréhension pas encore : tu sais écrire la cascade, pas encore y ranger les choses."
+    :(!RCT.parfait&&toutJuste?"Tu comprends ce que tu ranges, mais tu ne sais pas encore l'écrire de tête. C'est exactement ce que cet exercice travaille.":"");
+  openOv(ovTop("Verdict")+`
+    <div class="card" style="text-align:center;border-color:${propre?"var(--ok)":"var(--line)"}">
+      <div style="font-size:42px">${propre?(promu?"🏆":"✅"):RCT.parfait?"🧐":"🔁"}</div>
+      <h2 style="font-size:21px;margin-top:6px">Ordre ${RCT.justes}/${f.lignes.length} · Questions ${RCT.ouBons}/${f.ou.length}</h2>
+      ${nuance?`<div class="sub" style="margin-top:8px">${nuance}</div>`:""}
+      <div class="sub" style="margin-top:8px">${suite}</div>
+    </div>
+    <div class="coachnote">${f.corrige}</div>
+    <button class="btn" onclick="recStart('${RCT.id}')">La refaire maintenant</button>
+    <button class="btn ghost" onclick="recQuit()">‹ La récitation</button>
+    <button class="btn ghost" onclick="closeOv()">Retour au menu du jour</button>`);
+  RCT=null;
+}
+
+/* ================================================================
+   LE SOCLE — un REPÈRE, plus une porte.
+   Le mode socle est né le 2026-10-07 : « trop de choses à faire par
+   jour […] faisons d'abord chaque jour les fondamentaux de
+   fondamentaux ». Il réduisait la journée à trois blocs et RANGEAIT
+   tout le reste — deals, sparring, cas, boîte — jusqu'à ce que les
+   douze paliers du socle et les dix structures soient acquis.
+   RETIRÉ le 2026-11-08, mot pour mot : « mon app verrouille les
+   différentes parties tant que pas tout le truc du jour n'est fait,
+   enlève ». La journée complète est donc ouverte dès le premier jour,
+   et l'ordre des blocs — structure, calcul, culture — reste le seul
+   argument : on conseille, on ne ferme plus.
+   Ce qui RESTE : les compteurs ci-dessous, affichés dans le Profil,
+   parce que savoir où en est le socle vaut toujours quelque chose.
+   ====================================================== */
+function socleExos(){ return (typeof exoDeLaPiste==="function")?exoDeLaPiste("socle"):[]; }
+function socleExosValides(){ return socleExos().filter(p=>exoEtat(p.n).valide).length; }
+function socleExosDus(){ return socleExos().filter(p=>exoDue(p.n)).map(p=>p.n); }
+function socleExosClos(){ const l=socleExos(); return l.length>0 && socleExosValides()>=l.length && socleExosDus().length===0; }
+function socleAcquis(){ return socleExosClos() && recToutesAcquises(); }
+
 /* ---------- l'échelle ---------- */
 function exosRoom(){
   const st=exosSt();
@@ -3811,6 +4170,10 @@ function exosFaits(){ return EXOS.filter(p=>exoEtat(p.n).valide).length; }
 function vAcad(){
   const cd=cardsDue().length, cm=cardsMastered();
   return `<h1 class="page">Académie</h1><div class="sub">${S.done.lessons.length}/${LESSONS.length} leçons. Du bilan au SPA — le juridique n'est pas en option.</div>
+  <div class="mod gold" onclick="recRoom()" style="border-color:#453a20">
+    <div class="ico">${recDues().length?"↻":"🗣️"}</div><div class="t"><b>La récitation — dérouler une structure de tête</b><small>${recAcquises()}/${RECITATIONS.length} structures acquises${recDues().length?` · <b style="color:var(--acc)">${recDues().length} à revoir</b>`:""}. Compte de résultat, soldes intermédiaires, actif, passif, BFR, CAF, tableau de flux, FCFF, pont de valorisation, cascade d'un amortissement. Les lignes arrivent mélangées, avec des intrus, et tu les remets dans l'ordre — sans aucun retour avant de valider. <b>Reconnaître n'est pas réciter.</b></small></div>
+    <div class="pc">${recDues().length||recAcquises()||"›"}</div>
+  </div>
   <div class="mod gold" onclick="exosRoom()" style="border-color:#453a20">
     <div class="ico">${exoDus().length?"🔁":"🧮"}</div><div class="t"><b>Les exos — les calculs, depuis le début</b><small>${exosFaits()}/${EXOS.length} paliers validés${exoDus().length?` · <b style="color:var(--acc)">${exoDus().length} à reprendre</b>`:""}. Onze pistes : <b>le socle</b>, <b>le prix</b>, <b>le bêta</b>, <b>le WACC</b>, <b>les multiples</b>, <b>le LBO</b>, <b>accrétion/dilution</b>, <b>la cascade</b>, <b>cascades comptables</b> (P&L → flux → bilan), <b>la rentabilité</b> (ROCE, ROE, effet de levier) et <b>le DCF</b> (horizon explicite, valeur terminale, prix par action). Chaque marche ouvre la suivante.</small></div>
     <div class="pc">${exoDus().length||exosFaits()||"›"}</div>
@@ -3895,14 +4258,16 @@ function heatmap(){
 }
 function vProfil(){
   const r=rank();
-  const total=S.done.deals.length+S.done.lessons.length+S.done.cases.length+S.done.negos.length+S.done.teasers.length+S.done.cascades.length+S.done.plbo.length+S.done.feyn.length;
+  const total=S.done.deals.length+S.done.lessons.length+S.done.cases.length+S.done.negos.length+S.done.teasers.length+S.done.cascades.length+S.done.plbo.length+S.done.feyn.length+S.done.pensees.length;
   return `<h1 class="page">Profil</h1><div class="sub">Les chiffres ne mentent pas — c'est même leur seul défaut.</div>
   <div class="statgrid">
     <div class="stat"><b>${S.xp}</b><small>XP TOTAL</small></div>
     <div class="stat"><b>${dispStreak()} 🔥</b><small>STREAK</small></div>
     <div class="stat"><b>${total}</b><small>EXERCICES FAITS</small></div>
     <div class="stat"><b>${S.rev.length}</b><small>EN RÉVISION</small></div>
+    <div class="stat"><b>${recAcquises()}/${RECITATIONS.length}</b><small>STRUCTURES ACQUISES</small></div>
     <div class="stat"><b>${S.done.deals.length}/${DEALS.length}</b><small>DEALS</small></div>
+    <div class="stat"><b>${S.done.pensees.length}/${PENSEES.length}</b><small>PENSÉES LUES</small></div>
     <div class="stat"><b>${S.itv.best}/12</b><small>ENTRETIEN FR</small></div>
     <div class="stat"><b>${S.itv.bestEN}/12</b><small>ENTRETIEN EN</small></div>
     <div class="stat"><b>${Object.keys(S.missions).length}</b><small>MISSIONS TERRAIN</small></div>
@@ -3917,6 +4282,12 @@ function vProfil(){
     <ul class="ranks" style="margin-top:8px">
       ${RANKS.map(x=>`<li class="${x[0]===r[0]?"cur":(S.xp>=x[1]?"past":"")}"><span>${x[0]}</span><small>${x[1]} XP</small></li>`).join("")}
     </ul>
+  </div>
+  <div class="card"><b style="font-size:14px">Le socle</b>
+    <div class="sub" style="margin-top:6px">${socleAcquis()?"<b style=\"color:var(--ok)\">Acquis.</b> Les structures reviennent en entretien tous les 21 jours — c'est tout ce qu'il reste à tenir."
+      :"<b>En cours.</b> Rien n'est fermé pour autant : ces deux lignes sont un repère, pas une porte. Mais c'est sur elles que tout le reste s'appuie."}</div>
+    <div class="bldfix" style="padding:10px 0 0"><b>${socleExosValides()}/${socleExos().length}</b> paliers de calcul du socle validés${socleExosDus().length?` · <b style="color:var(--acc)">${socleExosDus().length} à reprendre</b>`:""}
+      <br><b>${recAcquises()}/${RECITATIONS.length}</b> structures acquises (trois récitations parfaites espacées chacune)</div>
   </div>
   <div class="coach">Le grade ne compte pas. Ce qui compte : est-ce que tu répondrais mieux qu'hier si un associé te cuisinait <b>maintenant</b> ?</div>
   <div class="card"><b style="font-size:14px">Réglages d'entraînement</b>
@@ -4124,7 +4495,7 @@ function dealQuiz(id){
   },{missBase:i=>"D|"+id+"|"+i});
 }
 
-// ---------- MASTERCLASS SECTORIELLES ----------
+// ---------- MASTERCLASS — sectorielles et métiers ----------
 function openMC(id){
   const c=MASTERCLASS.find(x=>x.id===id);
   openOv(ovTop(c.domain)+`
@@ -4144,6 +4515,33 @@ function mcQuiz(id){
     addXP(xp); checkMenu("mclass",id); save();
     quizVerdict(good,total,xp,first?"":" (révision)");
   },{missBase:i=>"M|"+id+"|"+i});
+}
+
+/* ---------- LES PENSÉES ----------
+   Cinq lectures philosophiques, et pas une sixième. Elles occupent le MÊME
+   créneau que le deal et la masterclass : la journée ne s'allonge pas.
+   Structure volontairement identique aux masterclass — lecture longue, idées
+   à garder, qui l'a pensé, ce que ça change demain, puis quiz — parce que lire
+   sans être interrogé ne laisse rien au bout de trois jours. */
+function openPensee(id){
+  const x=PENSEES.find(y=>y.id===id);
+  openOv(ovTop(x.titre)+`
+    <div class="meta"><span class="tag">${x.icon} ${esc(x.tag)}</span>${esc(x.source)}</div>
+    <div class="story">${x.read.map(p=>`<p>${p}</p>`).join("")}</div>
+    <div class="coach"><b>Ce qu'il faut garder :</b><br>${x.insights.map(i=>"• "+i).join("<br>")}</div>
+    <div class="pt"><b>Qui l'a pensé :</b><br>${x.penseurs.map(i=>"— "+i).join("<br>")}</div>
+    <div class="pt"><b>Ce que ça change demain :</b> ${x.pratique}</div>
+    <button class="btn" onclick="penseeQuiz('${x.id}')">Passer au quiz — on vérifie que tu as pensé, pas survolé</button>`);
+}
+function penseeQuiz(id){
+  const x=PENSEES.find(y=>y.id===id);
+  startQuiz(x.questions,x.titre,(good,total)=>{
+    const first=!S.done.pensees.includes(id);
+    const xp=first?good*5+10:good*2;
+    if(first){ S.done.pensees.push(id); scheduleRev("pensee",id); } else bumpRev("pensee",id);
+    addXP(xp); checkMenu("pensee",id); save();
+    quizVerdict(good,total,xp,first?"":" (révision)");
+  },{missBase:i=>"P|"+id+"|"+i});
 }
 
 // ---------- ACADÉMIE ----------
