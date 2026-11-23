@@ -19,6 +19,7 @@ Ouvrir `index.html` dans un navigateur, ou servir le dossier (`python3 -m http.s
 | `data-pensees.js` | 10 lectures philosophiques (le temps, l'incertitude, la valeur, le jugement, le désir, la promesse, la responsabilité, la mesure, le hasard, le langage) — lecture + idées à garder + penseurs + quiz |
 | `data-masterclass.js` | 23 masterclass : **17 sectorielles** (comment un secteur gagne de l'argent) et **6 métiers** (private equity, secondaire & liquidité, capital-risque, processus M&A, destruction de valeur en M&A, mécanique du SPA) — lecture longue + modèles mentaux + ordres de grandeur + œil de l'investisseur + quiz |
 | `data-lexique.js` | 97 termes FR/EN du deal-maker |
+| `data-fonds.js` | **LE FONDS** : 9 ateliers (un par ligne de l'offre de stage), 44 calculs du kit LP (appels de capitaux, DPI/RVPI/TVPI, TRI contre multiple, cascade de distribution, frais, secondaire, lecture d'un fonds), et le calendrier des 14 semaines jusqu'au 1er mars 2027 |
 | `data-stage.js` | Objectif stage (janvier) : module Finance d'entreprise, leçons M&A/LBO/analyse ajoutées, oral technique et fit, drill des trois états, 5 deals récents sourcés, plan de six semaines |
 | `anki-closing.txt` | Deck Anki de 184 cartes (lexique, multiples sectoriels, IPO, LBO, vérités du métier) |
 | `anki-fondamentaux.txt` | Deck Anki de 44 cartes — les formules seules (CAF, FCFF, FCFE, WACC, bêta, ROCE/ROE, DCF, multiples, élasticité), téléchargeable depuis Les exos |
@@ -47,11 +48,19 @@ Ouvrir `index.html` dans un navigateur, ou servir le dossier (`python3 -m http.s
 - **Métier du jour / conseil du jour** (`data-quotidien.js`) : 30 métiers de la finance et 30 fiches de conseil, un de chaque par jour, dans l'ordre.
 - **Mode stage** (Profil) : Académie, leçon du jour et entretiens blancs recentrés sur les modules prioritaires (bases, compta, analyse, valo, M&A, LBO, finance d'entreprise).  ⚠️ **Deux programmes de journée coexistent** (fusion du 2026-11-23) : mode stage activé → le programme en 13 blocs de `data-stage.js` fait foi, et il ne contient **ni la récitation ni la lecture du jour** (deal / masterclass / pensée) ; mode stage désactivé → le menu du jour historique, qui les contient. Les pensées et les masterclass restent atteignables par l'onglet Lectures dans les deux cas ; la récitation, seulement hors mode stage. À arbitrer quand le programme sera recentré sur le stage de private equity.
 - **Service worker, les deux garde-fous** (2026-11-23) : il ne purge que les caches préfixés `closing-` — les ~30 apps partagent une seule origine, et l'ancien code vidait le cache hors-ligne de toutes les autres à chaque déploiement (constaté en direct) ; et il ne met jamais en cache une réponse dont `res.ok` est faux, sinon un 404 servi pendant un build GitHub Pages fige l'app sur « File not found ».
+- **LE FONDS** (onglet, ajouté le 2026-11-23) : l'espace du stage de private equity, **libre et indépendant**.
+  Il ne valide pas la journée, n'alimente ni la file de révision ni le Rattrapage, et **reste accessible pendant
+  la séance guidée** — exception explicite dans `nav()` et `render()`, les seules de l'app. Ses questions ratées
+  restent dans `S.fonds.ratees` et ne remontent pas dans le menu du jour. Son état vit dans `S.fonds`, isolé du reste.
+  Trois blocs : le **calendrier des 14 semaines** (la semaine courante se déduit de la date, aucune case ne tombe
+  en retard), les **neuf ateliers** — chacun porte dans `ligne` la mission de l'offre qu'il couvre, lecture longue
+  + modèles mentaux + ordres de grandeur + livrable + 5 questions —, et le **kit LP**, 44 calculs sur la mécanique
+  d'un fonds, que l'app ne couvrait pas du tout. L'XP est partagée : c'est du travail, il compte.
 - **Réponds d'abord** (Profil, activé par défaut) : les choix d'un QCM restent cachés tant qu'on n'a pas formulé sa réponse.
 
 ## Règle d'écriture des QCM
 
-La bonne réponse ne doit pas se reconnaître à sa forme : longueurs comparables, distracteurs plausibles, justification dans `exp` et non dans l'option. Les options sont mélangées à l'affichage partout (quiz, marches, cas) ; dans `exp`, une lettre en gras (`<b>A</b>`) est traduite vers la lettre affichée. Avant l'audit du 2026-10-10, la bonne réponse était la plus longue dans 96 % des 578 questions ; elle l'est désormais dans environ 24 % des cas, le niveau du hasard.
+La bonne réponse ne doit pas se reconnaître à sa forme : longueurs comparables, distracteurs plausibles, justification dans `exp` et non dans l'option. Les options sont mélangées à l'affichage partout (quiz, marches, cas) ; dans `exp`, une lettre en gras (`<b>A</b>`) est traduite vers la lettre affichée. Avant l'audit du 2026-10-10, la bonne réponse était la plus longue dans 96 % des 578 questions ; elle l'est désormais dans environ 24 % des cas, le niveau du hasard. Les 89 questions de `data-fonds.js` ont été vérifiées au même étalon : bonne réponse la plus longue dans 24 % des cas, écart moyen de longueur de −1 caractère.
 
 ## Ajouter du contenu
 

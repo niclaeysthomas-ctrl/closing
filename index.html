@@ -221,6 +221,7 @@
   nav button i{font-style:normal;font-size:19px}
   body.locked nav button:not([data-v=jour]){opacity:.3}
   nav button.on{color:var(--acc)}
+  body.locked nav button[data-v="fonds"]{opacity:1}   /* l'espace Fonds reste ouvert pendant la séance */
 
   .mod{display:flex;align-items:center;gap:11px;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:13px;margin-bottom:8px;cursor:pointer}
   .mod .ico{font-size:22px}
@@ -325,6 +326,7 @@
   <button data-v="eco"><i>🧭</i>Éco</button>
   <button data-v="spar"><i>🥊</i>Sparring</button>
   <button data-v="journal"><i>📓</i>Journal</button>
+  <button data-v="fonds"><i>🏛️</i>Fonds</button>
   <button data-v="profil"><i>👑</i>Profil</button>
 </div></nav>
 
@@ -352,6 +354,7 @@
 <script src="data-economie.js"></script>
 <script src="data-stage.js"></script>
 <script src="data-quotidien.js"></script>
+<script src="data-fonds.js"></script>
 <script src="data-recitation.js"></script>
 <script src="data-pensees.js"></script>
 <script>
@@ -359,7 +362,11 @@
 const RANKS=[["Stagiaire",0],["Analyst",150],["Associate",400],["VP",800],["Director",1400],["Managing Director",2200],["Rainmaker",3200]];
 const KEY="closing_v1";
 const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[],mclass:[],eco:[],pensees:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{},journal:[],biz:null,cimetiere:[],bizDone:[],bizRec:{},exos:{cur:1,p:{}},rec:{p:{}},pal:{},lastExport:null,
-  /* Objectif stage (2026-10-10) */ stage:true,recall:true,guided:true,oral:{},fit:{},plan:{},mesDeals:[]};
+  /* Objectif stage (2026-10-10) */ stage:true,recall:true,guided:true,oral:{},fit:{},plan:{},mesDeals:[],
+  /* LE FONDS (2026-11-23) — sous-arbre indépendant : ateliers lus, cases du
+     calendrier, records du kit LP, questions ratées. Il ne touche ni au streak,
+     ni au menu du jour, ni à S.rev, ni à S.miss : voir l'en-tête de data-fonds.js. */
+  fonds:{ateliers:{},plan:{},drills:{},ratees:[]}};
 let S=load();
 function load(){
   let s={};
@@ -375,6 +382,9 @@ function load(){
   o.cimetiere=s.cimetiere||[];
   o.pal=s.pal||{};
   o.oral=s.oral||{}; o.fit=s.fit||{}; o.plan=s.plan||{}; o.mesDeals=s.mesDeals||[];
+  o.fonds=Object.assign({ateliers:{},plan:{},drills:{},ratees:[]},s.fonds||{});
+  o.fonds.ateliers=o.fonds.ateliers||{}; o.fonds.plan=o.fonds.plan||{};
+  o.fonds.drills=o.fonds.drills||{}; o.fonds.ratees=o.fonds.ratees||[];
   o.bizDone=s.bizDone||[];
   o.bizRec=s.bizRec||{};
   o.rec=s.rec||{p:{}}; if(!o.rec.p) o.rec.p={};   /* la récitation : ajoutée le 2026-10-07 */
@@ -424,7 +434,8 @@ function renderTicker(){
     ["ENTRETIEN FR",S.itv.best+"/12",""],
     ["ENTRETIEN EN",S.itv.bestEN+"/12",""],
     ["MISSION",S.missions[isoWeek()]?"FAITE ▲":"OUVERTE",S.missions[isoWeek()]?"up":""],
-    ["MÉMOS",S.memos,""]
+    ["MÉMOS",S.memos,""],
+    ["FONDS",(typeof fondsJours==="function"&&fondsJours()>0)?"J−"+fondsJours():"EN COURS",""]
   ];
   const html=items.map(x=>`<span>${x[0]} <b class="${x[2]}">${x[1]}</b></span>`).join("");
   el.innerHTML=html+html; // dupliqué pour la boucle sans couture
@@ -2379,7 +2390,7 @@ function bizExport(){
 
 // ================= VUES =================
 let view="jour";
-function nav(v){ if(v!=="jour"&&typeof guidedOn==="function"&&guidedOn()){ toast("🔒 Termine d'abord ta séance — l'app se libère à la fin."); v="jour"; } view=v; document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v)); render(); window.scrollTo(0,0); }
+function nav(v){ if(v!=="jour"&&v!=="fonds"&&typeof guidedOn==="function"&&guidedOn()){ toast("🔒 Termine d'abord ta séance — l'app se libère à la fin. (Seul l'espace Fonds reste ouvert.)"); v="jour"; } view=v; document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v)); render(); window.scrollTo(0,0); }
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>nav(b.dataset.v));
 
 /* ================================================================
@@ -4319,9 +4330,12 @@ function importSave(){
 
 function render(){
   ensureMenu();
-  if(typeof guidedOn==="function"&&guidedOn()&&view!=="jour"){ view="jour"; document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v==="jour")); }
+  /* LE FONDS est libre par construction : la séance guidée ne le verrouille pas.
+     C'est la règle n°1 de data-fonds.js — on peut y travailler sans avoir ouvert
+     sa séance, et sans que ça compte dans la journée. */
+  if(typeof guidedOn==="function"&&guidedOn()&&view!=="jour"&&view!=="fonds"){ view="jour"; document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v==="jour")); }
   document.body.classList.toggle("locked",typeof guidedOn==="function"&&guidedOn());
-  document.getElementById("main").innerHTML=({jour:vJour,boite:vBoite,deals:vDeals,acad:vAcad,eco:vEco,spar:vSpar,journal:vJournal,profil:vProfil})[view]();
+  document.getElementById("main").innerHTML=({jour:vJour,boite:vBoite,deals:vDeals,acad:vAcad,eco:vEco,spar:vSpar,journal:vJournal,fonds:vFonds,profil:vProfil})[view]();
   header();
 }
 
@@ -4398,7 +4412,7 @@ function ovTop(title,timer){ return `<div class="top"><button class="x" onclick=
 let Q=null,TMR=null;
 function shuffle(n){ const a=[...Array(n).keys()]; for(let i=n-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
 function startQuiz(items,title,onDone,opts){
-  Q={items,i:0,good:0,onDone,title,missBase:(opts&&opts.missBase)||null,timed:!!(opts&&opts.timed)};
+  Q={items,i:0,good:0,onDone,title,missBase:(opts&&opts.missBase)||null,timed:!!(opts&&opts.timed),fondsRef:!!(opts&&opts.fondsRef)};
   if(Q.timed) startTimer(480);
   quizStep();
 }
@@ -4450,7 +4464,11 @@ function quizStep(){
 }
 function answer(pos){
   const q=Q.items[Q.i],orig=Q.map[pos],ok=orig===q.a;
-  if(ok){ Q.good++; if(q.ref){ S.miss=S.miss.filter(m=>m!==q.ref); save(); } }
+  /* LE FONDS (2026-11-23) : ses ratées restent dans son propre espace et
+     n'alimentent pas le Rattrapage du menu du jour — c'est la condition
+     pour que cet espace n'ajoute rien à la charge quotidienne. */
+  if(Q.fondsRef&&q.ref){ if(ok) fondsRetireRatee(q.ref); else fondsNoteRatee(q.ref); save(); }
+  if(ok){ Q.good++; if(!Q.fondsRef&&q.ref){ S.miss=S.miss.filter(m=>m!==q.ref); save(); } }
   else if(Q.missBase){ recMiss(Q.missBase(Q.i)); save(); }
   else if(q.ref){ /* rattrapage raté : la question reste */ }
   document.querySelectorAll(".opt").forEach((b,k)=>{
@@ -5371,6 +5389,178 @@ if(location.protocol.startsWith("http")&&"serviceWorker" in navigator){
   let swRecharge=false;
   navigator.serviceWorker.addEventListener("controllerchange",()=>{ if(swRecharge||!navigator.serviceWorker.controller) return; swRecharge=true; location.reload(); });
 }
+
+/* ══════════════════════════ LE FONDS ══════════════════════════
+   Ajouté le 2026-11-23. Espace libre et indépendant : voir l'en-tête de
+   data-fonds.js pour les trois règles de construction. Techniquement, ce
+   que ça veut dire ici :
+     — aucun appel à checkMenu() : rien ne valide la journée ;
+     — aucun appel à scheduleRev() : rien n'entre dans la file de révision
+       qui alimente le compteur « RÉVISIONS » du menu du jour ;
+     — aucun appel à recMiss() : les questions ratées restent DANS cet
+       espace (S.fonds.ratees), elles n'alimentent pas le Rattrapage ;
+     — nav() et render() ont une exception explicite pour cette vue.
+   L'XP, en revanche, est partagée : c'est du travail, il compte. ============ */
+
+function fondsJours(){ return Math.ceil((new Date(FONDS_META.debut)-new Date(today()))/864e5); }
+function fondsSemaine(){
+  const t=today();
+  return FONDS_PLAN.find(w=>t>=w.du&&t<=w.au) || (t<FONDS_PLAN[0].du?FONDS_PLAN[0]:null);
+}
+const FMOIS=["janv.","févr.","mars","avril","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+function fondsDate(d){ const x=new Date(d); return x.getDate()+" "+FMOIS[x.getMonth()]; }
+function fondsLab(w){ return fondsDate(w.du)+" – "+fondsDate(w.au); }
+function fondsPlanItems(){ return FONDS_PLAN.reduce((a,w)=>a.concat(w.items),[]); }
+function fondsPlanFaits(){ return fondsPlanItems().filter(it=>S.fonds.plan[it[0]]).length; }
+function atelierFait(id){ return !!S.fonds.ateliers[id]; }
+function ateliersFaits(){ return ATELIERS.filter(a=>atelierFait(a.id)).length; }
+const DRILL_CATS=[
+  ["appels","💸","Appels de capitaux","engagement, appel, trésorerie à tenir prête"],
+  ["ratios","📐","DPI · RVPI · TVPI","ce qui est du cash et ce qui est une opinion"],
+  ["tri","⏱️","TRI contre multiple","la vitesse contre l'argent"],
+  ["waterfall","🪜","La cascade de distribution","hurdle, rattrapage, carried, restitution"],
+  ["frais","✂️","Les frais","brut contre net, et la double couche"],
+  ["secondaire","🔄","Le secondaire","décote, courbe en J raccourcie"],
+  ["lecture","🔍","Lire un fonds","millésime, blind pool, recyclage, valorisation"]
+];
+function drillsDe(cat){ return LP_DRILLS.filter(d=>d.cat===cat); }
+function drillRecord(cat){ const r=S.fonds.drills[cat]; return r&&r.best!=null?r.best:null; }
+function fondsRatees(){
+  return S.fonds.ratees.map(ref=>{
+    const [k,id,qi]=ref.split("|");
+    if(k==="A"){ const a=ATELIERS.find(x=>x.id===id); return a&&a.questions[qi]?{ref,q:a.questions[qi],from:"Atelier "+a.num+" — "+a.titre}:null; }
+    const d=drillsDe(id)[qi]; const lab=(DRILL_CATS.find(c=>c[0]===id)||[,,id])[2];
+    return d?{ref,q:d,from:"Kit LP — "+lab}:null;
+  }).filter(Boolean);
+}
+function fondsNoteRatee(ref){ if(!S.fonds.ratees.includes(ref)) S.fonds.ratees.push(ref); }
+function fondsRetireRatee(ref){ S.fonds.ratees=S.fonds.ratees.filter(x=>x!==ref); }
+
+function vFonds(){
+  const j=fondsJours(), sem=fondsSemaine(), items=fondsPlanItems().length, faits=fondsPlanFaits();
+  const pct=Math.round(100*faits/items);
+  const enCours=j>0, nRat=S.fonds.ratees.length;
+  const hero = `<div class="hero">
+    <div class="rank">${enCours?"OBJECTIF 1ER MARS 2027":"LE STAGE A COMMENCÉ"}</div>
+    <div class="big">${enCours?"J−"+j:"jour "+(1-j)}</div>
+    <div class="xpbar"><i style="width:${pct}%"></i></div>
+    <div class="xptxt">${faits}/${items} étapes du calendrier · ${ateliersFaits()}/${ATELIERS.length} ateliers · kit LP : ${DRILL_CATS.filter(c=>drillRecord(c[0])!=null).length}/${DRILL_CATS.length} séries entamées</div>
+  </div>`;
+  const semHtml = sem?`
+    <h2 class="sec">Semaine ${sem.s}/14 — ${sem.t}</h2>
+    <div class="sub" style="margin-top:-8px;margin-bottom:10px">${fondsLab(sem)} · aucune de ces cases ne te juge : elles se cochent quand c'est fait, elles ne tombent jamais en retard.</div>
+    ${sem.items.map(it=>`
+      <div class="act ${S.fonds.plan[it[0]]?"done":""}" onclick="fondsPlanToggle('${it[0]}')">
+        <div class="ico">${S.fonds.plan[it[0]]?"✅":"⬜"}</div>
+        <div class="t"><b>${it[1]}</b></div>
+        <div class="st">${S.fonds.plan[it[0]]?"✓":""}</div>
+      </div>`).join("")}`:"";
+  return `
+  <h1 class="page">Le fonds</h1>
+  <div class="sub">Private equity, du 1er mars au 31 août 2027. Cet espace est <b>libre</b> : rien ici ne valide ta journée, n'alimente ton rattrapage ni ne t'attend demain. Tu peux y passer deux heures un dimanche, ou ne pas l'ouvrir pendant dix jours.</div>
+  ${hero}
+  <div class="coach">${j>0
+    ? (j>60?"Quatorze semaines, neuf ateliers, un par ligne de l'offre. L'ordre proposé n'est pas un ordre : commence par ce qui t'intrigue."
+      : j>21?"Le temps commence à compter. Si tu dois choisir, le kit LP et l'atelier du comité sont ceux qui se verront le premier mois."
+      : "Dernières semaines. On n'apprend plus, on affûte : tout ce qui ne sort pas de mémoire se révise, le reste se repose.")
+    : "Le stage a commencé. Cet espace devient un aide-mémoire : les ateliers se relisent, le kit LP se reprend avant un comité."}</div>
+  ${semHtml}
+  ${nRat?`<div class="act rev" onclick="fondsReprise()">
+      <div class="ico">🩹</div><div class="t"><b>À reprendre — ${nRat} question${nRat>1?"s":""} ratée${nRat>1?"s":""}</b><small>elles restent dans cet espace et ne vont pas dans ton rattrapage quotidien</small></div>
+      <div class="st">›</div></div>`:""}
+  <h2 class="sec">Les neuf ateliers — un par ligne de l'offre</h2>
+  <div class="sub" style="margin-top:-8px;margin-bottom:10px">Lecture longue, modèles mentaux, ordres de grandeur, ce qu'on te demandera vraiment, un livrable à produire, puis cinq questions.</div>
+  ${ATELIERS.map(a=>{
+    const f=S.fonds.ateliers[a.id];
+    return `<div class="act ${f?"done":""}" onclick="openAtelier('${a.id}')">
+      <div class="ico">${a.icon}</div>
+      <div class="t"><b>${a.num}. ${a.titre}</b><small><span class="tag">${a.tag}</span>${f?"lu · quiz "+f.score+"/"+a.questions.length:"non lu · ~15 min"}</small></div>
+      <div class="st">${f?"✓":"›"}</div>
+    </div>`;}).join("")}
+  <h2 class="sec">Le kit LP — la mécanique d'un fonds</h2>
+  <div class="sub" style="margin-top:-8px;margin-bottom:10px">${LP_DRILLS.length} calculs, tous faisables de tête ou sur un coin de papier. C'est ce que LE CLOSING ne savait pas faire : il connaissait le paper LBO, pas la vie d'un fonds.</div>
+  ${DRILL_CATS.map(c=>{
+    const n=drillsDe(c[0]).length, best=drillRecord(c[0]);
+    return `<div class="act ${best===n?"done":""}" onclick="drillStart('${c[0]}')">
+      <div class="ico">${c[1]}</div>
+      <div class="t"><b>${c[2]} — ${n} calculs</b><small>${c[3]}${best!=null?" · record "+best+"/"+n:""}</small></div>
+      <div class="st">${best===n?"✓":"›"}</div>
+    </div>`;}).join("")}
+  <h2 class="sec">Le calendrier — 14 semaines</h2>
+  ${FONDS_PLAN.map(w=>{
+    const n=w.items.length, f=w.items.filter(it=>S.fonds.plan[it[0]]).length;
+    const courante=sem&&sem.s===w.s, passee=today()>w.au;
+    return `<div class="mod" onclick="fondsSem(${w.s})" style="${courante?"border-color:var(--acc)":""}">
+      <div class="ico">${f===n?"✅":courante?"▶️":passee?"⬜":"🗓️"}</div>
+      <div class="t"><b>S${w.s} — ${w.t}</b><small>${fondsLab(w)}${courante?" · en cours":""}</small></div>
+      <div class="pc">${f}/${n}</div>
+    </div>`;}).join("")}
+  <div class="coach" style="margin-top:14px"><b>La fiche maison, à remplir avec des faits.</b><br>${FONDS_META.aRemplir.map(x=>"— "+x).join("<br>")}<br><br><small style="color:var(--dim)">Rien n'est pré-rempli ici volontairement : société cotée, ses documents sont publics. On les lit, on ne les devine pas.</small></div>`;
+}
+
+function fondsPlanToggle(id){
+  S.fonds.plan[id]=!S.fonds.plan[id];
+  if(S.fonds.plan[id]) addXP(3); else save();
+  render();
+}
+function fondsSem(n){
+  const w=FONDS_PLAN.find(x=>x.s===n);
+  openOv(ovTop("Semaine "+w.s+"/14")+`
+    <div class="meta"><span class="tag">🗓️ ${fondsLab(w)}</span>${w.t}</div>
+    ${w.items.map(it=>`
+      <div class="act ${S.fonds.plan[it[0]]?"done":""}" onclick="fondsPlanToggle('${it[0]}');fondsSem(${n})">
+        <div class="ico">${S.fonds.plan[it[0]]?"✅":"⬜"}</div><div class="t"><b>${it[1]}</b></div>
+        <div class="st">${S.fonds.plan[it[0]]?"✓":""}</div></div>`).join("")}
+    <button class="btn ghost" onclick="closeOv()">Fermer</button>`);
+}
+
+function openAtelier(id){
+  const a=ATELIERS.find(x=>x.id===id);
+  openOv(ovTop("Atelier "+a.num+"/9")+`
+    <div class="meta"><span class="tag">${a.icon} ${a.tag}</span>${a.titre}</div>
+    <div class="pt" style="border-color:var(--acc)"><b>La ligne de l'offre :</b> « ${a.ligne} »</div>
+    <div class="story">${a.read.map(x=>`<p>${x}</p>`).join("")}</div>
+    <div class="coach"><b>Les modèles mentaux :</b><br>${a.insights.map(x=>"• "+x).join("<br>")}</div>
+    <div class="pt"><b>Ordres de grandeur :</b><br>${a.numbers.map(x=>"— "+x).join("<br>")}</div>
+    <div class="pt"><b>Ce qu'on te demandera vraiment :</b> ${a.oeil}</div>
+    <div class="crit"><b>Le livrable — ${a.livrable.titre}</b><br>${a.livrable.trame.map(x=>"· "+x).join("<br>")}</div>
+    <button class="btn" onclick="atelierQuiz('${a.id}')">Passer au quiz — ${a.questions.length} questions</button>`);
+}
+function atelierQuiz(id){
+  const a=ATELIERS.find(x=>x.id===id);
+  const items=a.questions.map((q,i)=>Object.assign({},q,{ref:"A|"+id+"|"+i}));
+  startQuiz(items,"Atelier "+a.num+" — "+a.titre,(good,total)=>{
+    const premier=!S.fonds.ateliers[id];
+    const xp=premier?good*5+10:good*2;
+    const avant=S.fonds.ateliers[id];
+    S.fonds.ateliers[id]={score:Math.max(good,avant?avant.score:0),date:today(),fois:(avant?avant.fois:0)+1};
+    addXP(xp); save();
+    quizVerdict(good,total,xp,premier?"":" (relecture)");
+  },{fondsRef:true});
+}
+function drillStart(cat){
+  const lab=(DRILL_CATS.find(c=>c[0]===cat)||[,,cat])[2];
+  const base=drillsDe(cat);
+  const items=base.map((d,i)=>Object.assign({},d,{ref:"K|"+cat+"|"+i}));
+  const ordre=shuffle(items.length).map(i=>items[i]);   /* l'ordre tourne : on apprend le calcul, pas la place */
+  startQuiz(ordre,"Kit LP — "+lab,(good,total)=>{
+    const r=S.fonds.drills[cat]||{best:0,runs:0};
+    r.runs++; if(good>r.best) r.best=good;
+    S.fonds.drills[cat]=r;
+    const xp=good*2; addXP(xp); save();
+    quizVerdict(good,total,xp,good===total?" Série parfaite.":" Les ratées restent dans l'espace Fonds.");
+  },{fondsRef:true});
+}
+function fondsReprise(){
+  const items=fondsRatees();
+  if(!items.length) return toast("Rien à reprendre.");
+  const ordre=shuffle(items.length).map(i=>items[i]);
+  startQuiz(ordre.map(x=>Object.assign({},x.q,{ref:x.ref,from:x.from})),"À reprendre",(good,total)=>{
+    const xp=good*2; addXP(xp); save();
+    quizVerdict(good,total,xp," Une question réussie sort de la liste ; une question ratée y reste.");
+  },{fondsRef:true});
+}
+
 nav("jour");
 /* ── synchro téléphone ↔ ordi (même coffre privé que Le Pointage) ──
    À l'ouverture et au retour sur l'app : on récupère ce que l'autre appareil
