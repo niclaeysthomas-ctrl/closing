@@ -366,11 +366,22 @@ const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],
   /* LE FONDS (2026-11-23) — sous-arbre indépendant : ateliers lus, cases du
      calendrier, records du kit LP, questions ratées. Il ne touche ni au streak,
      ni au menu du jour, ni à S.rev, ni à S.miss : voir l'en-tête de data-fonds.js. */
-  fonds:{ateliers:{},plan:{},drills:{},ratees:[]}};
+  fonds:{ateliers:{},plan:{},drills:{},ratees:[],maison:{},cibles:[],memoCI:{},memos:0}};
+/* ⚠️ VIDE N'EST PAS ILLISIBLE (corrigé le 2026-11-23).
+   Avant : un JSON corrompu tombait dans un catch muet, l'app servait le
+   profil par défaut, et le PREMIER save() écrasait définitivement des mois
+   de progression. Désormais, si une sauvegarde EXISTE mais ne se relit pas,
+   on lève un drapeau, on refuse d'écrire, et on le dit à l'écran. */
+let ETAT_ILLISIBLE=false, QUOTA_PLEIN=false, QUOTA_DEPUIS=null;
 let S=load();
 function load(){
-  let s={};
-  try{ s=JSON.parse(localStorage.getItem(KEY))||{}; }catch(e){}
+  let s={}, brut=null;
+  ETAT_ILLISIBLE=false;
+  try{ brut=localStorage.getItem(KEY); }catch(e){ brut=null; }
+  if(brut!==null&&brut!==""){
+    try{ s=JSON.parse(brut)||{}; }
+    catch(e){ ETAT_ILLISIBLE=true; s={}; }
+  }
   const o=Object.assign({},DEF,s);
   o.done=Object.assign({},DEF.done,s.done||{});
   o.itv=Object.assign({},DEF.itv,s.itv||{});
@@ -382,9 +393,11 @@ function load(){
   o.cimetiere=s.cimetiere||[];
   o.pal=s.pal||{};
   o.oral=s.oral||{}; o.fit=s.fit||{}; o.plan=s.plan||{}; o.mesDeals=s.mesDeals||[];
-  o.fonds=Object.assign({ateliers:{},plan:{},drills:{},ratees:[]},s.fonds||{});
+  o.fonds=Object.assign({ateliers:{},plan:{},drills:{},ratees:[],maison:{},cibles:[],memoCI:{},memos:0},s.fonds||{});
   o.fonds.ateliers=o.fonds.ateliers||{}; o.fonds.plan=o.fonds.plan||{};
   o.fonds.drills=o.fonds.drills||{}; o.fonds.ratees=o.fonds.ratees||[];
+  o.fonds.maison=o.fonds.maison||{}; o.fonds.cibles=o.fonds.cibles||[];
+  o.fonds.memoCI=o.fonds.memoCI||{}; o.fonds.memos=o.fonds.memos||0;
   o.bizDone=s.bizDone||[];
   o.bizRec=s.bizRec||{};
   o.rec=s.rec||{p:{}}; if(!o.rec.p) o.rec.p={};   /* la récitation : ajoutée le 2026-10-07 */
@@ -393,7 +406,36 @@ function load(){
     o.biz.horizon=o.biz.horizon||36; o.biz.capacity=o.biz.capacity||1; }
   return o;
 }
-function save(){ localStorage.setItem(KEY,JSON.stringify(S)); if(window.AppsSync) AppsSync.soon(4000,["closing"]); }
+function save(){
+  /* On n'écrit JAMAIS par-dessus une sauvegarde qu'on n'a pas su relire. */
+  if(ETAT_ILLISIBLE) return;
+  try{
+    localStorage.setItem(KEY,JSON.stringify(S));
+    if(QUOTA_PLEIN){ QUOTA_PLEIN=false; QUOTA_DEPUIS=null; }
+  }catch(e){
+    /* Les ~30 apps partagent un seul stockage d'environ 5 Mo : setItem lève
+       quand il est plein. Rien n'est enregistré — il faut le dire, pas le
+       taire, sinon on travaille une heure pour rien. */
+    if(!QUOTA_PLEIN){ QUOTA_PLEIN=true; QUOTA_DEPUIS=new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}); }
+    return;
+  }
+  if(window.AppsSync) AppsSync.soon(4000,["closing"]);
+}
+/* Le bandeau d'alerte, en tête de toutes les vues. */
+function etatAlerteHtml(){
+  if(ETAT_ILLISIBLE) return `<div class="coach" style="border-color:var(--bad)">⚠️ <b>Ta sauvegarde existe mais ne se relit pas.</b><br>
+    L'app affiche un profil vierge et <b>a cessé d'écrire</b> : sans ça, le prochain enregistrement effacerait définitivement ce qui reste.
+    Rien n'est perdu tant que tu n'écris pas. Essaie d'abord l'import d'une sauvegarde JSON dans Profil.
+    <button class="danger" style="margin-top:10px" onclick="repartirDeZero()">J'ai compris — repartir de zéro et réautoriser l'écriture</button></div>`;
+  if(QUOTA_PLEIN) return `<div class="coach" style="border-color:var(--bad)">⚠️ <b>Stockage plein — rien n'est enregistré depuis ${QUOTA_DEPUIS}.</b><br>
+    Les ~30 apps partagent un seul stockage d'environ 5 Mo. Exporte ta progression depuis Profil maintenant, puis fais de la place (une autre app, ou l'historique le plus ancien).</div>`;
+  return "";
+}
+function repartirDeZero(){
+  if(!confirm("Effacer la sauvegarde illisible et repartir d'un profil vierge ? Irréversible.")) return;
+  try{ localStorage.removeItem(KEY); }catch(e){}
+  ETAT_ILLISIBLE=false; location.reload();
+}
 function today(){ return new Date().toISOString().slice(0,10); }
 function addDays(n){ const d=new Date(Date.now()+n*864e5); return d.toISOString().slice(0,10); }
 function yesterday(){ return addDays(-1); }
@@ -404,7 +446,19 @@ function joursSansExport(){
   const ref=S.lastExport||(S.days&&S.days[0])||today();
   return Math.floor((new Date(today())-new Date(ref))/864e5);
 }
-function esc(x){ return String(x).replace(/</g,"&lt;"); }
+/* ⚠️ ÉCHAPPEMENT (corrigé le 2026-11-23, avant d'ouvrir la saisie libre).
+   L'ancien esc() n'échappait que « < ». Une apostrophe ou un guillemet dans
+   un texte saisi par l'utilisateur cassait tout attribut HTML qui le
+   contenait — et le bouton « Liquider <nom> » de Ma boîte était déjà
+   cassé pour toute société dont le nom contient une apostrophe.
+   Deux contextes, deux fonctions, et il ne faut pas les confondre :
+     — esc()   : texte et valeurs d'attribut HTML ;
+     — escJS() : littéral JavaScript DANS un attribut (onclick="f('…')").
+   Pour le second, l'échappement HTML seul ne suffit pas : le navigateur
+   décode les entités AVANT de lire le JavaScript, donc &#39; redevient une
+   apostrophe qui casse la chaîne. On échappe pour JS, puis pour HTML. */
+function esc(x){ return String(x).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
+function escJS(x){ return esc(String(x).replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/"/g,'\\"').replace(/\r?\n/g,"\\n")); }
 
 function rank(){ let r=RANKS[0]; for(const x of RANKS){ if(S.xp>=x[1]) r=x; } return r; }
 function nextRank(){ for(const x of RANKS){ if(S.xp<x[1]) return x; } return null; }
@@ -1406,7 +1460,7 @@ function vBoite(){
 
   <button class="btn ghost" onclick="formRoom()">🧮 Les formules — les 14 calculs qui décident</button>
   ${B.hist.length?`<button class="btn ghost" onclick="bizExport()">📋 Débriefer avec Claude</button>`:""}
-  <button class="danger" onclick="if(confirm('Liquider ${esc(B.name)} et repartir de zéro ?')){S.biz=null;save();render()}">Liquider et recommencer</button>`;
+  <button class="danger" onclick="if(confirm('Liquider ${escJS(B.name)} et repartir de zéro ?')){S.biz=null;save();render()}">Liquider et recommencer</button>`;
 }
 
 function bizPreviewHtml(p){
@@ -4335,7 +4389,7 @@ function render(){
      sa séance, et sans que ça compte dans la journée. */
   if(typeof guidedOn==="function"&&guidedOn()&&view!=="jour"&&view!=="fonds"){ view="jour"; document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v==="jour")); }
   document.body.classList.toggle("locked",typeof guidedOn==="function"&&guidedOn());
-  document.getElementById("main").innerHTML=({jour:vJour,boite:vBoite,deals:vDeals,acad:vAcad,eco:vEco,spar:vSpar,journal:vJournal,fonds:vFonds,profil:vProfil})[view]();
+  document.getElementById("main").innerHTML=etatAlerteHtml()+({jour:vJour,boite:vBoite,deals:vDeals,acad:vAcad,eco:vEco,spar:vSpar,journal:vJournal,fonds:vFonds,profil:vProfil})[view]();
   header();
 }
 
@@ -5495,7 +5549,131 @@ function vFonds(){
       <div class="t"><b>S${w.s} — ${w.t}</b><small>${fondsLab(w)}${courante?" · en cours":""}</small></div>
       <div class="pc">${f}/${n}</div>
     </div>`;}).join("")}
-  <div class="coach" style="margin-top:14px"><b>La fiche maison, à remplir avec des faits.</b><br>${FONDS_META.aRemplir.map(x=>"— "+x).join("<br>")}<br><br><small style="color:var(--dim)">Rien n'est pré-rempli ici volontairement : société cotée, ses documents sont publics. On les lit, on ne les devine pas.</small></div>`;
+  <h2 class="sec">Les outils</h2>
+  <div class="sub" style="margin-top:-8px;margin-bottom:10px">Ce que tu produis toi-même, et qui restera après le stage.</div>
+  <div class="act ${maisonRemplis()===FONDS_META.aRemplir.length?"done":""}" onclick="openMaison()">
+    <div class="ico">🏢</div><div class="t"><b>La fiche maison</b><small>${maisonRemplis()}/${FONDS_META.aRemplir.length} renseignées · rien n'est pré-rempli : ses documents sont publics, on les lit</small></div>
+    <div class="st">${maisonRemplis()===FONDS_META.aRemplir.length?"✓":"›"}</div></div>
+  <div class="act" onclick="openPipeline()">
+    <div class="ico">🔭</div><div class="t"><b>Le pipeline de cibles</b><small>${S.fonds.cibles.length} société${S.fonds.cibles.length>1?"s":""} · arriver avec une liste à soi vaut mieux qu'arriver avec des connaissances</small></div>
+    <div class="st">›</div></div>
+  <div class="act" onclick="openMemoCI()">
+    <div class="ico">⚖️</div><div class="t"><b>Le mémo de comité</b><small>${S.fonds.memos?S.fonds.memos+" assemblé"+(S.fonds.memos>1?"s":"")+" · ":""}${memoCIRempli()}/8 sections du brouillon en cours</small></div>
+    <div class="st">›</div></div>`;
+}
+
+
+/* ───────── LES TROIS OUTILS (2026-11-23) ─────────
+   La fiche maison, le pipeline de cibles et le mémo de comité. Tous les
+   trois stockent du TEXTE SAISI : c'est pour eux que esc() a été réparé et
+   que escJS() existe. Toute interpolation dans un attribut passe par l'un
+   des deux — une apostrophe dans « L'Oréal » ne doit rien casser. */
+
+const MAISON_LIBRE="notes";
+function maisonRemplis(){ return FONDS_META.aRemplir.filter((_,i)=>(S.fonds.maison[i]||"").trim().length>2).length; }
+function openMaison(){
+  openOv(ovTop("La fiche maison")+`
+    <div class="coach">Rien n'est pré-rempli, et c'est voulu : <b>aucun chiffre sur la société ne doit sortir d'une supposition</b>. Ses documents sont publics — rapport annuel, communiqués, site. On les lit, puis on écrit ici. Ce qui reste vide se demande au tuteur.</div>
+    ${FONDS_META.aRemplir.map((q,i)=>`
+      <p class="sub" style="margin:12px 0 4px"><b style="color:var(--acc)">${i+1}. ${q}</b></p>
+      <textarea style="min-height:60px" oninput="maisonSave(${i},this.value)" placeholder="Ce que tu as lu, et où tu l'as lu.">${esc(S.fonds.maison[i]||"")}</textarea>`).join("")}
+    <p class="sub" style="margin:12px 0 4px"><b style="color:var(--acc)">Les questions à poser au tuteur</b></p>
+    <textarea style="min-height:70px" oninput="maisonSave('${MAISON_LIBRE}',this.value)" placeholder="Une question par ligne. Celles que les documents publics ne tranchent pas.">${esc(S.fonds.maison[MAISON_LIBRE]||"")}</textarea>
+    <button class="btn ghost" onclick="closeOv()">Fermer (enregistré au fil de la frappe)</button>`);
+}
+function maisonSave(k,v){ S.fonds.maison[k]=v; save(); }
+
+/* ───────── LE PIPELINE ───────── */
+const VERDICTS=[["creuser","🔎","À creuser"],["suivre","👀","À suivre"],["rencontre","🤝","Rencontré"],["ecarte","✖️","Écartée"]];
+function verdictLab(v){ const x=VERDICTS.find(a=>a[0]===v); return x?x[1]+" "+x[2]:"— sans verdict"; }
+function cibleParId(id){ return S.fonds.cibles.find(c=>c.id===id); }
+function openPipeline(){
+  const cs=S.fonds.cibles;
+  openOv(ovTop("Le pipeline")+`
+    <div class="coach">Les sociétés que tu repères toi-même, avec la source de chaque chiffre. <b>Arriver le 1er mars avec une liste à soi vaut mieux qu'arriver avec des connaissances.</b> Un refus documenté compte autant qu'une piste : c'est ce qui prouve la méthode.</div>
+    <button class="btn" onclick="openCible()">+ Ajouter une cible</button>
+    ${cs.length?cs.map(c=>`
+      <div class="act" onclick="openCible(${c.id})">
+        <div class="ico">${(VERDICTS.find(v=>v[0]===c.verdict)||[,"🏭"])[1]}</div>
+        <div class="t"><b>${esc(c.nom||"(sans nom)")}</b><small>${esc(c.act||"activité non renseignée")}${c.ca?" · CA "+esc(c.ca):""}${c.ebitda?" · EBITDA "+esc(c.ebitda):""}${c.annee?" · comptes "+esc(c.annee):""}</small></div>
+        <div class="st">›</div>
+      </div>`).join(""):`<div class="coach" style="margin-top:12px">Pipeline vide. La première se trouve en une demi-heure : une thèse, et les comptes déposés au greffe.</div>`}
+    <button class="btn ghost" onclick="closeOv()">Fermer</button>`);
+}
+function openCible(id){
+  const c=id!=null?cibleParId(id):{id:null,nom:"",act:"",ca:"",ebitda:"",annee:"",src:"",verdict:"",note:""};
+  if(!c) return;
+  const ch=(k,lab,ph)=>`<p class="sub" style="margin:10px 0 4px"><b style="color:var(--acc)">${lab}</b></p>
+    <input class="search" style="margin:0" value="${esc(c[k]||"")}" placeholder="${esc(ph)}" oninput="cibleTmp('${k}',this.value)">`;
+  window.__cible=Object.assign({},c);
+  openOv(ovTop(id!=null?"Modifier la cible":"Nouvelle cible")+`
+    ${ch("nom","Nom de la société","Ex. une PME de maintenance industrielle")}
+    ${ch("act","Ce qu'elle fait","en une ligne, comme tu l'expliquerais en réunion")}
+    ${ch("ca","Chiffre d'affaires","avec l'unité")}
+    ${ch("ebitda","EBITDA (estimé)","et comment tu l'estimes")}
+    ${ch("annee","Année des comptes","les comptes déposés datent toujours")}
+    ${ch("src","La source","greffe, presse régionale, site, fédération…")}
+    <p class="sub" style="margin:10px 0 4px"><b style="color:var(--acc)">Verdict</b></p>
+    <div class="catpick">${VERDICTS.map(v=>`<button class="${c.verdict===v[0]?"on":""}" onclick="cibleVerdict('${v[0]}')">${v[1]} ${v[2]}</button>`).join("")}</div>
+    <p class="sub" style="margin:10px 0 4px"><b style="color:var(--acc)">Pourquoi — en une phrase</b></p>
+    <textarea style="min-height:70px" placeholder="Pourquoi elle t'intéresse, ou pourquoi tu l'écartes. Un refus en une ligne vaut mieux qu'un dossier ouvert trois semaines." oninput="cibleTmp('note',this.value)">${esc(c.note||"")}</textarea>
+    <button class="btn" onclick="cibleSave()">${id!=null?"Enregistrer":"Ajouter au pipeline"}</button>
+    ${id!=null?`<button class="danger" onclick="cibleSuppr(${id})">Supprimer cette cible</button>`:""}
+    <button class="btn ghost" onclick="openPipeline()">Retour au pipeline</button>`);
+}
+function cibleTmp(k,v){ window.__cible[k]=v; }
+function cibleVerdict(v){
+  window.__cible.verdict=(window.__cible.verdict===v)?"":v;
+  document.querySelectorAll(".catpick button").forEach(b=>b.classList.remove("on"));
+  const i=VERDICTS.findIndex(x=>x[0]===window.__cible.verdict);
+  if(i>=0) document.querySelectorAll(".catpick button")[i].classList.add("on");
+}
+function cibleSave(){
+  const c=window.__cible;
+  if(!(c.nom||"").trim()) return toast("Il faut au moins un nom.");
+  if(c.id==null){ c.id=Date.now(); S.fonds.cibles.unshift(c); addXP(5); }
+  else { const i=S.fonds.cibles.findIndex(x=>x.id===c.id); if(i>=0) S.fonds.cibles[i]=c; }
+  save(); toast("🔭 <b>Pipeline à jour.</b>"); openPipeline();
+}
+function cibleSuppr(id){
+  if(!confirm("Supprimer cette cible du pipeline ?")) return;
+  S.fonds.cibles=S.fonds.cibles.filter(c=>c.id!==id); save(); openPipeline();
+}
+
+/* ───────── LE MÉMO DE COMITÉ ───────── */
+const MEMO_CI=[
+["Recommandation et conditions","Ce qu'on propose, à quel prix, sous quelles réserves. La réponse d'abord — le reste du document la soutient."],
+["La thèse en trois phrases","Pourquoi cette société, pourquoi maintenant, pourquoi nous."],
+["La société","Ce qu'elle vend, à qui, et pourquoi ses clients la paient plutôt qu'un concurrent."],
+["Marché et concurrence","Qu'est-ce qui empêche un concurrent de faire la même chose moins cher ?"],
+["Les chiffres et les sensibilités","Historique retraité, plan, puis : un demi-tour de multiple en moins, deux points de croissance en moins, un an de retard."],
+["La structuration","Instruments, pacte, management package, gouvernance. Qui est remboursé d'abord ?"],
+["Risques et pré-mortem","Nous sommes en 2030, cette ligne est la pire du portefeuille. Qu'est-ce qui s'est passé ?"],
+["La sortie","Qui achète, à quel multiple, quand — et ce qui doit être vrai pour que ça arrive."]
+];
+function memoCIRempli(){ return MEMO_CI.filter((_,i)=>(S.fonds.memoCI[i]||"").trim().length>=40).length; }
+function openMemoCI(){
+  openOv(ovTop("Le mémo de comité")+`
+    <div class="coach">Huit sections, dans l'ordre où un comité les lit. <b>Un comité ne cherche pas à admirer ton travail, il cherche ce qui ne va pas</b> — écris en conséquence. Brouillon enregistré au fil de la frappe.</div>
+    ${MEMO_CI.map((m,i)=>`
+      <p class="sub" style="margin:12px 0 4px"><b style="color:var(--acc)">${i+1}. ${m[0]}</b> — ${m[1]}</p>
+      <textarea style="min-height:70px" oninput="memoCISave(${i},this.value)">${esc(S.fonds.memoCI[i]||"")}</textarea>`).join("")}
+    <button class="btn" onclick="memoCIFinir()">Assembler et copier le mémo</button>
+    <button class="btn ghost" onclick="closeOv()">Fermer (brouillon conservé)</button>`);
+}
+function memoCISave(i,v){ S.fonds.memoCI[i]=v; save(); }
+function memoCIFinir(){
+  const parts=MEMO_CI.map((m,i)=>(S.fonds.memoCI[i]||"").trim());
+  const vides=parts.filter(x=>x.length<40).length;
+  if(vides>0){ toast("❌ <b>Mémo incomplet</b> — "+vides+" section"+(vides>1?"s":"")+" sous 40 caractères. Un comité ne lit pas un dossier à trous."); return; }
+  const txt="MÉMO D'INVESTISSEMENT — "+new Date().toLocaleDateString("fr-FR")+"\n\n"+MEMO_CI.map((m,i)=>m[0].toUpperCase()+"\n"+parts[i]).join("\n\n")+"\n\n— Rédigé dans LE CLOSING (espace Le Fonds). Corrige-le comme un membre du comité : attaque la croissance, le multiple de sortie, les dépendances, le prix, et « qu'est-ce qu'on sait que le vendeur ne sait pas ».";
+  const fini=()=>{ S.fonds.memos++; S.fonds.memoCI={}; addXP(40); save();
+    openOv(ovTop("Mémo n°"+S.fonds.memos)+`
+      <div class="result"><div class="big">⚖️</div><div class="xp">+40 XP</div>
+      <p>Copié. Maintenant fais-le attaquer : un mémo que personne n'a challengé n'a pas encore existé.</p></div>
+      <button class="btn" onclick="closeOv()">Continuer</button>`); };
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(fini,()=>{prompt("Copie ton mémo :",txt);fini();});
+  else { prompt("Copie ton mémo :",txt); fini(); }
 }
 
 function fondsPlanToggle(id){

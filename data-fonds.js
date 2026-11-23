@@ -628,3 +628,62 @@ const FONDS_PLAN = [
  ["f143","Relire ses propres livrables et les mettre au propre — c'est ce qu'on montre la première semaine"],
  ["f144","Se reposer. Arriver frais le 1er mars vaut mieux qu'une révision de plus."]]}
 ];
+
+/* ═══════════ LE VOCABULAIRE DU FONDS ═══════════
+   48 termes qui manquaient au lexique : la vie d'un fonds, les
+   instruments du non-coté français, le juridique du minoritaire. Même
+   format que data-lexique.js — on pousse dans le même tableau, l'écran
+   du lexique et sa recherche les prennent sans rien changer.
+   Catégorie « PE » pour les repérer. */
+if (typeof LEXIQUE !== "undefined") LEXIQUE.push(
+{t:"Engagement", en:"Commitment", cat:"PE", d:"Promesse de verser jusqu'à un montant donné, appelée au fil des acquisitions. On ne verse rien à la signature : la gestion de trésorerie d'un LP repose entièrement là-dessus."},
+{t:"Appel de capitaux", en:"Capital call / drawdown", cat:"PE", d:"Demande de versement adressée aux investisseurs, préavis court (une à deux semaines). Le défaut est lourdement sanctionné : intérêts, puis perte d'une partie des droits."},
+{t:"Capital appelé", en:"Paid-in capital", cat:"PE", d:"Ce qui est réellement sorti de la poche de l'investisseur. C'est le dénominateur de tous les ratios de performance d'un fonds — jamais l'engagement."},
+{t:"Distribution", en:"Distribution", cat:"PE", d:"Produit d'une cession reversé aux investisseurs, après carried interest. Le fonds ne garde pas le produit de ses ventes."},
+{t:"DPI", en:"Distributions to paid-in", cat:"PE", d:"Distributions / capital appelé. Le seul ratio qui soit du cash : il ne se discute pas. À 1,00×, les investisseurs ont récupéré leur mise."},
+{t:"RVPI", en:"Residual value to paid-in", cat:"PE", d:"Valeur du portefeuille encore détenu / capital appelé. C'est une estimation, donc une opinion sensible aux comparables retenus."},
+{t:"TVPI", en:"Total value to paid-in", cat:"PE", d:"DPI + RVPI : la performance totale. À TVPI égal, regarder lequel des deux la porte — 1,8× dont 1,6× de DPI n'est pas 1,8× dont 0,3×."},
+{t:"Courbe en J", en:"J-curve", cat:"PE", d:"Trajectoire normale d'un fonds fermé : performance négative les premières années (capital appelé et frais payés avant toute cession), remontée vers la troisième ou quatrième. Un fonds jeune n'est pas un mauvais fonds."},
+{t:"Millésime", en:"Vintage", cat:"PE", d:"Année du premier closing d'un fonds. On compare un fonds à son millésime : un 2024 et un 2019 ne sont ni au même stade ni dans le même marché."},
+{t:"Hurdle", en:"Hurdle rate / preferred return", cat:"PE", d:"Rendement minimum (8 % par an par convention) servi aux investisseurs avant tout partage de la plus-value avec le gérant."},
+{t:"Rattrapage", en:"Catch-up", cat:"PE", d:"Clause qui attribue au gérant 100 % des flux après le hurdle jusqu'à ce qu'il atteigne sa part du profit total. Sur un fonds à 1,8×, l'écart avec ou sans rattrapage peut tripler son carried."},
+{t:"Carried interest", en:"Carried interest", cat:"PE", d:"Part de la plus-value revenant à l'équipe de gestion, 20 % par convention. En France, son régime fiscal suppose un investissement personnel et une détention minimale."},
+{t:"Cascade de distribution", en:"Distribution waterfall", cat:"PE", d:"Ordre dans lequel l'argent redescend : capital, puis hurdle, puis rattrapage, puis partage. Européenne = calculée sur tout le fonds ; américaine = dossier par dossier."},
+{t:"Clause de restitution", en:"Clawback", cat:"PE", d:"Obligation pour le gérant de rendre un carried perçu trop tôt si la performance finale ne le justifie plus. Sa valeur dépend de la solvabilité de celui qui doit rendre."},
+{t:"Engagement de l'équipe", en:"GP commitment", cat:"PE", d:"Argent que l'équipe de gestion met dans son propre fonds, 1 à 2 % par convention. Le carried est une option sur la hausse ; ceci est ce qui fait sentir la baisse."},
+{t:"Ligne d'appels de capitaux", en:"Capital call facility / subscription line", cat:"PE", d:"Crédit bancaire qui permet de payer une acquisition avant d'appeler les investisseurs. Améliore le TRI sans toucher au multiple : toujours demander le TRI retraité de cet effet."},
+{t:"Recyclage", en:"Recycling", cat:"PE", d:"Réinvestir le produit de cessions précoces au lieu de le distribuer. Le capital investi cumulé peut dépasser l'engagement, le capital appelé non."},
+{t:"Sur-engagement", en:"Over-commitment", cat:"PE", d:"S'engager au-delà du capital disponible, en comptant sur les distributions des millésimes antérieurs. Marche jusqu'au jour où les distributions s'arrêtent et les appels continuent."},
+{t:"Blind pool", en:"Blind pool", cat:"PE", d:"On souscrit sur une équipe et une stratégie, sans connaître les sociétés qui seront achetées. C'est la différence structurelle avec le marché secondaire."},
+{t:"Clause d'homme clé", en:"Key man clause", cat:"PE", d:"Permet de suspendre la période d'investissement si les personnes sur lesquelles on a investi quittent l'équipe. Pendant juridique de l'exigence de performance attribuable."},
+{t:"Performance attribuable", en:"Attributable track record", cat:"PE", d:"Performance réalisée par les personnes présentes aujourd'hui, et non par la maison qu'elles ont quittée. Première vérification d'un investisseur professionnel."},
+{t:"Équivalent marché coté", en:"Public market equivalent (PME)", cat:"PE", d:"On rejoue les appels et distributions d'un fonds sur un indice boursier. Seule façon honnête de répondre à « a-t-il fait mieux que la bourse »."},
+{t:"Secondaire", en:"Secondary", cat:"PE", d:"Rachat d'une participation de fonds à un investisseur existant, souvent avec décote. On entre dans un portefeuille déjà investi : courbe en J raccourcie, sociétés visibles."},
+{t:"Rétrocession de commissions", en:"Fee offset", cat:"PE", d:"Commissions facturées par le gérant aux sociétés du portefeuille, venant en déduction des frais de gestion. Réponse de place à un conflit d'intérêts manifeste."},
+{t:"Co-investissement", en:"Co-investment", cat:"PE", d:"Investir à côté d'un fonds sur un dossier donné, le plus souvent sans frais ni carried. Première question à poser : pourquoi me le propose-t-on ?"},
+{t:"Sélection adverse", en:"Adverse selection", cat:"PE", d:"Les dossiers qu'on vous offre ne sont pas tirés au hasard. Test chiffré : quelle part de son fonds, et de son argent personnel, le gérant met-il sur cette ligne ?"},
+{t:"Sponsoring de fonds", en:"Anchor investment / seeding", cat:"PE", d:"Financer le démarrage d'une équipe de gestion contre une économie négociée : frais réduits, part du carried, parfois participation dans la société de gestion."},
+{t:"Participation dans une société de gestion", en:"GP stake", cat:"PE", d:"Part du capital du gérant lui-même. On n'achète plus la performance d'un fonds mais des revenus de frais récurrents : on évalue une entreprise, pas une cible."},
+{t:"Questionnaire de due diligence", en:"DDQ", cat:"PE", d:"Document que l'investisseur envoie au gérant : gouvernance, processus, valorisation, conformité, performance détaillée, conflits. Des modèles standardisés existent (ILPA)."},
+{t:"Premier closing", en:"First closing", cat:"PE", d:"Date à partir de laquelle un fonds peut commencer à investir, avant le closing final. Les souscripteurs du premier tour obtiennent parfois un avantage."},
+{t:"Juste valeur", en:"Fair value", cat:"PE", d:"Base de valorisation du non-coté, encadrée par les lignes directrices IPEV : multiples de comparables ajustés, calibrage sur le prix d'entrée, cohérence entre périodes."},
+{t:"Décote sur actif net", en:"Discount to NAV", cat:"PE", d:"Écart entre le cours d'un véhicule coté et son actif net réévalué. Caractéristique structurelle du format, pas un jugement sur le gérant."},
+{t:"Taux de perte", en:"Loss ratio", cat:"PE", d:"Part des lignes ayant rendu moins que leur coût. Dit si une performance vient d'un processus ou d'un coup réussi — bien mieux que le TRI."},
+{t:"Pacte d'associés", en:"Shareholders' agreement", cat:"PE", d:"Contrat entre actionnaires. Pour un minoritaire, c'est là que la valeur se défend : gouvernance, information, liquidité, transferts. « J'ai 25 % » ne dit rien sans lui."},
+{t:"Décisions réservées", en:"Reserved matters / veto rights", cat:"PE", d:"Liste de décisions qui ne peuvent être prises sans l'accord de l'investisseur : endettement, acquisitions, cessions d'actifs, rémunérations, distributions."},
+{t:"Clause de liquidité", en:"Liquidity clause / exit undertaking", cat:"PE", d:"Oblige, passé un délai, à organiser une sortie. Sans elle, une participation minoritaire dans une société familiale peut ne jamais se transformer en cash."},
+{t:"Sortie conjointe", en:"Tag-along", cat:"PE", d:"Droit de vendre ses titres aux mêmes conditions que l'actionnaire majoritaire qui cède. Protection du minoritaire."},
+{t:"Obligation de sortie", en:"Drag-along", cat:"PE", d:"Obligation de céder ses titres si une majorité décide de vendre la société entière. Protège la liquidité de l'ensemble, contraint le minoritaire."},
+{t:"Préemption", en:"Right of first refusal", cat:"PE", d:"Priorité d'achat des titres qu'un associé veut céder, aux mêmes conditions. Contrôle l'entrée de nouveaux actionnaires."},
+{t:"Obligation convertible", en:"Convertible bond", cat:"PE", d:"Dette convertible en actions. En cas de succès on convertit, en cas de déception on reste créancier remboursé avant les actionnaires. La question est toujours : qui est payé d'abord ?"},
+{t:"BSA", en:"Warrant", cat:"PE", d:"Bon de souscription d'actions : droit d'acheter plus tard des actions à un prix fixé. Sert à ajuster le partage de la plus-value sans toucher au prix d'entrée."},
+{t:"Management package", en:"Management package", cat:"PE", d:"Dispositif d'intéressement des dirigeants au capital : entrée à conditions favorables, et part de la plus-value croissante au-delà de seuils."},
+{t:"Sweet equity", en:"Sweet equity", cat:"PE", d:"Part du capital offerte aux dirigeants à des conditions plus favorables que celles de l'investisseur. Le prix de l'alignement."},
+{t:"Ratchet", en:"Ratchet", cat:"PE", d:"Mécanisme augmentant la part des managers au-delà d'un seuil de performance. Ne s'applique qu'aux euros qui dépassent le seuil, jamais aux précédents."},
+{t:"Bon et mauvais sortant", en:"Good leaver / bad leaver", cat:"PE", d:"Clauses fixant le prix de rachat des titres d'un dirigeant qui part, selon le motif de son départ. Le mauvais sortant cède à un prix défavorable."},
+{t:"OBO", en:"Owner buy-out", cat:"PE", d:"Le dirigeant rachète sa propre société avec un investisseur et de la dette, pour réaliser une partie de son patrimoine sans partir. Montage fréquent en France."},
+{t:"Apport-cession", en:"Contribution then sale (art. 150-0 B ter)", cat:"PE", d:"Mécanisme français permettant, sous conditions de réinvestissement, de reporter l'imposition d'une plus-value d'apport de titres. Structure beaucoup d'opérations de liquidité — à faire confirmer par un fiscaliste."},
+{t:"Garantie d'actif et de passif", en:"Representations and warranties", cat:"PE", d:"Engagement du vendeur sur la consistance de ce qu'il vend, assorti d'une indemnisation. Le prix sans la garantie n'est pas le prix."},
+{t:"Acquisition complémentaire", en:"Bolt-on / add-on", cat:"PE", d:"Société rachetée par une participation existante (la plateforme). Moteur : l'arbitrage de multiple entre une petite société et le groupe qu'elle rejoint."},
+{t:"Arbitrage de multiple", en:"Multiple arbitrage", cat:"PE", d:"Acheter 5× ce qui sera valorisé 8× une fois intégré. Gain immédiat et sans amélioration opérationnelle — mais il n'existe que si l'intégration a réellement lieu."}
+);
