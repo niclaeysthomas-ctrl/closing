@@ -35,11 +35,19 @@ self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
 
+/* ⚠️ NE PURGER QUE SES PROPRES CACHES (corrigé le 2026-11-23).
+   Les ~30 apps vivent sur UNE SEULE origine (niclaeysthomas-ctrl.github.io),
+   donc elles partagent le même CacheStorage. L'ancien code supprimait
+   toute clé différente de CACHE : chaque déploiement du closing vidait le
+   cache hors-ligne du Pointage, de 990, de cumbre… Constaté en direct :
+   après une installation, il ne restait que le cache du closing. */
+const PREFIXE = "closing-";
 self.addEventListener("activate", e => {
   e.waitUntil(
     caches.keys()
       .then(keys => Promise.all(
-        keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+        keys.filter(k => k.startsWith(PREFIXE) && k !== CACHE).map(k => caches.delete(k))
+      ))
       .then(() => self.clients.claim())
   );
 });
@@ -49,9 +57,14 @@ self.addEventListener("fetch", e => {
   e.respondWith(
     caches.match(e.request, { ignoreSearch: true }).then(hit =>
       hit ||
+      /* Ne jamais mettre en cache une réponse qui n'est pas OK : pendant un
+         build GitHub Pages, le site répond 404, et une 404 cachée fige l'app
+         sur « File not found » jusqu'au prochain changement de version. */
       fetch(e.request).then(res => {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(e.request, copy));
+        if (res && res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, copy));
+        }
         return res;
       })
     )
