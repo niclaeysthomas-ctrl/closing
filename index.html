@@ -361,7 +361,7 @@
 // ================= ÉTAT =================
 const RANKS=[["Stagiaire",0],["Analyst",150],["Associate",400],["VP",800],["Director",1400],["Managing Director",2200],["Rainmaker",3200]];
 const KEY="closing_v1";
-const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[],mclass:[],eco:[],pensees:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{},journal:[],biz:null,cimetiere:[],bizDone:[],bizRec:{},exos:{cur:1,p:{}},rec:{p:{}},pal:{},lastExport:null,
+const DEF={xp:0,streak:0,lastVal:"",done:{deals:[],lessons:[],cases:[],negos:[],teasers:[],cascades:[],plbo:[],feyn:[],mclass:[],eco:[],pensees:[],gerant:[]},menu:null,rev:[],miss:[],days:[],itv:{runs:0,best:0,runsEN:0,bestEN:0},missions:{},memos:0,memoDraft:{},cards:{},journal:[],biz:null,cimetiere:[],bizDone:[],bizRec:{},exos:{cur:1,p:{}},rec:{p:{}},pal:{},lastExport:null,
   /* Objectif stage (2026-10-10) */ stage:true,recall:true,guided:true,oral:{},fit:{},plan:{},mesDeals:[],
   /* LE FONDS (2026-11-23) — sous-arbre indépendant : ateliers lus, cases du
      calendrier, records du kit LP, questions ratées. Il ne touche ni au streak,
@@ -508,9 +508,13 @@ const SPAR={
   teaser:{l:()=>TEASERS,d:()=>S.done.teasers,ico:"🧠",lab:"Brain teaser"},
   cascade:{l:()=>CASCADES,d:()=>S.done.cascades,ico:"📊",lab:"Cascade comptable"},
   plbo:{l:()=>PLBO,d:()=>S.done.plbo,ico:"🧾",lab:"Paper LBO"},
-  feyn:{l:()=>FEYNMAN,d:()=>S.done.feyn,ico:"🧒",lab:"Expliqué simplement"}
+  feyn:{l:()=>FEYNMAN,d:()=>S.done.feyn,ico:"🧒",lab:"Expliqué simplement"},
+  /* 2026-11-24 : six situations posées par un associé de fonds. Le type
+     PREND SON TOUR dans la rotation du sparring, il n'ajoute pas de bloc
+     à la journée — c'est la condition pour que le quotidien ne gonfle pas. */
+  gerant:{l:()=>(typeof GERANT!=="undefined"?GERANT:[]),d:()=>S.done.gerant,ico:"🏛️",lab:"Face au gérant"}
 };
-const SPARROT=["case","nego","cascade","teaser","plbo"];
+const SPARROT=["case","gerant","nego","cascade","teaser","plbo"];
 function isoWeek(){
   const d=new Date(); d.setHours(0,0,0,0);
   d.setDate(d.getDate()+3-((d.getDay()+6)%7));
@@ -605,6 +609,7 @@ function revLabel(e){
   if(e.t==="cascade"){const x=CASCADES.find(y=>y.id===e.id); return x?["📊","Cascade — "+x.title]:null;}
   if(e.t==="plbo"){const x=PLBO.find(y=>y.id===e.id); return x?["🧾","Paper LBO — "+x.title]:null;}
   if(e.t==="feyn"){const x=FEYNMAN.find(y=>y.id===e.id); return x?["🧒","Feynman — "+x.title]:null;}
+  if(e.t==="gerant"&&typeof GERANT!=="undefined"){const x=GERANT.find(y=>y.id===e.id); return x?["🏛️","Face au gérant — "+x.title]:null;}
   if(e.t==="mclass"){const x=MASTERCLASS.find(y=>y.id===e.id); return x?[x.icon,"Masterclass — "+x.domain]:null;}
   if(e.t==="eco"){const x=ECO_CHAPITRES.find(y=>y.id===e.id); return x?[x.icon,"Éco — "+x.titre]:null;}
   if(e.t==="pensee"){const x=PENSEES.find(y=>y.id===e.id); return x?[x.icon,"Pensée — "+x.titre]:null;}
@@ -693,7 +698,7 @@ function ensureMenu(){
 const LESSON_FOND=["base","cpt","ana","valo"];
 /* En mode stage (2026-10-10), l'ordre suit STAGE_PRIO : socle, compta,
    analyse, valorisation, M&A, LBO, finance d'entreprise — puis le reste. */
-const STAGE_SOCLE=["base","cpt","ana","valo","fpa"];   /* le M&A et le LBO ont leur propre parcours quotidien */
+const STAGE_SOCLE=["base","cpt","ana","valo","pe","fpa"];   /* « pe » ajouté le 2026-11-24 : le stage est en private equity, pas en direction financière. Le M&A et le LBO ont leur propre parcours quotidien. */
 function lessonOrder(){ return (S.stage&&typeof STAGE_PRIO!=="undefined")?STAGE_SOCLE:LESSON_FOND; }
 function nextLesson(){
   for(const mid of lessonOrder()){
@@ -2851,8 +2856,16 @@ function copierRapport(){
    vers les entretiens blancs en semaines 5 et 6 du plan. Le drill des
    trois états n'est exigé que les trois premières semaines : ensuite,
    c'est un réflexe, ou il faut le refaire hors menu. */
-const STAGE_ROT   = ["itvEN","cascade","plbo","cas","cascade","itv","cas"];   /* conseil : 2 cas par semaine */  /* dim → sam, semaines 1-4 */
-const STAGE_ROT_B = ["itvEN","itv","plbo","cas","itvEN","itv","cas"];     /* semaines 5-6 : entretiens blancs */
+/* LA MISE EN SITUATION (refaite le 2026-11-24). Il y avait deux rotations :
+   la seconde, à partir de la semaine 5, doublait les entretiens blancs parce
+   que les entretiens de janvier approchaient. Le stage est signé — on ne
+   s'entraîne plus à être recruté, on s'entraîne à être utile le 1er mars.
+   Une seule rotation désormais, où « Face au gérant » prend deux jours par
+   semaine, et où l'entretien blanc en anglais reste une fois (les dossiers
+   se lisent en anglais, pas seulement les entretiens). Même bloc de 25 min,
+   même nombre de jours : la journée ne bouge pas. */
+const STAGE_ROT   = ["gerant","cascade","plbo","cas","gerant","itvEN","cas"];   /* dim → sam */
+const STAGE_ROT_B = STAGE_ROT;
 function stageMenuInit(m){
   const w=stageWeek(), dow=new Date().getDay();
   let ap=(w>=5?STAGE_ROT_B:STAGE_ROT)[dow];
@@ -2871,7 +2884,13 @@ function stageAppliTile(m){
     return {ic:c.ic, t:"Cas de conseil — "+c.titre, s:"cadrer, découper, chiffrer, conclure : la démarche notée en entretien", go:`casOpen('${c.id}')`}; }
   if(m.appli==="itv") return {ic:"🎙️", t:"Entretien blanc — 12 questions, 8 minutes", s:"puis repasse chaque question ratée au Rattrapage en expliquant à voix haute pourquoi tu t'es trompé", go:"startInterview()"};
   if(m.appli==="itvEN") return {ic:"🇬🇧", t:"Interview in English — 12 questions, 8 minutes", s:"la moitié de tes entretiens seront en anglais ; ensuite, redis à voix haute en anglais les deux réponses que tu as ratées", go:"startInterviewEN()"};
-  const sp=SPAR[m.appli], it=sp.l().find(x=>x.id===m.spar);
+  const sp=SPAR[m.appli];
+  /* Si la ligne du jour n'existe plus (contenu retiré, état importé d'une
+     version antérieure), on retombe sur la première non faite plutôt que
+     de casser tout le programme du jour. */
+  const it=sp.l().find(x=>x.id===m.spar)||nextUndone(sp.l(),sp.d())||sp.l()[0];
+  if(!it) return {ic:sp.ico, t:sp.lab, s:"aucun contenu disponible", go:"toast('Rien à ouvrir ici.')"};
+  if(it.id!==m.spar){ m.spar=it.id; }
   return {ic:sp.ico, t:sp.lab+" — "+(it.title||it.cat), s:m.appli==="plbo"?"sur papier, chronométré : MOIC, TRI, puis une phrase sur la source du rendement":"déroule P&L → flux → bilan par écrit, chiffre par chiffre", go:`openSpar('${m.appli}','${m.spar}')`};
 }
 function stageTasks(m){
@@ -2883,18 +2902,46 @@ function stageTasks(m){
    {b:1, k:"chif", nom:"le chiffrage", min:5, done:!!m.dChif, ic:"⚡", t:"Le chiffrage — 5 calculs de tête", s:"cinq items, sans calculatrice", go:"chifStart('mix',5)"},
   ];
   T.push({b:1, k:"formules", nom:"les formules", min:10, done:!!m.dForm, ic:"🧮", t:"Les formules — cartes à retourner", s:formQueue().length+" cartes aujourd'hui, dont des nouvelles : les deux façons de chaque formule", go:"formStart()"});
-  if(w<=3) T.push({b:1, k:"etats", nom:"le drill des trois états", min:5, done:!!m.dEtats, ic:"🔗", t:"Drill — les trois états liés", s:"15 variations éclair ; objectif 15/15 deux jours de suite", go:"etatsDrill()"});
+  if(w<=3 && !(typeof recDues==="function" && (recDues().length||!recToutesAcquises()))) T.push({b:1, k:"etats", nom:"le drill des trois états", min:5, done:!!m.dEtats, ic:"🔗", t:"Drill — les trois états liés", s:"15 variations éclair ; objectif 15/15 deux jours de suite", go:"etatsDrill()"});
+  /* LA RÉCITATION (2026-11-24). Elle existait depuis le 7 octobre mais le
+     programme stage ne l'affichait pas : dix structures écrites, invisibles.
+     Elle prend la place du drill des trois états — même bloc, mêmes 5 min —
+     et seulement les jours où une structure est DUE, ou tant que les dix ne
+     sont pas acquises. Zéro minute ajoutée à la journée. */
+  if(typeof recDuJour==="function" && (recDues().length || !recToutesAcquises())){
+    const rc=recDuJour(), rdue=recDue(rc.id);
+    T.push({b:1, k:"rec", nom:"la récitation", min:5, done:!!m.dRec, ic:rdue?"↻":rc.ic,
+      t:(rdue?"Révision — ":"Récitation — ")+rc.titre,
+      s:rc.lignes.length+" lignes à remettre dans l'ordre, de tête, intrus compris · "+recEtatLabel(rc.id),
+      go:`recStart('${rc.id}')`});
+  }
   T.push(
    {b:2, k:"lesson", nom:"la leçon", min:15, done:!!m.dLesson, ic:"🎓", t:"Leçon — "+les.title, s:MODULES.find(x=>x.id===les.module).name+" · lis, puis quiz en formulant chaque réponse avant de voir les choix", go:`openLesson('${les.id}')`},
    {b:2, k:"exo", nom:"les exos", min:15, done:!!m.dExo, ic:dusExo.length?"🔁":"🧮", t:dusExo.length?`Exos — reprise de ${dusExo.length} palier${dusExo.length>1?"s":""}`:(pExo?`Exos — palier ${pExo.n}. ${pExo.titre}`:"Exos — tout est validé"), s:"une série complète, calculs posés sur papier", go:"exoContinuer()"},
-   {b:3, k:"oral", nom:"l'oral", min:15, done:!!m.dOral, ic:"🎤", t:"L'oral du jour — 3 questions à voix haute", s:w<=2?"technique et motivation, enregistre-toi et réécoute-toi. Si une question de fit tombe sans réponse écrite, rédige-la d'abord":"technique et motivation, 90 s chacune, enregistre-toi et réécoute-toi", go:"oralStart('mix')"},
+   /* L'ORAL, RECENTRÉ (2026-11-24). Il mêlait technique et motivation parce
+      qu'il préparait des entretiens de candidature. Le stage est signé : la
+      motivation sort du quotidien (elle reste accessible dans l'espace
+      Entretiens), la technique reste — on présente un dossier en comité
+      comme on déroule un DCF en entretien. 15 min → 10 min. */
+   {b:3, k:"oral", nom:"l'oral technique", min:10, done:!!m.dOral, ic:"🎤", t:"L'oral du jour — 3 questions techniques à voix haute", s:"90 secondes chacune, à dérouler comme devant un comité ; tu coches ensuite ce que tu as vraiment dit", go:"oralStart('tech')"},
    Object.assign({b:4, k:"appli", nom:"la mise en situation", min:25, done:!!m.dAppli}, stageAppliTile(m)),
    (()=>{const x=structDuJour();return {b:5, k:"struct", nom:"la structuration", min:10, done:!!m.dStruct, ic:"🧩", t:"Structuration — "+x.type, s:x.enonce.slice(0,90)+(x.enonce.length>90?"…":"")+" · 2 min pour poser ta structure", go:"openStruct()"};})(),
    (()=>{const x=conseilDuJour();return {b:5, k:"conseil", nom:"la fiche conseil", min:5, done:!!m.dConseil, ic:"🧠", t:"Fiche conseil — "+x.titre, s:"l'outil, comment l'appliquer, le piège ; puis tu l'expliques à voix haute", go:"openConseil()"};})(),
    (()=>{const l=LESSONS.find(x=>x.id===m.maLesson), fait=maFaits(), revis=S.done.lessons.includes(m.maLesson);
      return {b:6, k:"ma", nom:"la leçon M&A", min:15, done:!!m.dMA, ic:"🤝", t:"Bases M&A — "+l.title, s:(revis?"révision du parcours":"leçon "+(MA_PARCOURS.indexOf(l.id)+1)+"/"+MA_PARCOURS.length+" du parcours")+" · "+fait+"/"+MA_PARCOURS.length+" faites", go:`openLesson('${l.id}')`};})(),
    {b:7, k:"presse", nom:"la revue de presse", min:5, done:!!m.dPresse, ic:"📰", t:"Revue de presse — un deal de la semaine", s:"5 lignes dans le Journal : qui, combien, pourquoi, comment c'est financé, ton avis", go:"openPresse()"},
-   (()=>{const x=metierDuJour();return {b:7, k:"metier", nom:"le métier du jour", min:5, done:!!m.dMetier, ic:"🧑‍💼", t:"Le métier du jour — "+x.titre, s:"mission, journée type, ce qu'on teste en stage ; puis ton avis", go:"openMetier()"};})(),
+   /* LA LECTURE DU JOUR (2026-11-24) — à la place du « métier du jour ».
+      Les 30 fiches métiers servaient à choisir une voie : elle est choisie.
+      Ce créneau revient à la rotation sur quatre jours — deux jours un deal,
+      un jour une masterclass (dont private equity, secondaire, capital-risque),
+      un jour une pensée. 5 min → 10 min, compensées par l'oral. */
+   (()=>{
+     const mc=MASTERCLASS.find(x=>x.id===m.mclass), pen=(typeof PENSEES!=="undefined")&&PENSEES.find(x=>x.id===m.pensee);
+     const isMC=m.readMode==="mclass"&&mc, isPen=m.readMode==="pensee"&&pen;
+     if(isPen) return {b:7, k:"lecture", nom:"la lecture du jour", min:10, done:!!m.dDeal, ic:pen.icon, t:"La pensée du jour — "+pen.titre, s:pen.tag+" · lecture + quiz", go:`openPensee('${pen.id}')`};
+     if(isMC)  return {b:7, k:"lecture", nom:"la lecture du jour", min:10, done:!!m.dDeal, ic:mc.icon, t:"Masterclass — "+mc.domain, s:mc.tag+" · comment ce métier ou ce secteur gagne de l'argent", go:`openMC('${mc.id}')`};
+     return {b:7, k:"lecture", nom:"la lecture du jour", min:10, done:!!m.dDeal, ic:"📖", t:"Le deal du jour — "+deal.title, s:deal.tag+" · "+deal.year+" · histoire + quiz", go:`openDeal('${deal.id}')`};
+   })(),
    {b:8, k:"cards", nom:"les flashcards", min:5, done:!!m.dCards, ic:"🃏", t:"Flashcards"+(cardsDue().length?" — "+cardsDue().length+" dues":""), s:"la révision espacée garde ce que tu as appris cette semaine", go:"openCardIntro()"}
   );
   return T;
@@ -2937,7 +2984,7 @@ function vJourStage(){
   ${new Date().getDay()===0&&S.lastRapport!==today()?`<div class="act rev" onclick="openRapport()" style="border-color:var(--acc)"><div class="ico">📤</div><div class="t"><b>C'est dimanche — envoie ton rapport à ton coach</b><small>copie-le et colle-le dans ta conversation avec Claude : retour sur ta semaine et programme ajusté</small></div><div class="st">›</div></div>`:""}
   <h2 class="sec">Si tu as plus de 2 heures</h2>
   ${bonus}
-  <div class="act" onclick="stageRoom()"><div class="ico">🎯</div><div class="t"><b>Objectif stage — tout l'espace</b><small>plan, oral technique, fit, trois états, deals récents</small></div><div class="st">›</div></div>`;
+  <div class="act" onclick="stageRoom()"><div class="ico">🎤</div><div class="t"><b>Oral et entretiens — tout l'espace</b><small>oral technique, fit, trois états, deals récents, formulaire</small></div><div class="st">›</div></div>`;
 }
 
 /* ================= LA SÉANCE GUIDÉE (2026-10-10) =================
@@ -4293,7 +4340,7 @@ function recallToggle(){ S.recall=!recallOn(); save(); render(); toast(S.recall?
 function vSpar(){
   const dc=S.done.cases.length,dn=S.done.negos.length,dt=S.done.teasers.length,dk=S.done.cascades.length,dp=S.done.plbo.length,nMiss=S.miss.length;
   return `<h1 class="page">Sparring</h1><div class="sub">Ici tu réponds par écrit avant de voir la grille. Le flou ne passe pas.</div>
-  ${typeof ORAL!=="undefined"?`<div class="mod gold" onclick="stageRoom()"><div class="ico">🎯</div><div class="t"><b>Objectif stage — oral, fit, trois états, deals récents</b><small>Ce que les recruteurs M&A et finance d'entreprise testent vraiment, et le plan des six semaines.</small></div><div class="pc">›</div></div>`:""}
+  ${typeof ORAL!=="undefined"?`<div class="mod gold" onclick="stageRoom()"><div class="ico">🎤</div><div class="t"><b>Oral et entretiens — oral technique, fit, trois états, deals récents</b><small>Dire un DCF en quatre-vingt-dix secondes, défendre un chiffre, raconter un deal : ça sert en comité comme en entretien.</small></div><div class="pc">›</div></div>`:""}
   <div class="mod gold" onclick="startInterview()">
     <div class="ico">🎙️</div><div class="t"><b>Mode entretien — 12 questions, 8 minutes</b><small>${S.itv.runs?`Meilleur score : ${S.itv.best}/12 sur ${S.itv.runs} passage${S.itv.runs>1?"s":""}.`:"Jamais tenté. Un vrai entretien ne prévient pas non plus."}</small></div>
     <div class="pc">›</div>
@@ -4976,7 +5023,7 @@ function openSpar(type,id){
 function openSparFull(type,id){
   const s=SPAR[type].l().find(x=>x.id===id);
   const qs=s.questions?s.questions.map((q,i)=>`<div class="gridpt"><b>Q${i+1}.</b> ${q}</div>`).join(""):`<div class="gridpt"><b>Mission :</b> ${s.task}</div>`;
-  const ctx={case:"Tu es le DAF. Le board attend.",nego:"Négociation en conditions réelles.",cascade:"Déroule les trois états, dans l'ordre, en chiffrant tout.",plbo:"Chrono mental : 5 minutes en entretien réel."}[type];
+  const ctx={case:"Tu es le DAF. Le board attend.",nego:"Négociation en conditions réelles.",cascade:"Déroule les trois états, dans l'ordre, en chiffrant tout.",plbo:"Chrono mental : 5 minutes en entretien réel.",gerant:"L'associé attend ta réponse. Deux minutes, conclusion d'abord."}[type];
   const lad=typeof PALIERS!=="undefined"&&PALIERS[id];
   openOv(ovTop(s.title)+`
     <div class="meta"><span class="tag ${type==="case"?"":"b"}">${s.tag}</span>${ctx}</div>
@@ -5094,9 +5141,10 @@ function oralLvl(id){ const o=S.oral[id]; return o?o.last:-1; }
 function oralSolides(cat){ return ORAL.filter(x=>(!cat||x.cat===cat)&&oralLvl(x.id)>=2).length; }
 function stageTileHtml(){
   if(!S.stage||typeof ORAL==="undefined") return "";
-  const w=stageWeek(), pw=STAGE_PLAN.find(x=>x.s===w);
+  const nFit=ORAL.filter(x=>x.cat==="fit").length, nTech=ORAL.length-nFit;
+  const jf=(typeof fondsJours==="function")?fondsJours():null;
   return `<div class="act rev" onclick="stageRoom()" style="border-color:#453a20">
-      <div class="ico">🎯</div><div class="t"><b>Objectif stage — semaine ${w}/6 : ${esc(pw.t)}</b><small>${planDone()}/${planItems().length} étapes du plan · oral : ${oralSolides()}/${ORAL.length} questions solides</small></div>
+      <div class="ico">🎤</div><div class="t"><b>Oral et entretiens</b><small>${oralSolides("tech")}/${nTech} questions techniques solides${jf!=null&&jf>0?" · le stage est dans "+jf+" jours, son calendrier est dans l'onglet Fonds":""}</small></div>
       <div class="st">›</div></div>
     <div class="act" onclick="oralStart('mix')">
       <div class="ico">🎤</div><div class="t"><b>L'oral du jour — 3 questions à voix haute</b><small>technique et motivation, 90 secondes chacune, puis tu coches ce que tu as vraiment dit (~8 min)</small></div>
@@ -5105,9 +5153,10 @@ function stageTileHtml(){
 function stageRoom(){
   const w=stageWeek();
   const nFit=ORAL.filter(x=>x.cat==="fit").length, fitEcrits=ORAL.filter(x=>x.cat==="fit"&&(S.fit[x.id]||"").trim().length>=200).length;
-  openOv(ovTop("🎯 Objectif stage")+`
-    <div class="sub" style="margin-bottom:12px">Cibles : M&A / banque d'affaires et finance d'entreprise. Les recrutements pour janvier se jouent maintenant — chaque bloc ci-dessous correspond à ce qu'un recruteur teste réellement.</div>
-    <div class="mod gold" onclick="planRoom()"><div class="ico">🗓️</div><div class="t"><b>Le plan des six semaines</b><small>Tu es en semaine ${w}. ${planDone()}/${planItems().length} étapes cochées. Inclut ce que l'app ne peut pas faire à ta place : candidatures, Excel, relances.</small></div><div class="pc">${w}/6</div></div>
+  const jf=(typeof fondsJours==="function")?fondsJours():null;
+  openOv(ovTop("🎤 Oral et entretiens")+`
+    <div class="sub" style="margin-bottom:12px">Le stage est signé — cet espace ne sert plus à en décrocher un, il sert à <b>garder l'oral affûté</b> : dire un DCF en quatre-vingt-dix secondes, défendre un chiffre, raconter un deal. Ça sert en comité comme en entretien, et il y aura d'autres entretiens.</div>
+    ${jf!=null?`<div class="mod gold" onclick="closeOv();nav('fonds')"><div class="ico">🏛️</div><div class="t"><b>Le calendrier du stage est dans l'espace Fonds</b><small>${jf>0?"J−"+jf+" avant le 1er mars":"Le stage a commencé"} · le plan des six semaines, qui listait candidatures et relances, n'a plus d'objet : il a été remplacé par les quatorze semaines du Fonds.</small></div><div class="pc">›</div></div>`:""}
     <div class="mod gold" onclick="oralStart('tech')"><div class="ico">🎤</div><div class="t"><b>Oral technique</b><small>DCF, trois états, EV → fonds propres, WACC, LBO, budget, covenants. À dire à voix haute en 90 secondes, puis tu coches les points attendus.</small></div><div class="pc">${oralSolides("tech")}/${ORAL.length-nFit}</div></div>
     <div class="mod gold" onclick="fitRoom()"><div class="ico">🗣️</div><div class="t"><b>Motivation et fit — tes réponses</b><small>Pitch, « pourquoi le M&A », « pourquoi la finance d'entreprise », un deal récent, un échec… Une trame, les pièges, ta réponse écrite, puis l'oral.</small></div><div class="pc">${fitEcrits}/${nFit}</div></div>
     <div class="mod gold" onclick="etatsDrill()"><div class="ico">🔗</div><div class="t"><b>Drill — les trois états liés</b><small>15 variations éclair (amortissement, BFR, dette, dividende, cession…). La question technique n°1. Vise 15/15 deux jours de suite.</small></div><div class="pc">${S.etatsBest!=null?S.etatsBest+"/"+ETATS.length:"›"}</div></div>
@@ -5127,12 +5176,12 @@ function stageRoom(){
 function planRoom(){
   const w=stageWeek();
   openOv(ovTop("🗓️ Le plan des six semaines")+`
-    <div class="sub" style="margin-bottom:12px">Coche au fur et à mesure. Ce qui compte n'est pas d'avoir tout coché, c'est d'arriver en entretien avec le socle solide, deux deals récents maîtrisés et des réponses de fit déjà dites à voix haute.</div>
+    <div class="coach" style="margin-bottom:12px">⚠️ <b>Ce plan est périmé.</b> Il visait à décrocher un stage pour janvier — candidatures, relances, entretiens blancs. C'est fait. Il reste ici parce que certaines étapes techniques valent encore, mais le plan vivant est celui des <b>quatorze semaines de l'espace Fonds</b>, calé sur le 1er mars.</div>
     ${STAGE_PLAN.map(wk=>`<div class="card" style="${wk.s===w?"border-color:var(--acc)":""}">
       <b style="font-size:14px">Semaine ${wk.s} — ${esc(wk.t)}${wk.s===w?' <span style="color:var(--acc)">· en cours</span>':""}</b>
       ${wk.items.map(it=>`<label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin-top:9px;font-size:14px;line-height:1.45"><input type="checkbox" ${S.plan[it[0]]?"checked":""} onchange="planTog('${it[0]}')" style="margin-top:3px;flex-shrink:0;accent-color:var(--acc);width:17px;height:17px"><span>${esc(it[1])}</span></label>`).join("")}
     </div>`).join("")}
-    <button class="btn ghost" onclick="stageRoom()">‹ Objectif stage</button>`);
+    <button class="btn ghost" onclick="stageRoom()">‹ Oral et entretiens</button>`);
 }
 function planTog(id){ S.plan[id]=!S.plan[id]; if(S.plan[id]) addXP(5); save(); }
 
@@ -5227,7 +5276,7 @@ function oralFin(){
   const g=ORL.good,t=ORL.items.length; ORL=null;
   if(t>=3) checkMenu("oral");
   openOv(ovTop("Oral terminé")+`<div class="result"><div class="big">${g}/${t}</div><p>réponses solides. L'oral se travaille comme un sport : un peu chaque jour vaut mieux qu'une séance de trois heures la veille.</p></div>
-    <button class="btn" onclick="stageRoom()">‹ Objectif stage</button><button class="btn ghost" onclick="closeOv()">Fermer</button>`);
+    <button class="btn" onclick="stageRoom()">‹ Oral et entretiens</button><button class="btn ghost" onclick="closeOv()">Fermer</button>`);
 }
 
 /* ---- le fit, par écrit ---- */
@@ -5237,7 +5286,7 @@ function fitRoom(){
     <div class="sub" style="margin-bottom:12px">Écris d'abord ta réponse (200 caractères minimum, avec tes vrais exemples), puis entraîne-toi à la dire sans la lire. Une réponse de fit improvisée s'entend tout de suite.</div>
     ${fits.map(x=>{const n=(S.fit[x.id]||"").trim().length, o=S.oral[x.id];
       return `<div class="act ${n>=200?"done":""}" onclick="fitOpen('${x.id}')"><div class="ico">${n>=200?"✍️":"○"}</div><div class="t"><b>${esc(x.q)}</b><small>${n?n+" caractères écrits":"pas encore rédigée"}${o?" · oral : "+["à reprendre","partiel","solide"][o.last]:""}</small></div><div class="st">›</div></div>`;}).join("")}
-    <button class="btn ghost" onclick="stageRoom()">‹ Objectif stage</button>`);
+    <button class="btn ghost" onclick="stageRoom()">‹ Oral et entretiens</button>`);
 }
 function fitOpen(id){
   oralCleanup();
@@ -5275,7 +5324,7 @@ function dealsRecRoom(){
     <button class="btn ghost" onclick="ficheNew('')">+ Nouvelle fiche</button>
     <h2 class="sec">Cinq opérations à connaître</h2>
     ${DEALS_RECENTS.map(d=>`<div class="act" onclick="dealRecOpen('${d.id}')"><div class="ico">📰</div><div class="t"><b>${esc(d.title)}</b><small>${esc(d.tag)} · ${esc(d.date)}</small></div><div class="st">›</div></div>`).join("")}
-    <button class="btn ghost" onclick="stageRoom()">‹ Objectif stage</button>`);
+    <button class="btn ghost" onclick="stageRoom()">‹ Oral et entretiens</button>`);
 }
 function dealRecOpen(id){
   const d=DEALS_RECENTS.find(x=>x.id===id);

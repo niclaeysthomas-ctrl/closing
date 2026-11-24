@@ -20,7 +20,7 @@ Ouvrir `index.html` dans un navigateur, ou servir le dossier (`python3 -m http.s
 | `data-masterclass.js` | 23 masterclass : **17 sectorielles** (comment un secteur gagne de l'argent) et **6 métiers** (private equity, secondaire & liquidité, capital-risque, processus M&A, destruction de valeur en M&A, mécanique du SPA) — lecture longue + modèles mentaux + ordres de grandeur + œil de l'investisseur + quiz |
 | `data-lexique.js` | 97 termes FR/EN du deal-maker, **+ 50 termes de private equity** poussés par `data-fonds.js` (147 au total) |
 | `data-fonds.js` | **LE FONDS** : 9 ateliers (un par ligne de l'offre de stage), 44 calculs du kit LP (appels de capitaux, DPI/RVPI/TVPI, TRI contre multiple, cascade de distribution, frais, secondaire, lecture d'un fonds), et le calendrier des 14 semaines jusqu'au 1er mars 2027 |
-| `data-stage.js` | Objectif stage (janvier) : module Finance d'entreprise, leçons M&A/LBO/analyse ajoutées, oral technique et fit, drill des trois états, 5 deals récents sourcés, plan de six semaines |
+| `data-stage.js` | **Oral et entretiens** (ex-« Objectif stage », recentré le 2026-11-24) : : module Finance d'entreprise, leçons M&A/LBO/analyse ajoutées, oral technique et fit, drill des trois états, 5 deals récents sourcés, plan de six semaines |
 | `anki-closing.txt` | Deck Anki de 184 cartes (lexique, multiples sectoriels, IPO, LBO, vérités du métier) |
 | `anki-fondamentaux.txt` | Deck Anki de 44 cartes — les formules seules (CAF, FCFF, FCFE, WACC, bêta, ROCE/ROE, DCF, multiples, élasticité), téléchargeable depuis Les exos |
 | `sw.js`, `manifest.webmanifest` | Hors-ligne + installation PWA |
@@ -41,11 +41,26 @@ Ouvrir `index.html` dans un navigateur, ou servir le dossier (`python3 -m http.s
 - **XP et grades** : Stagiaire → Analyst → Associate → VP → Director → Managing Director → Rainmaker.
 - **Sauvegarde** : export/import JSON depuis l'onglet Profil (la progression vit en localStorage).
 
-- **Objectif stage** : tuile en tête du menu du jour et du Sparring. Oral à voix haute (90 s, enregistrement possible, points attendus à cocher), réponses de fit rédigées puis dites, drill des trois états, deals récents et fiches personnelles, plan de six semaines.
+- **Oral et entretiens** (ex-« Objectif stage ») : tuile en tête du menu du jour et du Sparring. Oral à voix haute (90 s, enregistrement possible, points attendus à cocher), réponses de fit rédigées puis dites, drill des trois états, deals récents et fiches personnelles, plan de six semaines.
 - **Séance guidée** (activée par défaut) : chaque jour, 12 étapes dans un ordre imposé (chiffrage, formules, trois états, leçon, exos, oral, mise en situation, revue de presse, métier, conseil, deal, flashcards). Onglets et réglages verrouillés jusqu'à la fin ; bouton « Étape suivante » après chaque étape ; « Je suis bloqué » passe une étape mais ne valide pas la journée.
 - **Formules en cartes** (`data-quotidien.js`) : 45 formules, recto = nom, verso = formule ; révision espacée (1, 2, 4, 7, 14, 30 jours), cartes ratées reprises dans la séance. Formulaire complet consultable dans l'Académie.
 - **Conseil et bases M&A chaque jour** : une structuration de cas (30 énoncés, 2 minutes chrono, structure attendue et grille), une fiche conseil, deux cas de conseil par semaine, et une leçon du parcours Bases M&A (18 leçons dans l'ordre : métier, process, valeur, juridique du deal, LBO).
 - **Métier du jour / conseil du jour** (`data-quotidien.js`) : 30 métiers de la finance et 30 fiches de conseil, un de chaque par jour, dans l'ordre.
+- **Le quotidien recentré sur le private equity** (2026-11-24), à durée constante — 135 min avant, 135 min après :
+  la **récitation** revient dans la séance (elle existait depuis le 7 octobre mais le programme stage ne l'affichait
+  pas), à la place du drill des trois états et seulement quand une structure est due ; la **lecture du jour**
+  (deal / masterclass / pensée) remplace le « métier du jour », dont les 30 fiches servaient à choisir une voie
+  désormais choisie ; l'**oral** passe de 15 à 10 min et devient technique — le fit visait des entretiens de
+  candidature et reste accessible dans l'espace Oral et entretiens. La **mise en situation** a une seule rotation au
+  lieu de deux : la variante qui doublait les entretiens blancs à l'approche de janvier a disparu, et **Face au
+  gérant** y prend deux jours par semaine.
+- **Face au gérant** (`data-fonds.js`) : 6 situations posées par un associé de fonds — deux minutes pour trancher sur
+  une cible, un co-investissement, un covenant qui va sauter, un build-up, un fonds à sélectionner, un minoritaire à
+  structurer. Même mécanique que les autres sparrings (réponse écrite, puis grille à cocher), et le type **prend son
+  tour** dans la rotation : zéro minute ajoutée.
+- **Private equity · le métier** (`data-fonds.js`) : 4 leçons dans l'Académie — d'où vient le rendement d'un LBO, la
+  due diligence et ses quatre portes, les cinq leviers de création de valeur, les quatre sorties. Le module entre dans
+  l'ordre des priorités **devant** la finance d'entreprise.
 - **Mode stage** (Profil) : Académie, leçon du jour et entretiens blancs recentrés sur les modules prioritaires (bases, compta, analyse, valo, M&A, LBO, finance d'entreprise).  ⚠️ **Deux programmes de journée coexistent** (fusion du 2026-11-23) : mode stage activé → le programme en 13 blocs de `data-stage.js` fait foi, et il ne contient **ni la récitation ni la lecture du jour** (deal / masterclass / pensée) ; mode stage désactivé → le menu du jour historique, qui les contient. Les pensées et les masterclass restent atteignables par l'onglet Lectures dans les deux cas ; la récitation, seulement hors mode stage. À arbitrer quand le programme sera recentré sur le stage de private equity.
 - **Échappement, deux fonctions à ne pas confondre** (2026-11-23) : `esc()` échappe `& < > " '` pour le texte et
   les valeurs d'attribut ; `escJS()` échappe pour JavaScript **puis** pour HTML, et sert aux littéraux placés dans
